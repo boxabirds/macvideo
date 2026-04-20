@@ -35,6 +35,9 @@ data/clips-hq/
 data/cuts/
 data/logs/
 
+# POC outputs (regenerable, large)
+pocs/*/outputs/
+
 # Editors
 .idea/
 .vscode/

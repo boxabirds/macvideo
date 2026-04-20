@@ -26,7 +26,7 @@ Companion docs (read these for the "why"):
 - **Video gen:** LTX-2.3 via `mlx-video`, pinned to a resolved commit SHA.
 - **Audio:** Demucs `htdemucs_6s`, WhisperX large-v3 on vocals stem, librosa for structure.
 - **LLM:** Google GenAI SDK, `gemini-3-flash-preview` for structure labelling, style picking/expansion, and shot planning. Preview model ID — verify against current Google docs and pin. Same SDK and API key as image gen, so auth is one-path.
-- **Resolutions:** poc (512×288), iteration (896×512), final (1920×1080). 1080p untested at time of writing — smoke-test before committing.
+- **Resolutions:** poc (512×320), iteration (896×512), final (1920×1080). Both 512×320 (guide-attested) and 1920×1080 (unverified) need M5 Max empirical confirmation.
 - **Styles:** papercut, watercolour, steampunk, pencil sketch, bubblegum. LLM picks **one** per song, expands once into concrete visual cues, every shot prompt inherits the expansion.
 - **Lip-sync:** out of v1. Revisit ~2026-10 or when a CUDA box is available.
 - **Cloud scope (updated 2026-04-20):** permitted for LLM (Anthropic) and image gen (Google Gemini) stages only. Video, audio prep, transcription, assembly remain local. No cloud lip-sync, no cloud video gen.
