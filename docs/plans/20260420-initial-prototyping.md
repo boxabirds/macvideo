@@ -1,6 +1,6 @@
 # Initial prototyping plan — macvideo
 
-**Last updated:** 2026-04-21 (POC 2 results)
+**Last updated:** 2026-04-21 (POC 3 + 5 results)
 
 **Maintenance instructions for future sessions:**
 - Update the `Last updated` date at the top whenever you change this file.
@@ -160,3 +160,5 @@ Companion docs (read these for the "why"):
 - 2026-04-20 — LLM switched from Anthropic Claude Opus 4.7 to Google `gemini-3-flash-preview`. Rationale: text spend is trivial; consolidating LLM + image gen on a single vendor (Google GenAI SDK) simplifies auth, billing, and dependencies. Video stays local where the real compute lives.
 - 2026-04-21 — POC 1 passed. Findings in `pocs/01-ltx-smoke/RESULT.md`: LTX-2.3 distilled runs at 512×320 in 30 s on M5 Max (guide claimed 6–12 min — pessimistic by ~10×). Text encoder switched from `google/gemma-3-12b-it` (gated, early-access form) to `mlx-community/gemma-3-12b-it-bf16` (MLX-native, ungated). `num-frames` must be `1 + 8*k`. `--negative-prompt` is dev-pipeline only.
 - 2026-04-21 — POC 2 passed with a nuance. Findings in `pocs/02-ltx-audio-cond/RESULT.md`: audio conditioning is **inert in distilled** (no CFG path for audio, confirmed in `denoise_distilled` source) and **content-sensitive in dev** (verified empirically — same prompt+seed, different audio → substantively different scenes). Architectural implication: `--audio-file` is gated by pipeline — skip for distilled/iteration, use for dev-family/final. Distilled is not just a faster dev; it is a different decoder trained for CFG-less inference, so audio conditioning and negative prompts don't work there regardless of flags.
+- 2026-04-21 — POC 3 passed (I2V on distilled). Findings in `pocs/03-ltx-i2v/RESULT.md`: `--image` + `--image-strength` + `--image-frame-idx` anchor frame 0 on the supplied still and motion unfolds per prompt. Works on distilled — image conditioning is applied to the initial latent state, not as CFG guidance, so CFG-less pipelines still honour it. Required pinning mlx-video to PR #24 HEAD (`nopmobiel/mlx-video@a8cd1db7`) because Blaizzy's `main@9ab4826` has a VAE encoder topology bug for LTX-2.3. Revert once PR #24 merges upstream.
+- 2026-04-21 — POC 5 passed (Gemini `gemini-3.1-flash-image-preview`). Findings in `pocs/05-gemini-still/RESULT.md`: preview model ID valid, 18 s latency, 1120 image tokens per still, strong prompt adherence on a steampunk test prompt. Identity-consistency check (POC 6) still pending.
