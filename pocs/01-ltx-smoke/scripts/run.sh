@@ -28,9 +28,10 @@ echo ""
     --prompt "grey mist over peat bog, cold palette, overcast light, 16mm grain, no figures" \
     --pipeline distilled \
     --model-repo prince-canuma/LTX-2.3-distilled \
+    --text-encoder-repo mlx-community/gemma-3-12b-it-bf16 \
     --width 512 --height 320 \
     --num-frames 72 --fps 24 \
-    --output "$OUT_DIR/smoke.mp4" \
+    --output-path "$OUT_DIR/smoke.mp4" \
   2>&1 | tee "$OUT_DIR/stdout.log"
 
 echo ""

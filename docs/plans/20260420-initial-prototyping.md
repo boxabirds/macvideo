@@ -1,6 +1,6 @@
 # Initial prototyping plan — macvideo
 
-**Last updated:** 2026-04-20
+**Last updated:** 2026-04-21
 
 **Maintenance instructions for future sessions:**
 - Update the `Last updated` date at the top whenever you change this file.
@@ -26,7 +26,7 @@ Companion docs (read these for the "why"):
 - **Video gen:** LTX-2.3 via `mlx-video`, pinned to a resolved commit SHA.
 - **Audio:** Demucs `htdemucs_6s`, WhisperX large-v3 on vocals stem, librosa for structure.
 - **LLM:** Google GenAI SDK, `gemini-3-flash-preview` for structure labelling, style picking/expansion, and shot planning. Preview model ID — verify against current Google docs and pin. Same SDK and API key as image gen, so auth is one-path.
-- **Resolutions:** poc (512×320), iteration (896×512), final (1920×1080). Both 512×320 (guide-attested) and 1920×1080 (unverified) need M5 Max empirical confirmation.
+- **Resolutions:** poc (512×320), iteration (896×512), final (1920×1080). 512×320 empirically confirmed at 30 s on M5 Max distilled (POC 1, 2026-04-21) — the main guide's §13 table understates speed by ~10×. Re-benchmark iteration and final before committing.
 - **Styles:** papercut, watercolour, steampunk, pencil sketch, bubblegum. LLM picks **one** per song, expands once into concrete visual cues, every shot prompt inherits the expansion.
 - **Lip-sync:** out of v1. Revisit ~2026-10 or when a CUDA box is available.
 - **Cloud scope (updated 2026-04-20):** permitted for LLM (Anthropic) and image gen (Google Gemini) stages only. Video, audio prep, transcription, assembly remain local. No cloud lip-sync, no cloud video gen.
@@ -46,7 +46,10 @@ Companion docs (read these for the "why"):
 
 ## Stage 0 — Repo scaffolding
 
-- [ ] `pyproject.toml` (uv, Python 3.11+), pinned deps: `whisperx`, `demucs`, `librosa`, `google-genai`, `pyyaml`, `mlx`, `mlx-video@<sha>`
+- [ ] `pyproject.toml` (uv, Python 3.11+), pinned deps: `whisperx`, `demucs`, `librosa`, `google-genai`, `pyyaml`, `mlx`, `mlx-video@<sha>` (currently `9ab4826`). **Requires `allow-direct-references = true` under `[tool.hatch.metadata]`** because mlx-video is a git URL dep.
+- [ ] Document the Gemma 3 12B bf16 text encoder as an explicit prerequisite: `mlx-community/gemma-3-12b-it-bf16` (~24 GB download, MLX-native, not gated). `google/gemma-3-12b-it` is gated and not needed.
+- [ ] Document num-frames constraint: must equal `1 + 8*k`. Formula: `num_frames = ((int(seconds * fps) - 1) // 8) * 8 + 1`.
+- [ ] Runbook note: LTX-2.3 fails with "Failed to create Metal shared event" if another MLX process is running. Kill competitors before batch.
 - [ ] Directory layout: `scripts/`, `config/`, `data/{tracks,stems,lyrics,structure,shotplans,keyframes,clips,cuts,logs}/`, `tests/`
 - [ ] `config/pipeline.yaml` — resolution profiles, model repos, paths
 - [ ] `config/styles.yaml` — bare-word style list (expansion is per-song, not pre-cached)
@@ -139,16 +142,20 @@ Companion docs (read these for the "why"):
 
 ## Open questions (to close empirically)
 
-- [ ] Does `mlx-video`'s LTX-2 CLI accept `--negative-prompt`? Run `--help` at install.
-- [ ] Does `mlx-video` expose keyframe/last-frame conditioning flags? Needed for chained shots — if missing, chained shots fall back to I2V and we lose frame-exact continuity.
-- [ ] Does LTX-2.3 run at 1920×1080 on M5 Max without OOM, and at what wall-time? The companion guide's §13 table caps at 1280×720 — the `final` profile is an unverified extrapolation.
-- [ ] Empirical wall-time per stage at each profile. Measure once, use for batch scheduling.
-- [ ] LTX-2.3 negative-prompt behaviour: silently ignored or active? Empirical test on one shot with a strong negative.
+### Closed by POC 1 (2026-04-21)
+- [x] `--negative-prompt` supported but dev-pipeline only. Distilled iteration pass cannot use negatives. Prompt template must branch by pipeline.
+- [x] Keyframe/last-frame conditioning: `--image` + `--image-strength` + `--image-frame-idx` all present. POC 3 and POC 4 unblocked.
+- [x] `mlx-video` CLI flag reconciliation: recorded in `pocs/01-ltx-smoke/RESULT.md` and the guide.
+
+### Still open
+- [ ] Does LTX-2.3 run at 1920×1080 on M5 Max without OOM, and at what wall-time? POC 1 confirmed 512×320 at 30 s; extrapolating to 1080p is risky. Smoke-test before committing to the `final` profile.
+- [ ] Empirical wall-time at `iteration` (896×512) and `final` (1920×1080). Add a sub-test in POC 2 or a dedicated benchmark run.
 - [ ] Gemini `gemini-3.1-flash-image-preview` and `gemini-3-flash-preview` current model IDs, pricing, rate limits. Verify against Google docs at stage 3/4/5a setup.
-- [ ] Gemini identity-persistence quality across 30+ shots of the same performer — does drift creep in, and at what shot count?
+- [ ] Gemini identity-persistence quality across 30+ shots of the same performer — does drift creep in, and at what shot count? POC 6.
 
 ## Changelog
 
 - 2026-04-20 — Initial plan.
 - 2026-04-20 — Keyframe stills switched from Flux.1-dev (local MLX) to Gemini `gemini-3.1-flash-image-preview` ("Nano Banana 2"). "No cloud" principle narrowed from absolute to "no cloud for video, audio, or lip-sync stages; LLM and image gen via cloud APIs permitted." Rationale: native multi-image identity consistency eliminates IP-Adapter plumbing.
 - 2026-04-20 — LLM switched from Anthropic Claude Opus 4.7 to Google `gemini-3-flash-preview`. Rationale: text spend is trivial; consolidating LLM + image gen on a single vendor (Google GenAI SDK) simplifies auth, billing, and dependencies. Video stays local where the real compute lives.
+- 2026-04-21 — POC 1 passed. Findings in `pocs/01-ltx-smoke/RESULT.md`: LTX-2.3 distilled runs at 512×320 in 30 s on M5 Max (guide claimed 6–12 min — pessimistic by ~10×). Text encoder switched from `google/gemma-3-12b-it` (gated, early-access form) to `mlx-community/gemma-3-12b-it-bf16` (MLX-native, ungated). `num-frames` must be `1 + 8*k`. `--negative-prompt` is dev-pipeline only.

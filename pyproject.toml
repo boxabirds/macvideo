@@ -18,3 +18,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 # No packages to build yet; the pipeline code lives under scripts/ and pocs/.
 bypass-selection = true
+
+[tool.hatch.metadata]
+# Required because we pin mlx-video to a git commit (a direct URL reference).
+allow-direct-references = true

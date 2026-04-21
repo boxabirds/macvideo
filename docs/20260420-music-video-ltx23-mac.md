@@ -112,25 +112,32 @@ python -c "import mlx_video; print(mlx_video.__file__)"
 uv run mlx_video.ltx_2.generate --help | head -40
 ```
 
-First command prints a path, no `ImportError`. Second command prints the CLI's flag list. **Read this help output and confirm the flags used in section 7 below still match the installed version.** If flag names have drifted (`--audio-file`, `--pipeline`, `--model-repo`, `--cfg-scale`, `--output`, `--num-frames`, `--fps`, `--width`, `--height`), update the generation script accordingly before running a batch. As of this guide's authoring the output flag is `--output` / `-o`; earlier docs may show `--output-path` — trust the `--help` output over this guide.
+First command prints a path, no `ImportError`. Second command prints the CLI's flag list. **Read this help output and confirm the flags used in section 7 below still match the installed version.** If flag names have drifted (`--audio-file`, `--pipeline`, `--model-repo`, `--cfg-scale`, `--output-path`, `--num-frames`, `--fps`, `--width`, `--height`), update the generation script accordingly before running a batch.
+
+Verified flag names as of mlx-video commit `9ab4826` (2026-04): `--output-path` (NOT `--output` — that's ambiguous with `--output-audio`), `--image` for I2V (with `--image-strength` and `--image-frame-idx`), `--negative-prompt` (dev pipeline only), `--enhance-prompt`, `--spatial-upscaler`, `--apg`. Always trust live `--help` output over this guide.
 
 ---
 
 ## 5. Smoke test: download weights and generate one 3-second clip
 
-LTX-2.3 weights are pulled from Hugging Face on first use and cached under `~/.cache/huggingface/`. The distilled variant is ~19 GB; the dev variant is ~42 GB.
+LTX-2.3 weights are pulled from Hugging Face on first use and cached under `~/.cache/huggingface/`. Empirical sizes on 2026-04-21: the distilled variant is **~56 GB** (48 files), not the 19 GB this guide originally quoted. The dev variant is larger again (unmeasured — expect ~90 GB based on the ratio).
+
+**Plus a separate text-encoder download.** LTX-2.3 uses Gemma 3 12B as its text encoder, and `mlx-video` does not bundle it — it downloads on first run from a repo you specify with `--text-encoder-repo`. Use `mlx-community/gemma-3-12b-it-bf16` (MLX-native, ungated, ~24 GB). The Google-official `google/gemma-3-12b-it` is gated behind an early-access form and is not needed.
 
 ```bash
 uv run mlx_video.ltx_2.generate \
   --prompt "grey mist over peat bog, cold palette, overcast light, 16mm grain, no figures" \
   --pipeline distilled \
   --model-repo prince-canuma/LTX-2.3-distilled \
+  --text-encoder-repo mlx-community/gemma-3-12b-it-bf16 \
   --width 512 --height 320 \
-  --num-frames 72 --fps 24 \
-  --output "$PROJECT_ROOT/clips/_smoke.mp4"
+  --num-frames 73 --fps 24 \
+  --output-path "$PROJECT_ROOT/clips/_smoke.mp4"
 ```
 
-First run may take 20–60 minutes (download dominates). Subsequent distilled generations at this resolution take ~3–8 minutes on M5 Max.
+First run may take 20–60 minutes (download dominates: ~56 GB LTX weights + ~24 GB Gemma text encoder). Subsequent distilled generations at 512×320 take ~30 seconds on M5 Max (empirically measured 2026-04-21 — dramatically faster than this guide's earlier 3–8 min claim). Wall times at larger resolutions (896×512, 1280×720, 1920×1080) still need empirical benchmarking; extrapolating from 30 s is not linear.
+
+**Note:** `num-frames` must equal `1 + 8*k` (LTX-2 latent-temporal constraint). The CLI auto-rounds up if you pass a non-conforming value.
 
 **VERIFY:** `clips/_smoke.mp4` exists and plays. If the repo name `prince-canuma/LTX-2.3-distilled` 404s, check `https://huggingface.co/prince-canuma` for the current name — the ecosystem shifts quickly.
 
@@ -323,7 +330,7 @@ def main():
             "--num-frames", str(args.num_frames),
             "--fps", str(args.fps),
             "--cfg-scale", str(args.cfg_scale),
-            "--output", str(out_path),
+            "--output-path", str(out_path),
         ]
 
         print(f"[{i:02d}/{total}] run   {out_path.name}: {prompt[:60]}...")
@@ -413,6 +420,8 @@ Clip generation is the agent's job; editing a finished video is not. At the end 
 **404 on model repo** — the `prince-canuma/LTX-2.3-*` names may have been renamed. Check `https://huggingface.co/prince-canuma` and `https://huggingface.co/Lightricks` for current variants.
 
 **Out of memory mid-generation** — unlikely on 128 GB but possible if Logic is open with a big session. Quit other apps, or drop to `--pipeline distilled` and 896×512.
+
+**`RuntimeError: [Event::Event] Failed to create Metal shared event`** — another MLX process is competing for Metal resources. Quit all other MLX workloads (e.g. `pkill -f mlx`, check Activity Monitor for Python processes running MLX). Reference: [mlx-lm issue #887](https://github.com/ml-explore/mlx-lm/issues/887).
 
 **First-frame artefact / overbaked first frame** — not a specifically documented "first-frame glitch", but LTX-2 has known VAE artefacts (the original distilled VAE shipped broken and was replaced; tiled VAE encoding can produce temporal-seam ghosting — see ComfyUI issue #11767). If you see a bad opening frame or seam artefact, trim the first few frames in the NLE. Don't rely on this as a reflex; inspect clips first.
 
