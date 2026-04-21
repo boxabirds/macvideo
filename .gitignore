@@ -35,12 +35,18 @@ data/clips-hq/
 data/cuts/
 data/logs/
 
-# POC outputs (regenerable, large)
-pocs/*/outputs/
+# Any `outputs/` folder at any depth — POC runs, pipeline outputs, future
+# experimental runs. Regenerable; don't bloat git history with binary media.
+**/outputs/
+# Historical archived variants
+**/outputs_v1/
+**/outputs_v2/
+**/outputs_legacy/
 
-# POC inputs derived from user's gitignored music/
+# POC inputs derived from user's gitignored music/, and per-poc caches
 pocs/*/inputs/
 pocs/*/stems/
+pocs/*/cache/
 
 # Editors
 .idea/
