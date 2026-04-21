@@ -1,6 +1,6 @@
 # Initial prototyping plan — macvideo
 
-**Last updated:** 2026-04-21
+**Last updated:** 2026-04-21 (POC 2 results)
 
 **Maintenance instructions for future sessions:**
 - Update the `Last updated` date at the top whenever you change this file.
@@ -105,10 +105,10 @@ Companion docs (read these for the "why"):
 ## Stage 5b — Clip generation (LTX-2.3)
 
 - [ ] Adapt `scripts/generate.py` from `docs/20260420-music-video-ltx23-mac.md`
-- [ ] Per-shot `--num-frames = round((end_t - start_t) * fps)`
-- [ ] For `chain_from_previous: false`: I2V from `data/keyframes/<track>/<shot_id>.png`
-- [ ] For `chain_from_previous: true`: last-frame conditioning from previous clip (**verify mlx-video flag support first**)
-- [ ] Audio: slice selected stem to `[start_t, end_t]`, pass as `--audio-file`
+- [ ] Per-shot `--num-frames` must satisfy `1 + 8*k`. Formula: `((int((end_t - start_t) * fps) - 1) // 8) * 8 + 1`
+- [ ] For `chain_from_previous: false`: I2V from `data/keyframes/<track>/<shot_id>.png` via `--image` (+ `--image-strength`, `--image-frame-idx`)
+- [ ] For `chain_from_previous: true`: condition on previous clip's last frame via `--image` + `--image-frame-idx 0`
+- [ ] Audio: **only for dev-family pipelines** (distilled has no audio CFG and is inert on audio content — see POC 2). Slice selected stem to `[start_t, end_t]`, pass as `--audio-file`.
 - [ ] `--skip-existing` resume semantics
 - [ ] Output `data/clips/<track>/<shot_id>.mp4`
 - [ ] **Smoke test at 1920×1080** to validate `final` profile is feasible on M5 Max
@@ -159,3 +159,4 @@ Companion docs (read these for the "why"):
 - 2026-04-20 — Keyframe stills switched from Flux.1-dev (local MLX) to Gemini `gemini-3.1-flash-image-preview` ("Nano Banana 2"). "No cloud" principle narrowed from absolute to "no cloud for video, audio, or lip-sync stages; LLM and image gen via cloud APIs permitted." Rationale: native multi-image identity consistency eliminates IP-Adapter plumbing.
 - 2026-04-20 — LLM switched from Anthropic Claude Opus 4.7 to Google `gemini-3-flash-preview`. Rationale: text spend is trivial; consolidating LLM + image gen on a single vendor (Google GenAI SDK) simplifies auth, billing, and dependencies. Video stays local where the real compute lives.
 - 2026-04-21 — POC 1 passed. Findings in `pocs/01-ltx-smoke/RESULT.md`: LTX-2.3 distilled runs at 512×320 in 30 s on M5 Max (guide claimed 6–12 min — pessimistic by ~10×). Text encoder switched from `google/gemma-3-12b-it` (gated, early-access form) to `mlx-community/gemma-3-12b-it-bf16` (MLX-native, ungated). `num-frames` must be `1 + 8*k`. `--negative-prompt` is dev-pipeline only.
+- 2026-04-21 — POC 2 passed with a nuance. Findings in `pocs/02-ltx-audio-cond/RESULT.md`: audio conditioning is **inert in distilled** (no CFG path for audio, confirmed in `denoise_distilled` source) and **content-sensitive in dev** (verified empirically — same prompt+seed, different audio → substantively different scenes). Architectural implication: `--audio-file` is gated by pipeline — skip for distilled/iteration, use for dev-family/final. Distilled is not just a faster dev; it is a different decoder trained for CFG-less inference, so audio conditioning and negative prompts don't work there regardless of flags.

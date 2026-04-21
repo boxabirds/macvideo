@@ -38,6 +38,9 @@ data/logs/
 # POC outputs (regenerable, large)
 pocs/*/outputs/
 
+# POC inputs derived from user's gitignored music/
+pocs/*/inputs/
+
 # Editors
 .idea/
 .vscode/
