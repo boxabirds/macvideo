@@ -9,6 +9,8 @@ dependencies = [
     # Revert to Blaizzy's main once PR #24 is merged.
     "mlx-video @ git+https://github.com/nopmobiel/mlx-video.git@a8cd1db78ad90fa69f30ab6764e14f5c1ba94ca7",
     "google-genai>=1.0.0",
+    "demucs>=4.0.0",
+    "whisperx>=3.1.0",
 ]
 
 [tool.uv]

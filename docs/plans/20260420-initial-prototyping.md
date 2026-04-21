@@ -1,6 +1,6 @@
 # Initial prototyping plan — macvideo
 
-**Last updated:** 2026-04-21 (POCs 1–6 all passed; 7–9 pending)
+**Last updated:** 2026-04-21 (POCs 1–7 all passed; 8–9 pending)
 
 **Maintenance instructions for future sessions:**
 - Update the `Last updated` date at the top whenever you change this file.
@@ -65,12 +65,17 @@ Companion docs (read these for the "why"):
 - [ ] Run Demucs `htdemucs_6s` → 6 stems in `data/stems/<track>/`
 - [ ] Test: one 3–4 min track produces 6 stems, vocals stem inspected for bleed
 
-## Stage 2 — Lyric transcription (WhisperX)
+## Stage 2 — Lyric transcription (WhisperX + wav2vec2 forced alignment)
 
-- [ ] `scripts/transcribe.py <track>` — WhisperX large-v3 on vocals stem
-- [ ] Output `data/lyrics/<track>.json` with word-level + line-level timings
-- [ ] Document manual-correction workflow for the 5–15% of words Whisper gets wrong on vocals-heavy material
-- [ ] Test: transcription of test track, eyeball accuracy against known lyrics
+Pipeline validated in POC 7. Require user to supply `music/<track>.txt` alongside `music/<track>.wav` — this is the ground truth and produces 100% word accuracy.
+
+- [ ] `scripts/transcribe.py <track>` — WhisperX large-v3 on vocals stem, **float32 + looser VAD (0.35/0.25) + initial_prompt from lyrics.txt** (NEVER int8 — drops quiet vocals)
+- [ ] `scripts/force_align.py <track>` — wav2vec2 forced alignment of ground-truth lyrics against audio. This is the final authoritative output, not Whisper's STT.
+- [ ] Output `data/lyrics/<track>.json` with words[] (word, start, end, score) and lines[]
+- [ ] Fallback: if no `.txt`, use Whisper STT output with accuracy-caveat warning
+- [ ] Test: transcription accuracy verified against user's ground truth
+
+Research: see `docs/research/20260421-better-transcription.md` for why WhisperX on CPU (not MPS, not lightning-whisper-mlx), why float32 not int8, and the alignment tradeoffs.
 
 ## Stage 3 — Structure analysis
 
@@ -167,3 +172,4 @@ Companion docs (read these for the "why"):
 - 2026-04-21 — POC 6 passed (strong). Findings in `pocs/06-gemini-identity/RESULT.md`: Gemini chained-reference identity holds across 5 stills with no visible drift. Same mariner, scene-appropriate wardrobe variation, bonus environment continuity (boat name preserved across shots). Validates the keyframe-first architecture's core premise. Minor note: "no text" prompt constraint not fully honored (rendered "SEA FARER" text on boat) — tighten negative-style prompting in pipeline.
 - 2026-04-21 — POC 4 passed (chained shots on dev-two-stage). Findings in `pocs/04-ltx-chained/RESULT.md`: clip B frame 0 indistinguishable from clip A last frame; seam clean. Wall time 2m 25s / 73 frames at 512×320 on dev-two-stage, peak 45 GB. dev-two-stage locked as iteration profile; distilled dropped entirely.
 - 2026-04-21 — POC 3 dev retry passed. Findings updated in `pocs/03-ltx-i2v/RESULT.md`: PR #24's VAE fix is pipeline-agnostic (dev uses the same VAE encoder); I2V works on both distilled and dev. 4m 47s / 73 frames at 512×320 on pure dev. Confirmed before dropping distilled.
+- 2026-04-21 — POC 7 passed (strong). Findings in `pocs/07-whisperx/RESULT.md`. Research notes in `docs/research/20260421-better-transcription.md`. Four-iteration arc: int8/default VAD (~75%) → float32/looser VAD (~90%) → +initial_prompt+SequenceMatcher match (100% words but crammed timings in chorus-repeat region) → **wav2vec2 forced alignment of ground-truth lyrics against audio** (100% words AND 100% acoustic timings, 11 s wall time on 4-min track). Requires `music/<track>.txt` alongside `music/<track>.wav`. WhisperX MPS is broken in 2026 (missing Metal ops); CPU+float32 is the correct path, not a corner-cut.
