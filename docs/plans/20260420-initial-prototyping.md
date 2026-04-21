@@ -1,6 +1,6 @@
 # Initial prototyping plan — macvideo
 
-**Last updated:** 2026-04-21 (POC 3 + 5 results)
+**Last updated:** 2026-04-21 (POCs 1–6 all passed; 7–9 pending)
 
 **Maintenance instructions for future sessions:**
 - Update the `Last updated` date at the top whenever you change this file.
@@ -26,7 +26,9 @@ Companion docs (read these for the "why"):
 - **Video gen:** LTX-2.3 via `mlx-video`, pinned to a resolved commit SHA.
 - **Audio:** Demucs `htdemucs_6s`, WhisperX large-v3 on vocals stem, librosa for structure.
 - **LLM:** Google GenAI SDK, `gemini-3-flash-preview` for structure labelling, style picking/expansion, and shot planning. Preview model ID — verify against current Google docs and pin. Same SDK and API key as image gen, so auth is one-path.
-- **Resolutions:** poc (512×320), iteration (896×512), final (1920×1080). 512×320 empirically confirmed at 30 s on M5 Max distilled (POC 1, 2026-04-21) — the main guide's §13 table understates speed by ~10×. Re-benchmark iteration and final before committing.
+- **Resolutions:** poc (512×320), iteration (896×512), final (1920×1080). 512×320 empirically confirmed on M5 Max: distilled 30 s (POC 1), dev-two-stage 2m25 (POC 4), dev 4m47 (POC 3 retry). Re-benchmark iteration and final at higher resolutions before committing to the batch.
+- **Pipeline for iteration:** `dev-two-stage` (decision 2026-04-21). Distilled is **dropped entirely** from the pipeline — it's CFG-less and behaves structurally differently from any dev-family final target, so it misleads iteration rather than previewing it.
+- **Pipeline for final:** `dev-two-stage-hq`. Shares architecture shape with `dev-two-stage` (iteration), which is the reason we picked dev-two-stage over pure dev for iteration — it's a faithful preview of final.
 - **Styles:** papercut, watercolour, steampunk, pencil sketch, bubblegum. LLM picks **one** per song, expands once into concrete visual cues, every shot prompt inherits the expansion.
 - **Lip-sync:** out of v1. Revisit ~2026-10 or when a CUDA box is available.
 - **Cloud scope (updated 2026-04-20):** permitted for LLM (Anthropic) and image gen (Google Gemini) stages only. Video, audio prep, transcription, assembly remain local. No cloud lip-sync, no cloud video gen.
@@ -162,3 +164,6 @@ Companion docs (read these for the "why"):
 - 2026-04-21 — POC 2 passed with a nuance. Findings in `pocs/02-ltx-audio-cond/RESULT.md`: audio conditioning is **inert in distilled** (no CFG path for audio, confirmed in `denoise_distilled` source) and **content-sensitive in dev** (verified empirically — same prompt+seed, different audio → substantively different scenes). Architectural implication: `--audio-file` is gated by pipeline — skip for distilled/iteration, use for dev-family/final. Distilled is not just a faster dev; it is a different decoder trained for CFG-less inference, so audio conditioning and negative prompts don't work there regardless of flags.
 - 2026-04-21 — POC 3 passed (I2V on distilled). Findings in `pocs/03-ltx-i2v/RESULT.md`: `--image` + `--image-strength` + `--image-frame-idx` anchor frame 0 on the supplied still and motion unfolds per prompt. Works on distilled — image conditioning is applied to the initial latent state, not as CFG guidance, so CFG-less pipelines still honour it. Required pinning mlx-video to PR #24 HEAD (`nopmobiel/mlx-video@a8cd1db7`) because Blaizzy's `main@9ab4826` has a VAE encoder topology bug for LTX-2.3. Revert once PR #24 merges upstream.
 - 2026-04-21 — POC 5 passed (Gemini `gemini-3.1-flash-image-preview`). Findings in `pocs/05-gemini-still/RESULT.md`: preview model ID valid, 18 s latency, 1120 image tokens per still, strong prompt adherence on a steampunk test prompt. Identity-consistency check (POC 6) still pending.
+- 2026-04-21 — POC 6 passed (strong). Findings in `pocs/06-gemini-identity/RESULT.md`: Gemini chained-reference identity holds across 5 stills with no visible drift. Same mariner, scene-appropriate wardrobe variation, bonus environment continuity (boat name preserved across shots). Validates the keyframe-first architecture's core premise. Minor note: "no text" prompt constraint not fully honored (rendered "SEA FARER" text on boat) — tighten negative-style prompting in pipeline.
+- 2026-04-21 — POC 4 passed (chained shots on dev-two-stage). Findings in `pocs/04-ltx-chained/RESULT.md`: clip B frame 0 indistinguishable from clip A last frame; seam clean. Wall time 2m 25s / 73 frames at 512×320 on dev-two-stage, peak 45 GB. dev-two-stage locked as iteration profile; distilled dropped entirely.
+- 2026-04-21 — POC 3 dev retry passed. Findings updated in `pocs/03-ltx-i2v/RESULT.md`: PR #24's VAE fix is pipeline-agnostic (dev uses the same VAE encoder); I2V works on both distilled and dev. 4m 47s / 73 frames at 512×320 on pure dev. Confirmed before dropping distilled.
