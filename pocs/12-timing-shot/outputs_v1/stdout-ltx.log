@@ -1,0 +1,35 @@
+╭──────────────────────────────────────────────╮
+│ 🎬 [DEV-TWO-STAGE] [I2V] 512x320 • 41 frames │
+╰──────────────────────────────────────────────╯
+Prompt: slow gentle camera settle, the small black bird breathes and shifts on a
+dry-sto...
+Steps: 30, CFG: 3.0, Rescale: 0.7, STG: 1.0 blocks=None, Modality: 3.0
+Image: /Users/julian/expts/macvideo/pocs/12-timing-shot/outputs/keyframe.png 
+(strength=1.0, frame=0)
+Text encoder loaded successfully
+✓ Text encoder loaded
+✓ Transformer loaded
+Auto-detected STG blocks: [28] (model=2.3)
+✓ VAE encoder loaded and image encoded
+Stage 1 sigma schedule: 1.0000 → 0.1000 → 0.0000
+
+⚡ Stage 1: Dev generating at 256x160 (30 steps, CFG=3.0, rescale=0.7)
+Loading spatial upsampler from /Users/julian/.cache/huggingface/hub/models--prince-canuma--LTX-2.3-dev/snapshots/5da7eb70a6a8a2691f6810454a31f2790e65d8ee/ltx-2.3-spatial-upscaler-x2-1.0.safetensors...
+  Detected: mid_channels=1024, scale=2.0x, rational=False
+  Loaded 72 weights
+✓ Latents upsampled
+Auto-detected LoRA: ltx-2.3-22b-distilled-lora-384.safetensors
+✓ Merged 1660 LoRA pairs (strength=1.0)
+
+⚡ Stage 2: Distilled refining at 512x320 (3 steps, no CFG)
+
+🎞️  Decoding video...
+  Tiling: disabled
+objc[12767]: Class AVFFrameReceiver is implemented in both /Users/julian/expts/macvideo/.venv/lib/python3.11/site-packages/av/.dylibs/libavdevice.62.1.100.dylib (0x1217d43a8) and /Users/julian/expts/macvideo/.venv/lib/python3.11/site-packages/cv2/.dylibs/libavdevice.61.3.100.dylib (0x138c003a8). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.
+objc[12767]: Class AVFAudioReceiver is implemented in both /Users/julian/expts/macvideo/.venv/lib/python3.11/site-packages/av/.dylibs/libavdevice.62.1.100.dylib (0x1217d43f8) and /Users/julian/expts/macvideo/.venv/lib/python3.11/site-packages/cv2/.dylibs/libavdevice.61.3.100.dylib (0x138c003f8). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.
+✅ Saved video to 
+/Users/julian/expts/macvideo/pocs/12-timing-shot/outputs/clip.mp4
+╭──────────────────────────────────────────────╮
+│ 🎉 Done! Generated in 1m 50.6s (2.70s/frame) │
+│ ✨ Peak memory: 44.96GB                      │
+╰──────────────────────────────────────────────╯

@@ -1,0 +1,16 @@
+{
+  "target_text": "That's my little blackbird",
+  "matched_words": [
+    "That's",
+    "my",
+    "little",
+    "blackbird"
+  ],
+  "start_t": 23.182,
+  "end_t": 24.962,
+  "duration_s": 1.78,
+  "fps": 24,
+  "raw_frames": 43,
+  "num_frames": 41,
+  "actual_clip_duration_s": 1.708
+}

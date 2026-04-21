@@ -1,0 +1,28 @@
+{
+  "prompt": "A small black bird alone on a weathered dry-stone wall, northern English moorland, overcast dusk light, dark heather and peat in the background, 16mm film grain, cold palette, shallow focus, cinematic wide shot, no text, no people",
+  "image_model": "gemini-3.1-flash-image-preview",
+  "latency_s": 15.21,
+  "usage": {
+    "cache_tokens_details": null,
+    "cached_content_token_count": null,
+    "candidates_token_count": 1594,
+    "candidates_tokens_details": [
+      {
+        "modality": "IMAGE",
+        "token_count": 1120
+      }
+    ],
+    "prompt_token_count": 53,
+    "prompt_tokens_details": [
+      {
+        "modality": "TEXT",
+        "token_count": 53
+      }
+    ],
+    "thoughts_token_count": null,
+    "tool_use_prompt_token_count": null,
+    "tool_use_prompt_tokens_details": null,
+    "total_token_count": 1647,
+    "traffic_type": null
+  }
+}

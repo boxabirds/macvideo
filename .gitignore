@@ -40,6 +40,7 @@ pocs/*/outputs/
 
 # POC inputs derived from user's gitignored music/
 pocs/*/inputs/
+pocs/*/stems/
 
 # Editors
 .idea/
