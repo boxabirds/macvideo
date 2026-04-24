@@ -12,11 +12,20 @@ async function gotoEditor(page: import("@playwright/test").Page) {
   await page.locator(".scene-row").first().waitFor({ state: "attached" });
 }
 
+async function expandRow(page: import("@playwright/test").Page, sceneIndex: number) {
+  const row = page.locator(`.scene-row[data-scene-index="${sceneIndex}"]`);
+  const isCollapsed = await row.evaluate(el => el.classList.contains("collapsed"));
+  if (isCollapsed) {
+    await row.locator(".expando").click();
+  }
+}
+
 test.describe("Per-scene regen", () => {
   test("clicking ⟳ keyframe opens a confirm dialog with cost estimate", async ({ page }) => {
     await gotoEditor(page);
+    await expandRow(page, 1);
     const row = page.locator('.scene-row[data-scene-index="1"]');
-    await row.locator("button", { hasText: "keyframe" }).first().click();
+    await row.locator('button[title="regenerate keyframe"]').click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByText(/~\$0\.04/)).toBeVisible();
     await page.getByRole("button", { name: /Cancel/i }).click();
@@ -24,8 +33,9 @@ test.describe("Per-scene regen", () => {
 
   test("takes list expands and shows existing takes", async ({ page }) => {
     await gotoEditor(page);
+    await expandRow(page, 1);
     const row = page.locator('.scene-row[data-scene-index="1"]');
-    await row.locator("button", { hasText: "takes" }).click();
+    await row.locator('button[title="show takes for this scene"]').click();
     // The tiny-song fixture imports 1 keyframe take per scene.
     await expect(row.locator(".take-list")).toBeVisible();
     await expect(row.locator(".take-list li").first()).toContainText("[keyframe]");
@@ -33,13 +43,14 @@ test.describe("Per-scene regen", () => {
 
   test("clicking Regenerate fires a POST to /takes and returns a run_id", async ({ page }) => {
     await gotoEditor(page);
+    await expandRow(page, 1);
     const row = page.locator('.scene-row[data-scene-index="1"]');
 
     // Capture the outgoing POST by waiting on the response.
     const responsePromise = page.waitForResponse(
       r => r.url().includes("/scenes/1/takes") && r.request().method() === "POST",
     );
-    await row.locator("button", { hasText: "keyframe" }).first().click();
+    await row.locator('button[title="regenerate keyframe"]').click();
     await page.getByRole("button", { name: /^Regenerate$/i }).click();
     const response = await responsePromise;
     expect([200, 409]).toContain(response.status());

@@ -42,6 +42,13 @@ class ScenePatchBody(BaseModel):
     camera_intent: str | None = None
     subject_focus: str | None = None
     image_prompt: str | None = None
+    # target_text edits are a deliberate widening of the Story 3 PRD (which
+    # marks target_text as read-only because it originates in WhisperX). The
+    # user explicitly requested the ability to override the aligned lyric at
+    # the frontend level, so this field participates in the same
+    # staleness-cascade rules as beat/subject_focus (keyframe_stale +
+    # clip_stale on this scene plus keyframe_stale on N+1..N+4).
+    target_text: str | None = None
     # POST-style actions via PATCH; see tests. Leave empty to no-op the flag.
     prompt_is_user_authored: bool | None = None
     selection_pinned: bool | None = None
@@ -138,7 +145,9 @@ def patch_scene(slug: str, idx: int, body: ScenePatchBody, conn=Depends(get_db))
 
     patch_fields: dict[str, object] = {}
     changed_editable: list[str] = []
-    for field_name in ("beat", "camera_intent", "subject_focus", "image_prompt"):
+    for field_name in (
+        "beat", "camera_intent", "subject_focus", "image_prompt", "target_text",
+    ):
         new_val = getattr(body, field_name)
         if new_val is None:
             continue

@@ -54,6 +54,7 @@ export async function patchScene(
     camera_intent: string;
     subject_focus: string;
     image_prompt: string;
+    target_text: string;
     prompt_is_user_authored: boolean;
     selected_keyframe_take_id: number;
     selected_clip_take_id: number;
@@ -144,6 +145,28 @@ export type SceneTake = {
 export async function listTakes(slug: string, idx: number): Promise<{ takes: SceneTake[] }> {
   return handle(await fetch(
     `/api/songs/${encodeURIComponent(slug)}/scenes/${idx}/takes`,
+  ));
+}
+
+export type RegenRunSummary = {
+  id: number;
+  scope: string;
+  song_id: number;
+  scene_id: number | null;
+  scene_index: number | null;
+  artefact_kind: "keyframe" | "clip" | null;
+  status: "pending" | "running" | "done" | "failed" | "cancelled";
+  quality_mode: string | null;
+  cost_estimate_usd: number | null;
+  started_at: number | null;
+  ended_at: number | null;
+  error: string | null;
+  created_at: number;
+};
+
+export async function listActiveRegens(slug: string): Promise<{ runs: RegenRunSummary[] }> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/regen?active_only=true`,
   ));
 }
 

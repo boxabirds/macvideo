@@ -14,11 +14,17 @@ from typing import Iterable, Optional
 from .schema import DirtyFlag
 
 
-# Fields whose mutation invalidates a scene's keyframe + clip on that scene
-_LOCAL_REGEN_FIELDS = {"beat", "camera_intent", "subject_focus", "image_prompt"}
+# Fields whose mutation invalidates a scene's keyframe + clip on that scene.
+# target_text was added when the frontend gained editable lyric override
+# (widens Story 3 PRD which marked target_text as read-only).
+_LOCAL_REGEN_FIELDS = {
+    "beat", "camera_intent", "subject_focus", "image_prompt", "target_text",
+}
 
-# Fields whose mutation also ripples up the identity chain (N+1..N+4)
-_IDENTITY_CHAIN_FIELDS = {"beat", "camera_intent", "subject_focus"}
+# Fields whose mutation also ripples up the identity chain (N+1..N+4).
+# target_text participates because the lyric drives prompt generation for
+# the identity window.
+_IDENTITY_CHAIN_FIELDS = {"beat", "camera_intent", "subject_focus", "target_text"}
 
 # How many downstream neighbours share a keyframe's identity chain. Mirror of
 # IDENTITY_REF_WINDOW in gen_keyframes.py.

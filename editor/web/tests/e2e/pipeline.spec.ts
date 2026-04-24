@@ -14,15 +14,29 @@ async function gotoEditor(page: import("@playwright/test").Page) {
 test.describe("PipelinePanel stages", () => {
   test("clicking a done stage opens a re-run dialog", async ({ page }) => {
     await gotoEditor(page);
-    const worldBriefRow = page.locator(".pipeline-stage").filter({ hasText: /world description/ });
-    await expect(worldBriefRow).toBeVisible();
-    const runBtn = worldBriefRow.locator("button");
-    await runBtn.click();
+    // world-brief when done opens the edit-or-regen modal, not the generic
+    // re-run confirm. The nested regen confirmation contains the "big deal"
+    // heading; the generic Re-run heading still applies to other stages
+    // (e.g. storyboard). We target storyboard here to exercise the generic
+    // confirm path.
+    const storyboardRow = page.locator(".pipeline-stage").filter({ hasText: /^storyboard/ });
+    await expect(storyboardRow).toBeVisible();
+    await storyboardRow.locator("button").click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByRole("heading", { name: /Re-run/i })).toBeVisible();
     // Cancel so we don't actually fire the chain.
     await page.getByRole("button", { name: /Cancel/i }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
+  });
+
+  test("clicking world-description opens the edit-or-regen modal with save and regenerate buttons", async ({ page }) => {
+    await gotoEditor(page);
+    const worldBriefRow = page.locator(".pipeline-stage").filter({ hasText: /world description/ });
+    await worldBriefRow.locator("button").click();
+    await expect(page.getByRole("heading", { name: /World description for/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Save edit/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Regenerate$/i })).toBeVisible();
+    await page.getByRole("button", { name: /Cancel/i }).click();
   });
 
   test("clicking a not-done stage fires without confirmation", async ({ page }) => {

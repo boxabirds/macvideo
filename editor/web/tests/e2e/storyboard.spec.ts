@@ -12,9 +12,21 @@ async function gotoEditor(page: import("@playwright/test").Page) {
   await page.locator(".scene-row").first().waitFor({ state: "attached" });
 }
 
+// Rows collapse by default — expand the targeted row before interacting
+// with its body fields.
+async function expandRow(page: import("@playwright/test").Page, sceneIndex: number) {
+  const row = page.locator(`.scene-row[data-scene-index="${sceneIndex}"]`);
+  // Only click expando if the row is still collapsed.
+  const isCollapsed = await row.evaluate(el => el.classList.contains("collapsed"));
+  if (isCollapsed) {
+    await row.locator(".expando").click();
+  }
+}
+
 test.describe("Storyboard", () => {
   test("edit beat, blur, reload, edit persists", async ({ page }) => {
     await gotoEditor(page);
+    await expandRow(page, 1);
     const row = page.locator('.scene-row[data-scene-index="1"]');
     const beat = row.locator("textarea").first();
     await beat.click();
@@ -26,12 +38,14 @@ test.describe("Storyboard", () => {
 
     await page.reload();
     await page.locator(".preview audio").waitFor({ state: "attached" });
+    await expandRow(page, 1);
     const reloaded = page.locator('.scene-row[data-scene-index="1"] textarea').first();
     await expect(reloaded).toHaveValue("e2e edit for scene 1");
   });
 
   test("editing image_prompt surfaces the hand-authored indicator", async ({ page }) => {
     await gotoEditor(page);
+    await expandRow(page, 2);
     const row = page.locator('.scene-row[data-scene-index="2"]');
     // Fourth textarea block on this row = image prompt (beat first, then
     // subject input, then camera select, then prompt textarea).
@@ -43,6 +57,7 @@ test.describe("Storyboard", () => {
 
     await page.reload();
     await page.locator(".preview audio").waitFor({ state: "attached" });
+    await expandRow(page, 2);
     const label = page.locator('.scene-row[data-scene-index="2"]')
       .locator("text=hand-authored");
     await expect(label).toBeVisible();
@@ -52,8 +67,9 @@ test.describe("Storyboard", () => {
     await gotoEditor(page);
     // Click scene 2 row's header, which should fire onSelect → parent sets
     // currentIdx → Preview seeks audio.currentTime to scene 2's start_s
-    // (0.3s in the tiny-song fixture).
-    await page.locator('.scene-row[data-scene-index="2"] h3').click();
+    // (0.3s in the tiny-song fixture). Click in a whitespace region of the
+    // header so we don't accidentally open the editable target_text input.
+    await page.locator('.scene-row[data-scene-index="2"] .scene-time').click();
     const t = await page.evaluate(() => {
       const a = document.querySelector(".preview audio") as HTMLAudioElement;
       return a.currentTime;
@@ -69,21 +85,24 @@ test.describe("Storyboard", () => {
     // this PATCH, the stale classes are present (invariant regardless of
     // prior state, because the backend never clears stale on PATCH).
     await gotoEditor(page);
+    await expandRow(page, 1);
     const row = page.locator('.scene-row[data-scene-index="1"]');
     const beat = row.locator("textarea").first();
     const uniqueValue = `stale cascade trigger ${Date.now()}`;
     await beat.click();
     await beat.fill(uniqueValue);
     // Blur — PATCH fires, backend marks keyframe_stale + clip_stale, response
-    // propagates through onPatch to SWR cache, row re-renders with .stale.
+    // propagates through onPatch to SWR cache, row re-renders as pending.
     await row.locator("input").first().click();
 
-    const kfChip = row.locator(".chip.kf");
-    await expect(kfChip).toHaveClass(/stale/, { timeout: 2000 });
+    // After the cascade, the keyframe chip is in a non-"done" state
+    // (pending means asset exists but is stale).
+    const kfChip = row.locator(".chip.keyframe");
+    await expect(kfChip).toHaveClass(/pending|error/, { timeout: 2000 });
 
-    // Identity-chain cascade: scene 2 keyframe should also show stale
+    // Identity-chain cascade: scene 2 keyframe is also marked pending
     // (but NOT scene 2 clip — identity chain doesn't affect clips).
-    const row2kf = page.locator('.scene-row[data-scene-index="2"] .chip.kf');
-    await expect(row2kf).toHaveClass(/stale/, { timeout: 2000 });
+    const row2kf = page.locator('.scene-row[data-scene-index="2"] .chip.keyframe');
+    await expect(row2kf).toHaveClass(/pending|error/, { timeout: 2000 });
   });
 });

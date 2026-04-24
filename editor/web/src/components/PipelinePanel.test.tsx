@@ -40,7 +40,7 @@ describe("PipelinePanel", () => {
     expect(kf).toHaveClass("progress");
   });
 
-  it("confirms a re-run when the stage is already done, then POSTs to the stage endpoint", async () => {
+  it("done world-brief opens the world-description edit-or-regen modal, regenerate confirms and POSTs", async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 1, status: "pending" }),
     } as Response);
@@ -48,23 +48,50 @@ describe("PipelinePanel", () => {
     globalThis.fetch = fetchSpy;
 
     render(<PipelinePanel song={makeSong()} status={status()} />);
-    // world-brief is "done", so clicking its button should open a confirm dialog.
     const worldBriefRow = screen.getByText(/world description/).parentElement!;
     const runBtn = worldBriefRow.querySelector("button")!;
     await userEvent.click(runBtn);
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    const confirm = screen.getByRole("button", { name: /^Re-run$/i });
-    await userEvent.click(confirm);
+    // First modal: editable world description.
+    expect(screen.getByRole("heading", { name: /World description for/ })).toBeInTheDocument();
+    // Regenerate button opens the "big deal" nested confirmation.
+    const regenBtn = screen.getByRole("button", { name: /^Regenerate$/ });
+    await userEvent.click(regenBtn);
+    expect(screen.getByRole("heading", { name: /This is a big deal/ })).toBeInTheDocument();
+    // Inside the confirmation, click the (second) Regenerate button.
+    const confirmBtns = screen.getAllByRole("button", { name: /^Regenerate$/ });
+    await userEvent.click(confirmBtns[confirmBtns.length - 1]);
 
     await new Promise(r => setTimeout(r, 10));
-    expect(fetchSpy).toHaveBeenCalledWith(
-      expect.stringContaining("/api/songs/tiny/stages/world-brief"),
-      expect.objectContaining({ method: "POST" }),
-    );
     const urls = fetchSpy.mock.calls.map(c => c[0] as string);
     const stageCall = urls.find(u => u.includes("/stages/world-brief"));
     expect(stageCall).toBeDefined();
     expect(stageCall!).toContain("redo=true");
+  });
+
+  it("world-description modal: editing and saving PATCHes /api/songs/:slug", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ ...makeSong(), world_brief: "edited" }),
+    } as Response);
+    // @ts-expect-error
+    globalThis.fetch = fetchSpy;
+
+    render(<PipelinePanel song={makeSong()} status={status()} onSongUpdate={() => {}} />);
+    const worldBriefRow = screen.getByText(/world description/).parentElement!;
+    await userEvent.click(worldBriefRow.querySelector("button")!);
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+    await userEvent.tripleClick(textarea);
+    await userEvent.keyboard("edited");
+    const saveBtn = screen.getByRole("button", { name: /Save edit/i });
+    await userEvent.click(saveBtn);
+    await new Promise(r => setTimeout(r, 10));
+    const patchCall = fetchSpy.mock.calls.find(c =>
+      (c[1] as RequestInit)?.method === "PATCH"
+      && String(c[0]).includes("/api/songs/tiny"),
+    );
+    expect(patchCall).toBeDefined();
+    expect(JSON.parse((patchCall![1] as RequestInit).body as string))
+      .toEqual({ world_brief: "edited" });
   });
 
   it("POSTs without confirm for a stage not yet done", async () => {

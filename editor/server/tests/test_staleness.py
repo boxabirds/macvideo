@@ -52,13 +52,30 @@ def test_identity_chain_stops_at_song_end():
 
 
 def test_irrelevant_field_no_op():
+    # `prev_link` is metadata; it neither locally invalidates nor ripples.
+    flags, neighbours = flags_after_scene_edit(
+        current_flags=[],
+        edit=SceneFieldEdit(scene_index=5, field_name="prev_link"),
+        total_scene_count=10,
+    )
+    assert flags == set()
+    assert neighbours == {}
+
+
+def test_target_text_edit_cascades_like_subject():
+    # Widening of Story 3: target_text is now user-editable, so it
+    # invalidates keyframe+clip locally and ripples up the identity chain.
     flags, neighbours = flags_after_scene_edit(
         current_flags=[],
         edit=SceneFieldEdit(scene_index=5, field_name="target_text"),
         total_scene_count=10,
     )
-    assert flags == set()
-    assert neighbours == {}
+    assert "keyframe_stale" in flags
+    assert "clip_stale" in flags
+    assert set(neighbours.keys()) == {6, 7, 8, 9}
+    for nb_flags in neighbours.values():
+        assert "keyframe_stale" in nb_flags
+        assert "clip_stale" not in nb_flags
 
 
 def test_revert_clears_local_flags():

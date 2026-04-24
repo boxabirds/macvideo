@@ -4,6 +4,7 @@
 // on the next SWR revalidation.
 import { useCallback, useState } from "react";
 import type { SongDetail, StageStatus } from "../types";
+import { patchSong } from "../api";
 
 // Stage button keys → backend stage-name + done-state computation.
 const STAGES = [
@@ -26,7 +27,13 @@ async function runStage(slug: string, stageName: string, redo: boolean) {
   return r.json();
 }
 
-export default function PipelinePanel({ song, status }: { song: SongDetail; status: StageStatus }) {
+export default function PipelinePanel({
+  song, status, onSongUpdate,
+}: {
+  song: SongDetail;
+  status: StageStatus;
+  onSongUpdate?: (s: SongDetail) => void;
+}) {
   const [confirm, setConfirm] = useState<null | { stageName: string; isRedo: boolean; label: string }>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +41,10 @@ export default function PipelinePanel({ song, status }: { song: SongDetail; stat
   // first time the world description is generated'. If either is unset we
   // open the picker before dispatching the world-brief run.
   const [filterPicker, setFilterPicker] = useState<null | { pendingStageName: string; isRedo: boolean }>(null);
+  // World-brief editing / regen modal: opens when a done world_brief row is
+  // clicked. Edits go through PATCH /api/songs/:slug; regen kicks the usual
+  // stage chain with redo=true.
+  const [worldBriefModal, setWorldBriefModal] = useState(false);
 
   const onClick = useCallback((stageName: string, label: string, isRedo: boolean) => {
     const needsFilterPicker =
@@ -42,12 +53,18 @@ export default function PipelinePanel({ song, status }: { song: SongDetail; stat
       setFilterPicker({ pendingStageName: stageName, isRedo });
       return;
     }
+    // World-brief when already done opens the edit-or-regen modal rather
+    // than the generic re-run confirmation.
+    if (stageName === "world-brief" && isRedo && song.world_brief) {
+      setWorldBriefModal(true);
+      return;
+    }
     if (isRedo) {
       setConfirm({ stageName, isRedo: true, label });
     } else {
       void trigger(stageName, false);
     }
-  }, [song.filter, song.abstraction]);
+  }, [song.filter, song.abstraction, song.world_brief]);
 
   const trigger = useCallback(async (stageName: string, isRedo: boolean) => {
     setBusy(stageName);
@@ -147,6 +164,101 @@ export default function PipelinePanel({ song, status }: { song: SongDetail; stat
           </div>
         </div>
       ) : null}
+
+      {worldBriefModal ? (
+        <WorldBriefModal
+          song={song}
+          onClose={() => setWorldBriefModal(false)}
+          onSaved={s => onSongUpdate?.(s)}
+          onRegenConfirmed={async () => {
+            setWorldBriefModal(false);
+            await trigger("world-brief", true);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function WorldBriefModal({
+  song, onClose, onSaved, onRegenConfirmed,
+}: {
+  song: SongDetail;
+  onClose: () => void;
+  onSaved: (s: SongDetail) => void;
+  onRegenConfirmed: () => Promise<void>;
+}) {
+  const [text, setText] = useState(song.world_brief ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [confirmRegen, setConfirmRegen] = useState(false);
+
+  const onSave = useCallback(async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await patchSong(song.slug, { world_brief: text });
+      onSaved(updated);
+      onClose();
+    } catch (e) {
+      setSaveError(String(e));
+    } finally {
+      setSaving(false);
+    }
+  }, [song.slug, text, onSaved, onClose]);
+
+  return (
+    <div className="dialog-backdrop" role="dialog" aria-modal="true">
+      <div className="dialog world-brief-dialog">
+        <h2>World description for {song.slug}</h2>
+        <p style={{ color: "var(--text-dim)", fontSize: 12, marginTop: 0 }}>
+          Edit the text and save, or regenerate the entire chain from scratch.
+        </p>
+        <textarea
+          className="world-brief-textarea"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          spellCheck
+        />
+        {saveError ? (
+          <p style={{ color: "#e06060", fontSize: 12 }}>{saveError}</p>
+        ) : null}
+        <div className="actions">
+          <button onClick={onClose}>Cancel</button>
+          <button onClick={onSave} disabled={saving || text === (song.world_brief ?? "")}>
+            {saving ? "Saving…" : "Save edit"}
+          </button>
+          <button
+            className="primary danger"
+            onClick={() => setConfirmRegen(true)}
+            title="Regenerate the world description and every downstream stage"
+          >
+            Regenerate
+          </button>
+        </div>
+
+        {confirmRegen ? (
+          <div className="dialog-backdrop" role="dialog" aria-modal="true">
+            <div className="dialog">
+              <h2>This is a big deal. It affects the entire project and everything will be rebuilt. OK?</h2>
+              <p style={{ color: "var(--text-dim)" }}>
+                Regenerating the world description invalidates every downstream
+                stage — storyboard, image prompts, and all keyframes. Existing
+                clip takes are preserved but marked stale.
+              </p>
+              <div className="actions">
+                <button onClick={() => setConfirmRegen(false)}>Cancel</button>
+                <button
+                  className="primary danger"
+                  onClick={() => { setConfirmRegen(false); void onRegenConfirmed(); }}
+                >
+                  Regenerate
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -165,7 +165,26 @@ def list_runs(slug: str, active_only: bool = Query(default=False), conn=Depends(
     if not song:
         raise HTTPException(status_code=404, detail=f"song '{slug}' not found")
     runs = list_song_runs(conn, song["id"], active_only=active_only)
-    return {"runs": [r.__dict__ for r in runs]}
+    # Enrich each run with scene_index so the frontend can key regen-in-flight
+    # state by the externally-visible scene number. Runs without a scene_id
+    # (e.g. stage-level) get scene_index=None.
+    scene_id_to_index: dict[int, int] = {}
+    scene_ids = {r.scene_id for r in runs if r.scene_id is not None}
+    if scene_ids:
+        placeholders = ",".join("?" for _ in scene_ids)
+        rows = conn.execute(
+            f"SELECT id, scene_index FROM scenes WHERE id IN ({placeholders})",
+            tuple(scene_ids),
+        ).fetchall()
+        scene_id_to_index = {row["id"]: row["scene_index"] for row in rows}
+    out = []
+    for r in runs:
+        d = dict(r.__dict__)
+        d["scene_index"] = (
+            scene_id_to_index.get(r.scene_id) if r.scene_id is not None else None
+        )
+        out.append(d)
+    return {"runs": out}
 
 
 @events_router.get("/events/regen")

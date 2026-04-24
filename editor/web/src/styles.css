@@ -191,20 +191,81 @@ button { font: inherit; cursor: pointer; }
 .scene-row {
   background: var(--panel);
   border-radius: 5px;
-  padding: 10px 12px;
   margin-bottom: 6px;
   content-visibility: auto;
   contain-intrinsic-size: 360px 100%;
+  overflow: hidden;
+  border: 1px solid transparent;
 }
-.scene-row h3 {
-  margin: 0 0 6px 0;
+.scene-row.collapsed { contain-intrinsic-size: 44px 100%; }
+.scene-row .scene-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #1a1e24;
+  border-left: 3px solid var(--accent);
+  cursor: pointer;
+  user-select: none;
+}
+.scene-row .scene-header:hover { background: #202630; }
+.scene-row .expando {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 10px;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.scene-row .expando:hover { color: var(--text); }
+.scene-row .scene-title {
+  margin: 0;
   font-size: 13px;
   font-weight: 500;
   display: flex;
   gap: 8px;
   align-items: center;
+  flex: 1;
+  min-width: 0;
 }
-.scene-row h3 .scene-num { color: var(--text-dim); font-weight: 400; }
+.scene-row .scene-title .scene-num { color: var(--text-dim); font-weight: 400; }
+.scene-row .scene-title-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scene-row .scene-title-text.editable {
+  cursor: text;
+  border-bottom: 1px dashed transparent;
+}
+.scene-row .scene-title-text.editable:hover {
+  border-bottom-color: var(--text-dim);
+}
+.scene-row .scene-title-input {
+  flex: 1;
+  min-width: 0;
+  background: #0d0d0d;
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 3px 6px;
+  font: inherit;
+}
+.scene-row .scene-header-chips {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.scene-row .scene-time {
+  color: var(--text-dim);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.scene-row .scene-body {
+  padding: 10px 12px;
+}
 .scene-row .lyric {
   color: #fff;
   font-size: 13px;
@@ -235,41 +296,51 @@ button { font: inherit; cursor: pointer; }
 .scene-row textarea { min-height: 40px; }
 .scene-row .chips {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   margin-top: 8px;
   align-items: center;
 }
 .chip {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: #2a2a2a;
-  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #1f1f1f;
+  color: var(--text);
+  border: 1px solid var(--border);
 }
-.chip.kf { }
-.chip.clip { }
-.chip.grey { background: #2a2a2a; }
-.chip.red { background: var(--progress); color: #fff; }
-.chip.green { background: var(--good); color: #d4f5dd; }
-.chip.error { background: var(--error); color: #fcc; }
-.chip.stale::after {
-  content: "●";
-  color: var(--warn);
-  margin-left: 4px;
+.chip .chip-label { font-size: 12px; color: var(--text-dim); }
+.chip .chip-glyph { font-size: 12px; line-height: 1; display: inline-block; }
+.chip.done .chip-glyph { color: #52c97a; }
+.chip.pending .chip-glyph { color: var(--progress); }
+.chip.in_progress .chip-glyph { color: var(--accent-light); }
+.chip.error .chip-glyph { color: #e06060; }
+.chip.error { border-color: rgba(224,96,96,0.5); }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.chip-glyph.spin {
+  animation: spin 1s linear infinite;
+  transform-origin: 50% 50%;
 }
 
 .scene-row .actions {
   display: flex;
-  gap: 4px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
 }
 .scene-row .actions button {
   background: #1c1c1c;
   color: var(--text);
   border: 1px solid var(--border);
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 3px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .scene-row .actions button:hover { background: #262626; }
 .scene-row .actions button:disabled {
@@ -476,4 +547,24 @@ button { font: inherit; cursor: pointer; }
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
+}
+.dialog .actions button.primary.danger,
+.dialog .actions button.danger {
+  background: #8a2a3a;
+  border-color: #8a2a3a;
+  color: #fff;
+}
+.world-brief-dialog { min-width: 540px; }
+.world-brief-textarea {
+  width: 100%;
+  min-height: 220px;
+  background: #0d0d0d;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+  line-height: 1.5;
 }

@@ -3,6 +3,11 @@
 // per-field dirty + error state so users see pending saves and failures.
 // Staleness chips reflect backend-driven dirty_flags including the
 // identity-chain cascade on N+1..N+4 beat/camera/subject edits.
+//
+// Presentation layer additions (post-Story 3):
+//   - Collapsible rows: header-only by default; expando toggles the body.
+//   - target_text inline editable (widens Story 3 PRD — see SongEditor).
+//   - Status chips show icons: ● (done), ● amber (pending/stale), ↻ (in-flight), ⚠ (error).
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { Scene, SongDetail } from "../types";
 import {
@@ -38,34 +43,69 @@ function isNetworkFailure(e: unknown): boolean {
 // After this we resume auto-scrolling the current scene into view.
 const SCROLL_OVERRIDE_MS = 3000;
 
-type EditableField = "beat" | "subject_focus" | "camera_intent" | "image_prompt";
+type EditableField =
+  | "beat"
+  | "subject_focus"
+  | "camera_intent"
+  | "image_prompt"
+  | "target_text";
 
-function StatusChip({ label, state, stale }: { label: string; state: "grey" | "red" | "green" | "error"; stale: boolean }) {
-  // Distinct glyphs so 'in progress' (amber dot) is visually different from
-  // 'failed' (exclamation) and 'stale' (tilde) at a glance.
-  const icon = state === "error" ? " ⚠" : stale && state === "green" ? " ~" : "";
+type ActiveArtefacts = "keyframe" | "clip";
+type ActiveRegensMap = Record<number, Set<ActiveArtefacts>>;
+
+type ChipState = "done" | "pending" | "in_progress" | "error";
+
+function StatusChip({ label, state }: { label: string; state: ChipState }) {
+  // Visual language:
+  //   done          — filled green dot
+  //   pending/stale — filled amber dot (asset not yet fresh)
+  //   in_progress   — spinning ↻
+  //   error         — red ⚠
+  let glyph: string;
+  let title: string;
+  switch (state) {
+    case "done":
+      glyph = "\u25CF"; // ●
+      title = "up to date";
+      break;
+    case "in_progress":
+      glyph = "\u21BB"; // ↻
+      title = "regenerating…";
+      break;
+    case "error":
+      glyph = "\u26A0"; // ⚠
+      title = "missing asset — hover for detail";
+      break;
+    case "pending":
+    default:
+      glyph = "\u25CF"; // ●
+      title = "stale / pending (regenerate to update)";
+      break;
+  }
   return (
-    <span
-      className={`chip ${label} ${state}${stale && state === "green" ? " stale" : ""}`}
-      title={state === "error" ? "failed — hover for reason" : stale ? "stale (regenerate to update)" : ""}
-    >
-      {label}{icon}
+    <span className={`chip ${label} ${state}`} title={title}>
+      <span className={`chip-glyph ${state === "in_progress" ? "spin" : ""}`}>
+        {glyph}
+      </span>
+      <span className="chip-label">{label}</span>
     </span>
   );
 }
 
-function classifyChips(scene: Scene) {
-  const kf = scene.missing_assets.includes("keyframe")
-    ? ("error" as const)
-    : scene.selected_keyframe_path ? ("green" as const) : ("grey" as const);
-  const clip = scene.missing_assets.includes("clip")
-    ? ("error" as const)
-    : scene.selected_clip_path ? ("green" as const) : ("grey" as const);
-  return {
-    kf, clip,
-    kfStale: scene.dirty_flags.includes("keyframe_stale"),
-    clipStale: scene.dirty_flags.includes("clip_stale"),
-  };
+function chipStateFor(
+  scene: Scene,
+  kind: ActiveArtefacts,
+  isActive: boolean,
+): ChipState {
+  if (isActive) return "in_progress";
+  if (scene.missing_assets.includes(kind)) return "error";
+  const selected = kind === "keyframe"
+    ? scene.selected_keyframe_path
+    : scene.selected_clip_path;
+  const staleFlag = kind === "keyframe" ? "keyframe_stale" : "clip_stale";
+  if (!selected) return "pending";
+  if (scene.dirty_flags.includes(staleFlag)) return "pending";
+  return "done";
 }
 
 type Props = {
@@ -74,10 +114,15 @@ type Props = {
   currentIdx: number | null;
   onSelect: (idx: number) => void;
   onPatch: (idx: number, updated: Scene) => void;
+  // Optional map of scene_index → set of artefacts currently regenerating.
+  // Drives the "in-progress" state on status chips. Absent during unit
+  // tests; defaults to an empty map.
+  activeRegens?: ActiveRegensMap;
 };
 
 const SceneRow = memo(function SceneRow({
   scene, cameraIntents, current, onClick, onPatch, slug, rowRef,
+  activeArtefacts, expanded, onToggleExpanded,
 }: {
   scene: Scene;
   cameraIntents: string[];
@@ -86,12 +131,17 @@ const SceneRow = memo(function SceneRow({
   onPatch: (updated: Scene) => void;
   slug: string;
   rowRef?: (el: HTMLDivElement | null) => void;
+  activeArtefacts: Set<ActiveArtefacts>;
+  expanded: boolean;
+  onToggleExpanded: () => void;
 }) {
   // Per-field buffers so typing in one field doesn't re-render the others.
   const [beat, setBeat] = useState(scene.beat ?? "");
   const [subject, setSubject] = useState(scene.subject_focus ?? "");
   const [prompt, setPrompt] = useState(scene.image_prompt ?? "");
   const [camera, setCamera] = useState(scene.camera_intent ?? "");
+  const [targetText, setTargetText] = useState(scene.target_text ?? "");
+  const [editingTargetText, setEditingTargetText] = useState(false);
 
   // Per-field saving + error state. `saving` is the set of fields with an
   // in-flight PATCH; `errors` is { field -> message } when PATCH failed and
@@ -106,17 +156,24 @@ const SceneRow = memo(function SceneRow({
   useEffect(() => { setSubject(scene.subject_focus ?? ""); }, [scene.subject_focus]);
   useEffect(() => { setPrompt(scene.image_prompt ?? ""); }, [scene.image_prompt]);
   useEffect(() => { setCamera(scene.camera_intent ?? ""); }, [scene.camera_intent]);
+  useEffect(() => { setTargetText(scene.target_text ?? ""); }, [scene.target_text]);
 
-  const chips = classifyChips(scene);
+  const kfState = chipStateFor(scene, "keyframe", activeArtefacts.has("keyframe"));
+  const clipState = chipStateFor(scene, "clip", activeArtefacts.has("clip"));
 
   const currentBuffers: Record<EditableField, string> = {
-    beat, subject_focus: subject, camera_intent: camera, image_prompt: prompt,
+    beat,
+    subject_focus: subject,
+    camera_intent: camera,
+    image_prompt: prompt,
+    target_text: targetText,
   };
   const savedValues: Record<EditableField, string> = {
     beat: scene.beat ?? "",
     subject_focus: scene.subject_focus ?? "",
     camera_intent: scene.camera_intent ?? "",
     image_prompt: scene.image_prompt ?? "",
+    target_text: scene.target_text ?? "",
   };
   const isDirty = (f: EditableField) => currentBuffers[f] !== savedValues[f];
 
@@ -129,9 +186,7 @@ const SceneRow = memo(function SceneRow({
       onPatch(updated);
     } catch (e) {
       if (isNetworkFailure(e)) {
-        // Queue for retry on reconnect. Show the error badge with an
-        // offline-specific message; on successful retry we clear the
-        // error, on a subsequent non-network failure we surface it.
+        // Queue for retry on reconnect.
         retryQueue.push({
           slug, sceneIndex: scene.index, field, value: newValue,
           onAck: (updated) => {
@@ -165,68 +220,124 @@ const SceneRow = memo(function SceneRow({
     return null;
   };
 
+  const timeRange = `[${scene.start_s.toFixed(1)}s – ${scene.end_s.toFixed(1)}s]`;
+
   return (
     <div
       ref={rowRef}
-      className={`scene-row${current ? " current" : ""}`}
-      onClick={onClick}
+      className={`scene-row${current ? " current" : ""}${expanded ? " expanded" : " collapsed"}`}
       role="article"
       data-scene-index={scene.index}
     >
-      <h3>
-        <span className="scene-num">#{scene.index}</span>
-        <span>{scene.target_text}</span>
-      </h3>
-
-      <label>Beat{badgeFor("beat")}</label>
-      <textarea
-        value={beat}
-        onChange={e => setBeat(e.target.value)}
-        onBlur={() => commit("beat", beat)}
-        className={errors.beat ? "field-error" : ""}
-      />
-
-      <label>Subject focus{badgeFor("subject_focus")}</label>
-      <input
-        type="text"
-        value={subject}
-        onChange={e => setSubject(e.target.value)}
-        onBlur={() => commit("subject_focus", subject)}
-        className={errors.subject_focus ? "field-error" : ""}
-      />
-
-      <label>Camera intent{badgeFor("camera_intent")}</label>
-      <select
-        value={camera}
-        onChange={e => { setCamera(e.target.value); commit("camera_intent", e.target.value); }}
-        className={errors.camera_intent ? "field-error" : ""}
+      <div
+        className="scene-header"
+        onClick={onClick}
       >
-        <option value="">(unset)</option>
-        {cameraIntents.map(v => <option key={v} value={v}>{v}</option>)}
-      </select>
-
-      <label>
-        Image prompt
-        {badgeFor("image_prompt")}
-        {scene.prompt_is_user_authored ? <span style={{ marginLeft: 6, color: "#c97330" }}>(hand-authored)</span> : null}
-      </label>
-      <textarea
-        value={prompt}
-        onChange={e => setPrompt(e.target.value)}
-        onBlur={() => commit("image_prompt", prompt)}
-        style={{ minHeight: 60 }}
-        className={errors.image_prompt ? "field-error" : ""}
-      />
-
-      <div className="chips">
-        <StatusChip label="kf" state={chips.kf} stale={chips.kfStale} />
-        <StatusChip label="clip" state={chips.clip} stale={chips.clipStale} />
+        <button
+          type="button"
+          className="expando"
+          aria-label={expanded ? "collapse scene" : "expand scene"}
+          aria-expanded={expanded}
+          onClick={e => {
+            e.stopPropagation();
+            onToggleExpanded();
+          }}
+        >
+          {expanded ? "\u25BC" : "\u25B6"}
+        </button>
+        <h3 className="scene-title">
+          <span className="scene-num">#{scene.index}</span>
+          {editingTargetText ? (
+            <input
+              type="text"
+              className="scene-title-input"
+              autoFocus
+              value={targetText}
+              onChange={e => setTargetText(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              onBlur={() => {
+                setEditingTargetText(false);
+                void commit("target_text", targetText);
+              }}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  (e.target as HTMLInputElement).blur();
+                } else if (e.key === "Escape") {
+                  setTargetText(scene.target_text ?? "");
+                  setEditingTargetText(false);
+                }
+              }}
+            />
+          ) : (
+            <span
+              className={`scene-title-text editable${errors.target_text ? " field-error" : ""}`}
+              title="click to edit lyric"
+              onClick={e => {
+                e.stopPropagation();
+                setEditingTargetText(true);
+              }}
+            >
+              {scene.target_text}
+            </span>
+          )}
+          {badgeFor("target_text")}
+        </h3>
+        <div className="scene-header-chips">
+          <StatusChip label="keyframe" state={kfState} />
+          <StatusChip label="clip" state={clipState} />
+        </div>
+        <span className="scene-time">{timeRange}</span>
       </div>
 
-      <RegenActions
-        slug={slug} sceneIndex={scene.index}
-        onPatched={onPatch}
-      />
+      {expanded ? (
+        <div className="scene-body" onClick={onClick}>
+          <label>Beat{badgeFor("beat")}</label>
+          <textarea
+            value={beat}
+            onChange={e => setBeat(e.target.value)}
+            onBlur={() => commit("beat", beat)}
+            className={errors.beat ? "field-error" : ""}
+          />
+
+          <label>Subject focus{badgeFor("subject_focus")}</label>
+          <input
+            type="text"
+            value={subject}
+            onChange={e => setSubject(e.target.value)}
+            onBlur={() => commit("subject_focus", subject)}
+            className={errors.subject_focus ? "field-error" : ""}
+          />
+
+          <label>Camera intent{badgeFor("camera_intent")}</label>
+          <select
+            value={camera}
+            onChange={e => { setCamera(e.target.value); commit("camera_intent", e.target.value); }}
+            className={errors.camera_intent ? "field-error" : ""}
+          >
+            <option value="">(unset)</option>
+            {cameraIntents.map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+
+          <label>
+            Image prompt
+            {badgeFor("image_prompt")}
+            {scene.prompt_is_user_authored ? <span style={{ marginLeft: 6, color: "#c97330" }}>(hand-authored)</span> : null}
+          </label>
+          <textarea
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            onBlur={() => commit("image_prompt", prompt)}
+            style={{ minHeight: 60 }}
+            className={errors.image_prompt ? "field-error" : ""}
+          />
+
+          <RegenActions
+            slug={slug} sceneIndex={scene.index}
+            onPatched={onPatch}
+          />
+        </div>
+      ) : null}
     </div>
   );
 });
@@ -358,12 +469,25 @@ function RegenActions({
   );
 }
 
-export default function Storyboard({ song, cameraIntents, currentIdx, onSelect, onPatch }: Props) {
+export default function Storyboard({
+  song, cameraIntents, currentIdx, onSelect, onPatch, activeRegens,
+}: Props) {
   // Collect refs to scene rows so the parent can scroll the current scene
   // into view when the preview advances it.
   const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastUserScrollAt = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Collapsed-by-default: every row in the song starts hidden. Users click
+  // the expando to open one. Keyed by scene index.
+  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+  const toggleExpanded = useCallback((idx: number) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  }, []);
 
   // Track user scroll gestures so we don't fight them. After the grace
   // period elapses we resume auto-scrolling the current scene into view.
@@ -405,7 +529,6 @@ export default function Storyboard({ song, cameraIntents, currentIdx, onSelect, 
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
       if (retryQueue.length > 0) {
         event.preventDefault();
-        // Legacy behaviour — some browsers still honour returnValue.
         (event as BeforeUnloadEvent).returnValue = "";
       }
     };
@@ -426,6 +549,8 @@ export default function Storyboard({ song, cameraIntents, currentIdx, onSelect, 
     if (row) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [currentIdx]);
 
+  const emptyActive = useRef<Set<ActiveArtefacts>>(new Set());
+
   return (
     <div className="storyboard" aria-label="Scene list" ref={containerRef}>
       {song.scenes.map(scene => (
@@ -441,6 +566,9 @@ export default function Storyboard({ song, cameraIntents, currentIdx, onSelect, 
             if (el) rowRefs.current.set(scene.index, el);
             else rowRefs.current.delete(scene.index);
           }}
+          activeArtefacts={activeRegens?.[scene.index] ?? emptyActive.current}
+          expanded={expanded.has(scene.index)}
+          onToggleExpanded={() => toggleExpanded(scene.index)}
         />
       ))}
     </div>
