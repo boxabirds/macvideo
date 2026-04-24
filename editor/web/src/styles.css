@@ -34,6 +34,9 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
+  max-width: 100vw;
+  overflow: hidden;
 }
 
 .topbar {
@@ -156,9 +159,11 @@ button { font: inherit; cursor: pointer; }
 
 .editor {
   display: grid;
-  grid-template-columns: var(--lhs-px, 33%) 8px 1fr;
+  grid-template-columns: var(--lhs-px, 33%) 8px minmax(0, 1fr);
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 .split-sep {
   background: #222;
@@ -304,6 +309,8 @@ button { font: inherit; cursor: pointer; }
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   background: #000;
 }
 .viewer {
