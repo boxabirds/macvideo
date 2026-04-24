@@ -1,133 +1,107 @@
 # Style filter registry for the macvideo pipeline.
 #
 # status:
-#   accepted — validated in POCs, safe for production
-#   proposed — candidate for inclusion, needs visual review before acceptance
-#   rejected — explicitly excluded; LLM filter-chooser should never pick these
+#   accepted — approved for production; the LLM filter-chooser picks from these
+#   proposed — candidate; visual review pending before acceptance
+#   rejected — explicitly excluded; never used
 #
-# category: aesthetic family (for organising the gallery)
-#
-# Adding a new filter? Set status to `proposed`, run POC 17 (filter gallery)
-# to see it rendered on every track's first scene, then promote to `accepted`
-# or demote to `rejected`.
+# 16 filters approved on 2026-04-21 after POC 17 gallery review.
 
 filters:
-  # ——— Accepted (validated in POC 10 v2, 2026-04-21) ———
-  - name: papercut
+  # ——— Accepted ———
+  - name: oil impasto
     status: accepted
-    category: medium-transform
-    description: Layered cut paper diorama; visible fibre, casting shadows between layers
-  - name: watercolour
+    category: rich-colour
+    description: Thick palette-knife paint, ridges catching light
+  - name: mosaic
     status: accepted
-    category: medium-transform
-    description: Wet-on-wet wash painting, paper grain, lost-and-found edges
-  - name: pencil sketch
-    status: accepted
-    category: medium-transform
-    description: Graphite on paper, variable-pressure line, cross-hatching
-  - name: charcoal
-    status: accepted
-    category: medium-transform
-    description: Vine-charcoal strokes on paper, smudging, dust, heavy blacks
+    category: tactile
+    description: Tile-by-tile composition with visible grout lines
   - name: stained glass
     status: accepted
     category: rich-colour
     description: Lead-lined coloured-glass panels; light through glass
-  - name: steampunk
+  - name: claymation
     status: accepted
-    category: world-reskin
-    description: Brass, rivets, clockwork, gaslamp glow, volumetric steam
-  - name: bubblegum
+    category: tactile
+    description: Stop-motion clay figures with thumbprint imperfections
+  - name: watercolour
     status: accepted
-    category: world-reskin
-    description: Electric magenta and pink candy-gloss surfaces, silicone textures
-
-  # ——— Proposed (POC 17 will render these for visual review) ———
-
-  # High-contrast graphic — reads at any size
+    category: medium-transform
+    description: Wet-on-wet wash painting, paper grain, lost-and-found edges
+  - name: papercut
+    status: accepted
+    category: medium-transform
+    description: Layered cut paper diorama; visible fibre, casting shadows between layers
+  - name: charcoal
+    status: accepted
+    category: medium-transform
+    description: Vine-charcoal strokes on paper, smudging, dust, heavy blacks
   - name: scratchboard
-    status: proposed
+    status: accepted
     category: high-contrast-graphic
     description: White lines scratched from solid black
-  - name: linocut
-    status: proposed
-    category: high-contrast-graphic
-    description: Bold carved black on cream paper, heavy flat shapes
-  - name: ukiyo-e
-    status: proposed
-    category: high-contrast-graphic
-    description: Japanese woodblock; flat colour fields, thick outlines
   - name: risograph
-    status: proposed
+    status: accepted
     category: high-contrast-graphic
     description: Two-tone limited-palette print, grainy imperfect registration
-
-  # Rich colour / painterly prestige
-  - name: oil impasto
-    status: proposed
-    category: rich-colour
-    description: Thick palette-knife paint, ridges catching light
-  - name: byzantine icon
-    status: proposed
-    category: rich-colour
-    description: Gold leaf, tempera, flat reverent planes
-
-  # Monochrome / atmospheric
   - name: cyanotype
-    status: proposed
+    status: accepted
     category: monochrome
     description: Prussian-blue photograms, white subjects on blue ground
   - name: sumi-e
-    status: proposed
+    status: accepted
     category: monochrome
     description: Zen brushwork, minimal ink gesture, vast negative space
   - name: daguerreotype
-    status: proposed
+    status: accepted
     category: monochrome
     description: Silvery mirror-like antique photo with ghost imperfections
-
-  # Tactile / handmade
-  - name: claymation
-    status: proposed
-    category: tactile
-    description: Stop-motion clay figures with thumbprint imperfections
   - name: embroidery
-    status: proposed
+    status: accepted
     category: tactile
     description: Thread-texture on linen, visible stitch direction
-  - name: mosaic
-    status: proposed
-    category: tactile
-    description: Tile-by-tile composition with visible grout lines
-
-  # Conceptual / high-impact
   - name: double exposure
-    status: proposed
+    status: accepted
     category: conceptual
     description: Two images anatomically merged (silhouette filled with landscape)
-  - name: bioluminescence
-    status: proposed
-    category: conceptual
-    description: Deep dark ground with organic glowing lines and particles
-  - name: x-ray
-    status: proposed
-    category: conceptual
-    description: Skeletal medical imagery, greys and translucency
-  - name: neon light painting
-    status: proposed
-    category: conceptual
-    description: Pure glow-on-black, graphic edges, no mid-tones
-
-  # World-reskin (aggressive prompting; may or may not land)
-  - name: art nouveau
-    status: proposed
-    category: world-reskin
-    description: Mucha-style flowing organic ornament, jewel-tone palette
   - name: baroque chiaroscuro
-    status: proposed
+    status: accepted
     category: world-reskin
     description: Caravaggio dark; single shaft of light picking figures from blackness
   - name: surrealist
-    status: proposed
+    status: accepted
     category: world-reskin
     description: Dalí/Magritte impossible composition, dream logic
+
+  # ——— Rejected (POC 17 gallery review 2026-04-21) ———
+  - name: pencil sketch
+    status: rejected
+    category: medium-transform
+  - name: steampunk
+    status: rejected
+    category: world-reskin
+  - name: bubblegum
+    status: rejected
+    category: world-reskin
+  - name: linocut
+    status: rejected
+    category: high-contrast-graphic
+  - name: ukiyo-e
+    status: rejected
+    category: high-contrast-graphic
+  - name: byzantine icon
+    status: rejected
+    category: rich-colour
+  - name: bioluminescence
+    status: rejected
+    category: conceptual
+  - name: x-ray
+    status: rejected
+    category: conceptual
+  - name: neon light painting
+    status: rejected
+    category: conceptual
+  - name: art nouveau
+    status: rejected
+    category: world-reskin

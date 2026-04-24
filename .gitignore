@@ -48,6 +48,16 @@ pocs/*/inputs/
 pocs/*/stems/
 pocs/*/cache/
 
+# Editor (storyboard editor) runtime state
+editor/data/
+editor/web/node_modules/
+editor/web/test-results/
+editor/web/playwright-report/
+editor/web/dist/
+
+# Rendered video — regenerable, not suited to git
+*.mp4
+
 # Editors
 .idea/
 .vscode/

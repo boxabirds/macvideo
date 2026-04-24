@@ -1609,7 +1609,7 @@ dependencies = [
 requires-dist = [
     { name = "demucs", specifier = ">=4.0.0" },
     { name = "google-genai", specifier = ">=1.0.0" },
-    { name = "mlx-video", git = "https://github.com/nopmobiel/mlx-video.git?rev=a8cd1db78ad90fa69f30ab6764e14f5c1ba94ca7#a8cd1db78ad90fa69f30ab6764e14f5c1ba94ca7" },
+    { name = "mlx-video", git = "https://github.com/zhaopengme/mlx-video.git?rev=a2046415c778c9c1921e870977420a7d143768ee#a2046415c778c9c1921e870977420a7d143768ee" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "whisperx", specifier = ">=3.1.0" },
 ]
@@ -1846,7 +1846,7 @@ wheels = [
 [[package]]
 name = "mlx-video"
 version = "0.0.1"
-source = { git = "https://github.com/nopmobiel/mlx-video.git?rev=a8cd1db78ad90fa69f30ab6764e14f5c1ba94ca7#a8cd1db78ad90fa69f30ab6764e14f5c1ba94ca7" }
+source = { git = "https://github.com/zhaopengme/mlx-video.git?rev=a2046415c778c9c1921e870977420a7d143768ee#a2046415c778c9c1921e870977420a7d143768ee" }
 dependencies = [
     { name = "ftfy" },
     { name = "huggingface-hub" },

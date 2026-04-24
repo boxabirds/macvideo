@@ -4,10 +4,11 @@ version = "0.0.0"
 description = "Music video pipeline — .wav to dramatic video on Apple Silicon"
 requires-python = ">=3.11"
 dependencies = [
-    # Pinned to PR #24 HEAD (nopmobiel) — fixes LTX-2.3 VAE encoder broadcast error for I2V.
-    # Upstream Blaizzy/mlx-video@9ab4826 did not include this fix at time of install.
-    # Revert to Blaizzy's main once PR #24 is merged.
-    "mlx-video @ git+https://github.com/nopmobiel/mlx-video.git@a8cd1db78ad90fa69f30ab6764e14f5c1ba94ca7",
+    # Pinned to PR #23 HEAD (zhaopengme) — adds first+last frame I2V conditioning
+    # via --end-image / --end-image-strength flags (POC 25).
+    # NOTE: this branch may not include PR #24's VAE fix — if I2V broadcast errors
+    # reappear, either cherry-pick PR #24 on top or revert to nopmobiel@a8cd1db.
+    "mlx-video @ git+https://github.com/zhaopengme/mlx-video.git@a2046415c778c9c1921e870977420a7d143768ee",
     "google-genai>=1.0.0",
     "demucs>=4.0.0",
     "whisperx>=3.1.0",
