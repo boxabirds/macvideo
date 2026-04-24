@@ -94,4 +94,17 @@ describe("SongBrowser", () => {
     const kf = within(parent as HTMLElement).getByText(/kf 5\/10/);
     expect(kf).toHaveClass("progress");
   });
+
+  it("fires POST /api/import on mount so new songs on disk show up", async () => {
+    const spy = stubFetch([makeSong({ slug: "blackbird" })]);
+    renderBrowser();
+    await screen.findByText("blackbird");
+    // Give the mount-effect's promise chain a tick to settle.
+    await new Promise(r => setTimeout(r, 0));
+    const importPost = spy.mock.calls.find(c =>
+      c[0] === "/api/import"
+      && (c[1] as RequestInit | undefined)?.method === "POST",
+    );
+    expect(importPost).toBeDefined();
+  });
 });

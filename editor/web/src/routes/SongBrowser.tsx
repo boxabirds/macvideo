@@ -1,8 +1,8 @@
 // Story 7 — Song browser: list/grid of songs with per-song status strip.
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import useSWR from "swr";
-import { fetcher } from "../api";
+import { fetcher, triggerImport } from "../api";
 import type { Song, StageStatus } from "../types";
 import { formatBytes, formatDurationMS } from "../format";
 import { localGet, localSet } from "../localSetting";
@@ -71,9 +71,17 @@ export default function SongBrowser() {
   }, []);
 
   // Rule: client-swr-dedup + refresh every 60s so background work surfaces.
-  const { data, error, isLoading } = useSWR<{ songs: Song[] }>(
+  const { data, error, isLoading, mutate } = useSWR<{ songs: Song[] }>(
     "/api/songs", fetcher, { refreshInterval: 60_000, revalidateOnFocus: true },
   );
+
+  // Rescan the music folder on every mount of the browser. Importer is
+  // idempotent (COALESCE upserts by slug) so repeated calls are cheap and
+  // can't clobber user edits. Revalidate once the scan returns so any newly
+  // discovered songs show up without a manual reload.
+  useEffect(() => {
+    triggerImport().then(() => mutate()).catch(() => { /* best-effort */ });
+  }, [mutate]);
 
   if (error) return <div className="error-card">Failed to load songs: {String(error)}</div>;
   if (isLoading || !data) return <div className="empty-state">Loading songs…</div>;
