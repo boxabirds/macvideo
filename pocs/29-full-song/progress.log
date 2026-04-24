@@ -1,0 +1,163 @@
+[05:48:18] === wait_and_render starting ===
+[05:48:18] 
+[05:48:18] ### render my-little-blackbird (stained glass, 89 shots)
+[05:48:18]   my-little-blackbird: keyframes 15 / 89
+[05:48:48]   my-little-blackbird: keyframes 16 / 89
+[05:49:18]   my-little-blackbird: keyframes 17 / 89
+[05:49:48]   my-little-blackbird: keyframes 19 / 89
+[05:50:18]   my-little-blackbird: keyframes 20 / 89
+[05:50:48]   my-little-blackbird: keyframes 21 / 89
+[05:51:19]   my-little-blackbird: keyframes 23 / 89
+[05:51:49]   my-little-blackbird: keyframes 24 / 89
+[05:52:19]   my-little-blackbird: keyframes 26 / 89
+[05:52:49]   my-little-blackbird: keyframes 27 / 89
+[05:53:19]   my-little-blackbird: keyframes 28 / 89
+[05:54:19]   my-little-blackbird: keyframes 30 / 89
+[05:54:49]   my-little-blackbird: keyframes 31 / 89
+[05:55:19]   my-little-blackbird: keyframes 32 / 89
+[05:55:49]   my-little-blackbird: keyframes 33 / 89
+[05:56:19]   my-little-blackbird: keyframes 34 / 89
+[05:56:49]   my-little-blackbird: keyframes 35 / 89
+[05:57:19]   my-little-blackbird: keyframes 36 / 89
+[05:57:49]   my-little-blackbird: keyframes 37 / 89
+[05:58:19]   my-little-blackbird: keyframes 38 / 89
+[05:58:49]   my-little-blackbird: keyframes 39 / 89
+[05:59:19]   my-little-blackbird: keyframes 40 / 89
+[05:59:49]   my-little-blackbird: keyframes 42 / 89
+[06:00:19]   my-little-blackbird: keyframes 43 / 89
+[06:00:49]   my-little-blackbird: keyframes 44 / 89
+[06:01:19]   my-little-blackbird: keyframes 46 / 89
+[06:01:49]   my-little-blackbird: keyframes 47 / 89
+[06:02:19]   my-little-blackbird: keyframes 49 / 89
+[06:02:49]   my-little-blackbird: keyframes 51 / 89
+[06:03:19]   my-little-blackbird: keyframes 52 / 89
+[06:03:49]   my-little-blackbird: keyframes 54 / 89
+[06:04:19]   my-little-blackbird: keyframes 55 / 89
+[06:04:49]   my-little-blackbird: keyframes 57 / 89
+[06:05:19]   my-little-blackbird: keyframes 58 / 89
+[06:05:49]   my-little-blackbird: keyframes 60 / 89
+[06:06:19]   my-little-blackbird: keyframes 61 / 89
+[06:06:49]   my-little-blackbird: keyframes 63 / 89
+[06:07:19]   my-little-blackbird: keyframes 64 / 89
+[06:07:49]   my-little-blackbird: keyframes 65 / 89
+[06:08:19]   my-little-blackbird: keyframes 66 / 89
+[06:08:49]   my-little-blackbird: keyframes 68 / 89
+[06:09:19]   my-little-blackbird: keyframes 69 / 89
+[06:09:49]   my-little-blackbird: keyframes 70 / 89
+[06:10:19]   my-little-blackbird: keyframes 71 / 89
+[06:10:49]   my-little-blackbird: keyframes 72 / 89
+[06:11:19]   my-little-blackbird: keyframes 73 / 89
+[06:11:49]   my-little-blackbird: keyframes 75 / 89
+[06:12:19]   my-little-blackbird: keyframes 76 / 89
+[06:12:49]   my-little-blackbird: keyframes 77 / 89
+[06:13:19]   my-little-blackbird: keyframes 78 / 89
+[06:13:49]   my-little-blackbird: keyframes 79 / 89
+[06:14:19]   my-little-blackbird: keyframes 81 / 89
+[06:14:50]   my-little-blackbird: keyframes 82 / 89
+[06:15:20]   my-little-blackbird: keyframes 83 / 89
+[06:15:50]   my-little-blackbird: keyframes 84 / 89
+[06:16:20]   my-little-blackbird: keyframes 85 / 89
+[06:16:50]   my-little-blackbird: keyframes 86 / 89
+[06:17:20]   my-little-blackbird: keyframes 87 / 89
+[06:17:50]   my-little-blackbird: all 89 keyframes present
+[06:17:50]   invoking render_clips + concat...
+[04-22 07:43:58] 
+[04-22 07:43:58] === render_all_1080 starting ===
+[04-22 07:43:58] 
+[04-22 07:43:58] ### render my-little-blackbird (stained glass) @ 1920x1088 / 30fps
+[04-22 07:49:52] 
+[04-22 07:49:52] === render_all_1080 starting ===
+[04-22 07:49:52] 
+[04-22 07:49:52] ### render my-little-blackbird (stained glass) @ 1920x1088 / 30fps
+[04-23 18:52:43] 
+[04-23 18:52:43] === render_all_1080 starting ===
+[04-23 18:52:43] 
+[04-23 18:52:43] ### render my-little-blackbird (stained glass) @ 1920x1088 / 30fps
+[20:23:33] watcher armed — will kill orchestrator 81213 when /Users/julian/expts/macvideo/pocs/29-full-song/outputs/my-little-blackbird/final.mp4 appears
+[shot  66] clip OK (653s, 41f)
+[shot  67] clip OK (777s, 49f)
+[shot  68] clip OK (6146s, 241f)
+[shot  69] clip OK (28186s, 609f)
+
+[render summary] rendered=4 cached=65 failed=0
+
+[align] trim/pad each clip to target duration...
+  #  1  target=15.861s  mode=pad +0.094s
+  #  2  target=3.181s  mode=pad +0.214s
+  #  3  target=2.300s  mode=pad +0.133s
+  #  4  target=0.920s  mode=pad +0.087s
+  #  5  target=0.920s  mode=pad +0.087s
+  #  6  target=3.660s  mode=pad +0.160s
+  #  7  target=3.921s  mode=pad +0.154s
+  #  8  target=1.420s  mode=pad +0.053s
+  #  9  target=1.720s  mode=pad +0.087s
+  # 10  target=1.160s  mode=pad +0.060s
+  # 11  target=1.220s  mode=pad +0.120s
+  # 12  target=5.141s  mode=pad +0.041s
+  # 13  target=1.860s  mode=pad +0.227s
+  # 14  target=1.580s  mode=trim -0.053s
+  # 15  target=1.800s  mode=pad +0.167s
+  # 16  target=2.980s  mode=exact
+  # 17  target=2.461s  mode=pad +0.294s
+  # 18  target=4.140s  mode=pad +0.107s
+  # 19  target=1.660s  mode=pad +0.027s
+  # 20  target=1.540s  mode=trim -0.093s
+  # 21  target=1.640s  mode=exact
+  # 22  target=7.641s  mode=pad +0.141s
+  # 23  target=10.001s  mode=pad +0.101s
+  # 24  target=1.480s  mode=trim -0.153s
+  # 25  target=2.220s  mode=pad +0.053s
+  # 26  target=3.200s  mode=trim -0.033s
+  # 27  target=2.961s  mode=pad +0.261s
+  # 28  target=4.160s  mode=trim -0.140s
+  # 29  target=1.680s  mode=pad +0.047s
+  # 30  target=1.820s  mode=pad +0.187s
+  # 31  target=1.721s  mode=pad +0.088s
+  # 32  target=1.860s  mode=trim -0.040s
+  # 33  target=3.160s  mode=trim -0.073s
+  # 34  target=4.220s  mode=trim -0.080s
+  # 35  target=2.021s  mode=trim -0.146s
+  # 36  target=1.600s  mode=trim -0.033s
+  # 37  target=1.820s  mode=pad +0.187s
+  # 38  target=2.980s  mode=exact
+  # 39  target=2.480s  mode=pad +0.047s
+  # 40  target=4.141s  mode=pad +0.108s
+  # 41  target=1.680s  mode=pad +0.047s
+  # 42  target=1.560s  mode=trim -0.073s
+  # 43  target=1.620s  mode=exact
+  # 44  target=11.221s  mode=exact
+  # 45  target=13.721s  mode=pad +0.088s
+  # 46  target=1.180s  mode=pad +0.080s
+  # 47  target=0.940s  mode=trim -0.160s
+  # 48  target=0.941s  mode=trim -0.159s
+  # 49  target=0.860s  mode=pad +0.027s
+  # 50  target=3.460s  mode=trim -0.040s
+  # 51  target=1.820s  mode=trim -0.080s
+  # 52  target=1.960s  mode=pad +0.060s
+  # 53  target=0.360s  mode=pad +0.060s
+  # 54  target=1.160s  mode=pad +0.060s
+  # 55  target=3.201s  mode=trim -0.032s
+  # 56  target=5.720s  mode=pad +0.087s
+  # 57  target=3.200s  mode=trim -0.033s
+  # 58  target=4.961s  mode=trim -0.139s
+  # 59  target=1.300s  mode=trim -0.067s
+  # 60  target=1.320s  mode=trim -0.047s
+  # 61  target=1.420s  mode=pad +0.053s
+  # 62  target=3.161s  mode=trim -0.072s
+  # 63  target=2.500s  mode=pad +0.067s
+  # 64  target=4.280s  mode=pad +0.247s
+  # 65  target=1.800s  mode=trim -0.100s
+  # 66  target=1.320s  mode=trim -0.047s
+  # 67  target=1.621s  mode=exact
+  # 68  target=7.940s  mode=trim -0.093s
+  # 69  target=20.122s  mode=trim -0.178s
+
+[concat] 69 aligned clips...
+[mux] overlaying master audio...
+
+[done] /Users/julian/expts/macvideo/pocs/29-full-song/outputs/my-little-blackbird/final.mp4
+[04-24 04:49:08] >>> my-little-blackbird: 231M
+[04-24 04:49:08] 
+[04-24 04:49:08] ### render chronophobia (cyanotype) @ 1920x1088 / 30fps
+[04:49:15] blackbird final.mp4 exists — killing render_all_1080.sh (PID 81213) to prevent chronophobia start
+[04:49:15] halt complete; chronophobia + busy-invisible NOT started

@@ -1,0 +1,3794 @@
+{
+  "source_transcript": "/Users/julian/expts/macvideo/pocs/07-whisperx/outputs/transcript.json",
+  "ground_truth": "music/my-little-blackbird.txt",
+  "words": [
+    {
+      "word": "He's",
+      "line_idx": 0,
+      "start": 15.893,
+      "end": 16.133,
+      "source": "match"
+    },
+    {
+      "word": "arrived",
+      "line_idx": 0,
+      "start": 16.233,
+      "end": 16.853,
+      "source": "match"
+    },
+    {
+      "word": "again",
+      "line_idx": 0,
+      "start": 16.933,
+      "end": 17.293,
+      "source": "match"
+    },
+    {
+      "word": "Whispering",
+      "line_idx": 1,
+      "start": 19.034,
+      "end": 20.034,
+      "source": "match"
+    },
+    {
+      "word": "in",
+      "line_idx": 1,
+      "start": 20.054,
+      "end": 20.094,
+      "source": "match"
+    },
+    {
+      "word": "my",
+      "line_idx": 1,
+      "start": 20.234,
+      "end": 20.634,
+      "source": "match"
+    },
+    {
+      "word": "ear",
+      "line_idx": 1,
+      "start": 20.934,
+      "end": 21.194,
+      "source": "match"
+    },
+    {
+      "word": "Molten",
+      "line_idx": 2,
+      "start": 21.354,
+      "end": 21.774,
+      "source": "match"
+    },
+    {
+      "word": "black",
+      "line_idx": 2,
+      "start": 21.794,
+      "end": 22.135,
+      "source": "match"
+    },
+    {
+      "word": "Pooling",
+      "line_idx": 3,
+      "start": 22.255,
+      "end": 22.735,
+      "source": "match"
+    },
+    {
+      "word": "in",
+      "line_idx": 3,
+      "start": 22.835,
+      "end": 23.055,
+      "source": "match"
+    },
+    {
+      "word": "That's",
+      "line_idx": 4,
+      "start": 23.175,
+      "end": 23.375,
+      "source": "match"
+    },
+    {
+      "word": "my",
+      "line_idx": 4,
+      "start": 23.435,
+      "end": 23.635,
+      "source": "match"
+    },
+    {
+      "word": "little",
+      "line_idx": 4,
+      "start": 23.695,
+      "end": 24.035,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 4,
+      "start": 24.095,
+      "end": 24.975,
+      "source": "match"
+    },
+    {
+      "word": "Little",
+      "line_idx": 5,
+      "start": 26.836,
+      "end": 27.196,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 5,
+      "start": 27.256,
+      "end": 27.796,
+      "source": "match"
+    },
+    {
+      "word": "of",
+      "line_idx": 5,
+      "start": 27.836,
+      "end": 27.876,
+      "source": "match"
+    },
+    {
+      "word": "noes",
+      "line_idx": 5,
+      "start": 27.976,
+      "end": 30.337,
+      "source": "match"
+    },
+    {
+      "word": "I",
+      "line_idx": 6,
+      "start": 30.757,
+      "end": 30.877,
+      "source": "match"
+    },
+    {
+      "word": "brush",
+      "line_idx": 6,
+      "start": 30.937,
+      "end": 31.217,
+      "source": "match"
+    },
+    {
+      "word": "him",
+      "line_idx": 6,
+      "start": 31.277,
+      "end": 31.457,
+      "source": "match"
+    },
+    {
+      "word": "away",
+      "line_idx": 6,
+      "start": 31.557,
+      "end": 32.117,
+      "source": "match"
+    },
+    {
+      "word": "A",
+      "line_idx": 7,
+      "start": 32.197,
+      "end": 32.257,
+      "source": "match"
+    },
+    {
+      "word": "deft",
+      "line_idx": 7,
+      "start": 32.337,
+      "end": 32.657,
+      "source": "match"
+    },
+    {
+      "word": "hop",
+      "line_idx": 7,
+      "start": 32.697,
+      "end": 33.038,
+      "source": "match"
+    },
+    {
+      "word": "a",
+      "line_idx": 7,
+      "start": 33.298,
+      "end": 33.358,
+      "source": "match"
+    },
+    {
+      "word": "flutter",
+      "line_idx": 7,
+      "start": 33.418,
+      "end": 33.858,
+      "source": "match"
+    },
+    {
+      "word": "He",
+      "line_idx": 8,
+      "start": 33.918,
+      "end": 34.038,
+      "source": "match"
+    },
+    {
+      "word": "pecks",
+      "line_idx": 8,
+      "start": 34.138,
+      "end": 34.458,
+      "source": "match"
+    },
+    {
+      "word": "back",
+      "line_idx": 8,
+      "start": 34.598,
+      "end": 34.938,
+      "source": "match"
+    },
+    {
+      "word": "Persistent",
+      "line_idx": 9,
+      "start": 35.058,
+      "end": 36.158,
+      "source": "match"
+    },
+    {
+      "word": "Whispering",
+      "line_idx": 10,
+      "start": 36.398,
+      "end": 37.619,
+      "source": "match"
+    },
+    {
+      "word": "again",
+      "line_idx": 10,
+      "start": 37.739,
+      "end": 38.219,
+      "source": "match"
+    },
+    {
+      "word": "Oh",
+      "line_idx": 11,
+      "start": 40.972,
+      "end": 41.853,
+      "source": "match"
+    },
+    {
+      "word": "why",
+      "line_idx": 11,
+      "start": 41.893,
+      "end": 42.313,
+      "source": "match"
+    },
+    {
+      "word": "won't",
+      "line_idx": 11,
+      "start": 42.353,
+      "end": 42.713,
+      "source": "match"
+    },
+    {
+      "word": "you",
+      "line_idx": 11,
+      "start": 42.773,
+      "end": 42.933,
+      "source": "match"
+    },
+    {
+      "word": "Little",
+      "line_idx": 12,
+      "start": 43.273,
+      "end": 43.673,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 12,
+      "start": 43.734,
+      "end": 44.814,
+      "source": "match"
+    },
+    {
+      "word": "Just",
+      "line_idx": 13,
+      "start": 44.854,
+      "end": 45.114,
+      "source": "match"
+    },
+    {
+      "word": "fly",
+      "line_idx": 13,
+      "start": 45.234,
+      "end": 45.795,
+      "source": "match"
+    },
+    {
+      "word": "away",
+      "line_idx": 13,
+      "start": 45.895,
+      "end": 46.275,
+      "source": "match"
+    },
+    {
+      "word": "Carry",
+      "line_idx": 14,
+      "start": 46.655,
+      "end": 47.115,
+      "source": "match"
+    },
+    {
+      "word": "your",
+      "line_idx": 14,
+      "start": 47.155,
+      "end": 47.335,
+      "source": "match"
+    },
+    {
+      "word": "leaden",
+      "line_idx": 14,
+      "start": 47.395,
+      "end": 47.916,
+      "source": "substitute",
+      "whisper_heard": "laden"
+    },
+    {
+      "word": "bag",
+      "line_idx": 14,
+      "start": 48.056,
+      "end": 48.556,
+      "source": "match"
+    },
+    {
+      "word": "of",
+      "line_idx": 14,
+      "start": 48.716,
+      "end": 48.916,
+      "source": "match"
+    },
+    {
+      "word": "noes",
+      "line_idx": 14,
+      "start": 48.956,
+      "end": 49.617,
+      "source": "match"
+    },
+    {
+      "word": "Leave",
+      "line_idx": 15,
+      "start": 49.657,
+      "end": 49.837,
+      "source": "match"
+    },
+    {
+      "word": "some",
+      "line_idx": 15,
+      "start": 49.877,
+      "end": 50.057,
+      "source": "match"
+    },
+    {
+      "word": "peace",
+      "line_idx": 15,
+      "start": 50.077,
+      "end": 50.497,
+      "source": "match"
+    },
+    {
+      "word": "behind",
+      "line_idx": 15,
+      "start": 50.597,
+      "end": 51.298,
+      "source": "match"
+    },
+    {
+      "word": "Clear",
+      "line_idx": 16,
+      "start": 52.118,
+      "end": 52.378,
+      "source": "match"
+    },
+    {
+      "word": "out",
+      "line_idx": 16,
+      "start": 52.438,
+      "end": 52.558,
+      "source": "match"
+    },
+    {
+      "word": "some",
+      "line_idx": 16,
+      "start": 52.578,
+      "end": 52.718,
+      "source": "match"
+    },
+    {
+      "word": "space",
+      "line_idx": 16,
+      "start": 52.758,
+      "end": 53.199,
+      "source": "match"
+    },
+    {
+      "word": "for",
+      "line_idx": 16,
+      "start": 53.259,
+      "end": 53.439,
+      "source": "match"
+    },
+    {
+      "word": "yes",
+      "line_idx": 16,
+      "start": 53.499,
+      "end": 53.859,
+      "source": "match"
+    },
+    {
+      "word": "Come",
+      "line_idx": 17,
+      "start": 56.26,
+      "end": 56.6,
+      "source": "match"
+    },
+    {
+      "word": "on",
+      "line_idx": 17,
+      "start": 56.941,
+      "end": 57.081,
+      "source": "match"
+    },
+    {
+      "word": "now",
+      "line_idx": 17,
+      "start": 57.181,
+      "end": 57.821,
+      "source": "match"
+    },
+    {
+      "word": "Little",
+      "line_idx": 18,
+      "start": 57.901,
+      "end": 58.281,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 18,
+      "start": 58.341,
+      "end": 59.402,
+      "source": "match"
+    },
+    {
+      "word": "Just",
+      "line_idx": 19,
+      "start": 59.442,
+      "end": 59.722,
+      "source": "match"
+    },
+    {
+      "word": "fly",
+      "line_idx": 19,
+      "start": 59.842,
+      "end": 60.382,
+      "source": "match"
+    },
+    {
+      "word": "away",
+      "line_idx": 19,
+      "start": 60.482,
+      "end": 61.023,
+      "source": "match"
+    },
+    {
+      "word": "Take",
+      "line_idx": 20,
+      "start": 61.063,
+      "end": 61.783,
+      "source": "match"
+    },
+    {
+      "word": "your",
+      "line_idx": 20,
+      "start": 61.823,
+      "end": 62.063,
+      "source": "match"
+    },
+    {
+      "word": "leaden",
+      "line_idx": 20,
+      "start": 62.103,
+      "end": 62.784,
+      "source": "substitute",
+      "whisper_heard": "laden"
+    },
+    {
+      "word": "bag",
+      "line_idx": 20,
+      "start": 62.904,
+      "end": 64.324,
+      "source": "match"
+    },
+    {
+      "word": "of",
+      "line_idx": 20,
+      "start": 64.465,
+      "end": 64.605,
+      "source": "match"
+    },
+    {
+      "word": "noes",
+      "line_idx": 20,
+      "start": 64.765,
+      "end": 68.407,
+      "source": "match"
+    },
+    {
+      "word": "He",
+      "line_idx": 21,
+      "start": 78.748,
+      "end": 78.868,
+      "source": "match"
+    },
+    {
+      "word": "settles",
+      "line_idx": 21,
+      "start": 78.948,
+      "end": 79.469,
+      "source": "match"
+    },
+    {
+      "word": "in",
+      "line_idx": 21,
+      "start": 79.569,
+      "end": 79.749,
+      "source": "match"
+    },
+    {
+      "word": "now",
+      "line_idx": 21,
+      "start": 79.909,
+      "end": 80.25,
+      "source": "match"
+    },
+    {
+      "word": "Makes",
+      "line_idx": 22,
+      "start": 80.31,
+      "end": 80.57,
+      "source": "match"
+    },
+    {
+      "word": "himself",
+      "line_idx": 22,
+      "start": 80.61,
+      "end": 81.07,
+      "source": "match"
+    },
+    {
+      "word": "at",
+      "line_idx": 22,
+      "start": 81.111,
+      "end": 81.191,
+      "source": "match"
+    },
+    {
+      "word": "home",
+      "line_idx": 22,
+      "start": 81.271,
+      "end": 81.611,
+      "source": "match"
+    },
+    {
+      "word": "Drapes",
+      "line_idx": 23,
+      "start": 82.412,
+      "end": 82.832,
+      "source": "match"
+    },
+    {
+      "word": "himself",
+      "line_idx": 23,
+      "start": 82.892,
+      "end": 83.353,
+      "source": "match"
+    },
+    {
+      "word": "across",
+      "line_idx": 23,
+      "start": 83.433,
+      "end": 83.773,
+      "source": "match"
+    },
+    {
+      "word": "the",
+      "line_idx": 23,
+      "start": 83.813,
+      "end": 83.953,
+      "source": "match"
+    },
+    {
+      "word": "afternoon",
+      "line_idx": 23,
+      "start": 84.234,
+      "end": 85.575,
+      "source": "match"
+    },
+    {
+      "word": "Drinks",
+      "line_idx": 24,
+      "start": 85.615,
+      "end": 85.956,
+      "source": "match"
+    },
+    {
+      "word": "my",
+      "line_idx": 24,
+      "start": 86.096,
+      "end": 86.696,
+      "source": "match"
+    },
+    {
+      "word": "tea",
+      "line_idx": 24,
+      "start": 86.736,
+      "end": 87.297,
+      "source": "match"
+    },
+    {
+      "word": "That's",
+      "line_idx": 25,
+      "start": 88.578,
+      "end": 88.959,
+      "source": "match"
+    },
+    {
+      "word": "my",
+      "line_idx": 25,
+      "start": 89.099,
+      "end": 89.499,
+      "source": "match"
+    },
+    {
+      "word": "little",
+      "line_idx": 25,
+      "start": 89.559,
+      "end": 89.94,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 25,
+      "start": 90.0,
+      "end": 92.703,
+      "source": "match"
+    },
+    {
+      "word": "Little",
+      "line_idx": 26,
+      "start": 92.763,
+      "end": 93.143,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 26,
+      "start": 93.183,
+      "end": 93.704,
+      "source": "match"
+    },
+    {
+      "word": "of",
+      "line_idx": 26,
+      "start": 93.744,
+      "end": 93.804,
+      "source": "match"
+    },
+    {
+      "word": "noes",
+      "line_idx": 26,
+      "start": 93.904,
+      "end": 94.324,
+      "source": "match"
+    },
+    {
+      "word": "I",
+      "line_idx": 27,
+      "start": 94.444,
+      "end": 94.524,
+      "source": "match"
+    },
+    {
+      "word": "don't",
+      "line_idx": 27,
+      "start": 94.564,
+      "end": 94.945,
+      "source": "match"
+    },
+    {
+      "word": "brush",
+      "line_idx": 27,
+      "start": 95.005,
+      "end": 95.325,
+      "source": "match"
+    },
+    {
+      "word": "him",
+      "line_idx": 27,
+      "start": 95.365,
+      "end": 95.525,
+      "source": "match"
+    },
+    {
+      "word": "away",
+      "line_idx": 27,
+      "start": 95.606,
+      "end": 96.086,
+      "source": "match"
+    },
+    {
+      "word": "I",
+      "line_idx": 28,
+      "start": 96.106,
+      "end": 96.126,
+      "source": "match"
+    },
+    {
+      "word": "pour",
+      "line_idx": 28,
+      "start": 96.386,
+      "end": 96.767,
+      "source": "match"
+    },
+    {
+      "word": "him",
+      "line_idx": 28,
+      "start": 96.887,
+      "end": 97.327,
+      "source": "match"
+    },
+    {
+      "word": "another",
+      "line_idx": 28,
+      "start": 97.367,
+      "end": 97.908,
+      "source": "match"
+    },
+    {
+      "word": "He's",
+      "line_idx": 29,
+      "start": 97.968,
+      "end": 98.428,
+      "source": "match"
+    },
+    {
+      "word": "the",
+      "line_idx": 29,
+      "start": 98.489,
+      "end": 98.629,
+      "source": "match"
+    },
+    {
+      "word": "only",
+      "line_idx": 29,
+      "start": 98.809,
+      "end": 99.089,
+      "source": "match"
+    },
+    {
+      "word": "one",
+      "line_idx": 29,
+      "start": 99.63,
+      "end": 99.81,
+      "source": "match"
+    },
+    {
+      "word": "Who",
+      "line_idx": 30,
+      "start": 99.85,
+      "end": 99.95,
+      "source": "match"
+    },
+    {
+      "word": "stayed",
+      "line_idx": 30,
+      "start": 99.99,
+      "end": 100.471,
+      "source": "match"
+    },
+    {
+      "word": "this",
+      "line_idx": 30,
+      "start": 100.551,
+      "end": 100.751,
+      "source": "match"
+    },
+    {
+      "word": "long",
+      "line_idx": 30,
+      "start": 100.771,
+      "end": 100.851,
+      "source": "match"
+    },
+    {
+      "word": "Who",
+      "line_idx": 31,
+      "start": 103.562,
+      "end": 112.284,
+      "source": "substitute",
+      "whisper_heard": "Take"
+    },
+    {
+      "word": "bothered",
+      "line_idx": 31,
+      "start": 112.285,
+      "end": 112.485,
+      "source": "interpolated"
+    },
+    {
+      "word": "with",
+      "line_idx": 31,
+      "start": 112.287,
+      "end": 112.487,
+      "source": "interpolated"
+    },
+    {
+      "word": "my",
+      "line_idx": 31,
+      "start": 112.288,
+      "end": 112.488,
+      "source": "interpolated"
+    },
+    {
+      "word": "name",
+      "line_idx": 31,
+      "start": 112.289,
+      "end": 112.489,
+      "source": "interpolated"
+    },
+    {
+      "word": "Oh",
+      "line_idx": 32,
+      "start": 112.291,
+      "end": 112.491,
+      "source": "interpolated"
+    },
+    {
+      "word": "why",
+      "line_idx": 32,
+      "start": 112.292,
+      "end": 112.492,
+      "source": "interpolated"
+    },
+    {
+      "word": "won't",
+      "line_idx": 32,
+      "start": 112.293,
+      "end": 112.493,
+      "source": "interpolated"
+    },
+    {
+      "word": "you",
+      "line_idx": 32,
+      "start": 112.295,
+      "end": 112.495,
+      "source": "interpolated"
+    },
+    {
+      "word": "Little",
+      "line_idx": 33,
+      "start": 112.296,
+      "end": 112.496,
+      "source": "interpolated"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 33,
+      "start": 112.297,
+      "end": 112.497,
+      "source": "interpolated"
+    },
+    {
+      "word": "Just",
+      "line_idx": 34,
+      "start": 112.299,
+      "end": 112.499,
+      "source": "interpolated"
+    },
+    {
+      "word": "fly",
+      "line_idx": 34,
+      "start": 112.3,
+      "end": 112.5,
+      "source": "interpolated"
+    },
+    {
+      "word": "away",
+      "line_idx": 34,
+      "start": 112.301,
+      "end": 112.501,
+      "source": "interpolated"
+    },
+    {
+      "word": "Carry",
+      "line_idx": 35,
+      "start": 112.303,
+      "end": 112.503,
+      "source": "interpolated"
+    },
+    {
+      "word": "your",
+      "line_idx": 35,
+      "start": 112.304,
+      "end": 112.384,
+      "source": "match"
+    },
+    {
+      "word": "laden",
+      "line_idx": 35,
+      "start": 113.324,
+      "end": 113.924,
+      "source": "match"
+    },
+    {
+      "word": "bag",
+      "line_idx": 35,
+      "start": 114.044,
+      "end": 114.485,
+      "source": "match"
+    },
+    {
+      "word": "of",
+      "line_idx": 35,
+      "start": 114.685,
+      "end": 114.865,
+      "source": "match"
+    },
+    {
+      "word": "noes",
+      "line_idx": 35,
+      "start": 114.945,
+      "end": 115.565,
+      "source": "match"
+    },
+    {
+      "word": "Leave",
+      "line_idx": 36,
+      "start": 115.625,
+      "end": 115.845,
+      "source": "match"
+    },
+    {
+      "word": "some",
+      "line_idx": 36,
+      "start": 115.865,
+      "end": 116.045,
+      "source": "match"
+    },
+    {
+      "word": "peace",
+      "line_idx": 36,
+      "start": 116.085,
+      "end": 116.485,
+      "source": "match"
+    },
+    {
+      "word": "behind",
+      "line_idx": 36,
+      "start": 116.565,
+      "end": 117.485,
+      "source": "match"
+    },
+    {
+      "word": "Clear",
+      "line_idx": 37,
+      "start": 118.105,
+      "end": 118.385,
+      "source": "match"
+    },
+    {
+      "word": "out",
+      "line_idx": 37,
+      "start": 118.425,
+      "end": 118.525,
+      "source": "match"
+    },
+    {
+      "word": "some",
+      "line_idx": 37,
+      "start": 118.565,
+      "end": 118.705,
+      "source": "match"
+    },
+    {
+      "word": "space",
+      "line_idx": 37,
+      "start": 118.745,
+      "end": 119.185,
+      "source": "match"
+    },
+    {
+      "word": "for",
+      "line_idx": 37,
+      "start": 119.245,
+      "end": 119.426,
+      "source": "match"
+    },
+    {
+      "word": "yes",
+      "line_idx": 37,
+      "start": 119.486,
+      "end": 119.786,
+      "source": "match"
+    },
+    {
+      "word": "Come",
+      "line_idx": 38,
+      "start": 122.246,
+      "end": 122.606,
+      "source": "match"
+    },
+    {
+      "word": "on",
+      "line_idx": 38,
+      "start": 122.926,
+      "end": 123.086,
+      "source": "match"
+    },
+    {
+      "word": "now",
+      "line_idx": 38,
+      "start": 123.186,
+      "end": 123.866,
+      "source": "match"
+    },
+    {
+      "word": "Little",
+      "line_idx": 39,
+      "start": 123.926,
+      "end": 124.307,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 39,
+      "start": 124.347,
+      "end": 125.427,
+      "source": "match"
+    },
+    {
+      "word": "Just",
+      "line_idx": 40,
+      "start": 125.467,
+      "end": 125.687,
+      "source": "match"
+    },
+    {
+      "word": "fly",
+      "line_idx": 40,
+      "start": 125.947,
+      "end": 126.467,
+      "source": "match"
+    },
+    {
+      "word": "away",
+      "line_idx": 40,
+      "start": 126.547,
+      "end": 126.967,
+      "source": "match"
+    },
+    {
+      "word": "Take",
+      "line_idx": 41,
+      "start": 126.987,
+      "end": 127.767,
+      "source": "match"
+    },
+    {
+      "word": "your",
+      "line_idx": 41,
+      "start": 127.807,
+      "end": 128.027,
+      "source": "match"
+    },
+    {
+      "word": "laden",
+      "line_idx": 41,
+      "start": 128.087,
+      "end": 128.767,
+      "source": "match"
+    },
+    {
+      "word": "bag",
+      "line_idx": 41,
+      "start": 128.928,
+      "end": 130.368,
+      "source": "match"
+    },
+    {
+      "word": "of",
+      "line_idx": 41,
+      "start": 130.508,
+      "end": 130.628,
+      "source": "match"
+    },
+    {
+      "word": "noes",
+      "line_idx": 41,
+      "start": 130.788,
+      "end": 131.268,
+      "source": "match"
+    },
+    {
+      "word": "What",
+      "line_idx": 42,
+      "start": 152.033,
+      "end": 152.233,
+      "source": "match"
+    },
+    {
+      "word": "was",
+      "line_idx": 42,
+      "start": 152.293,
+      "end": 152.533,
+      "source": "match"
+    },
+    {
+      "word": "I",
+      "line_idx": 42,
+      "start": 153.014,
+      "end": 153.154,
+      "source": "match"
+    },
+    {
+      "word": "Doesn't",
+      "line_idx": 43,
+      "start": 153.274,
+      "end": 153.634,
+      "source": "match"
+    },
+    {
+      "word": "matter",
+      "line_idx": 43,
+      "start": 153.714,
+      "end": 154.115,
+      "source": "match"
+    },
+    {
+      "word": "He",
+      "line_idx": 44,
+      "start": 154.195,
+      "end": 154.315,
+      "source": "match"
+    },
+    {
+      "word": "knows",
+      "line_idx": 44,
+      "start": 154.375,
+      "end": 155.075,
+      "source": "match"
+    },
+    {
+      "word": "He",
+      "line_idx": 45,
+      "start": 155.115,
+      "end": 155.236,
+      "source": "match"
+    },
+    {
+      "word": "noes",
+      "line_idx": 45,
+      "start": 155.336,
+      "end": 155.916,
+      "source": "match"
+    },
+    {
+      "word": "Same",
+      "line_idx": 46,
+      "start": 155.976,
+      "end": 156.437,
+      "source": "match"
+    },
+    {
+      "word": "either",
+      "line_idx": 46,
+      "start": 156.597,
+      "end": 157.297,
+      "source": "match"
+    },
+    {
+      "word": "way",
+      "line_idx": 46,
+      "start": 157.357,
+      "end": 157.858,
+      "source": "match"
+    },
+    {
+      "word": "Somewhere",
+      "line_idx": 47,
+      "start": 159.4,
+      "end": 159.901,
+      "source": "match"
+    },
+    {
+      "word": "a",
+      "line_idx": 47,
+      "start": 160.001,
+      "end": 160.061,
+      "source": "match"
+    },
+    {
+      "word": "window's",
+      "line_idx": 47,
+      "start": 160.101,
+      "end": 160.801,
+      "source": "match"
+    },
+    {
+      "word": "open",
+      "line_idx": 47,
+      "start": 160.922,
+      "end": 161.202,
+      "source": "match"
+    },
+    {
+      "word": "Somewhere",
+      "line_idx": 48,
+      "start": 161.242,
+      "end": 161.762,
+      "source": "match"
+    },
+    {
+      "word": "a",
+      "line_idx": 48,
+      "start": 161.802,
+      "end": 161.822,
+      "source": "match"
+    },
+    {
+      "word": "kettle",
+      "line_idx": 48,
+      "start": 161.942,
+      "end": 162.523,
+      "source": "match"
+    },
+    {
+      "word": "clicked",
+      "line_idx": 48,
+      "start": 162.583,
+      "end": 162.843,
+      "source": "match"
+    },
+    {
+      "word": "I",
+      "line_idx": 49,
+      "start": 163.203,
+      "end": 163.263,
+      "source": "match"
+    },
+    {
+      "word": "could",
+      "line_idx": 49,
+      "start": 163.323,
+      "end": 163.564,
+      "source": "match"
+    },
+    {
+      "word": "No",
+      "line_idx": 50,
+      "start": 163.784,
+      "end": 164.004,
+      "source": "match"
+    },
+    {
+      "word": "That's",
+      "line_idx": 51,
+      "start": 164.725,
+      "end": 165.025,
+      "source": "match"
+    },
+    {
+      "word": "my",
+      "line_idx": 51,
+      "start": 165.185,
+      "end": 165.585,
+      "source": "match"
+    },
+    {
+      "word": "little",
+      "line_idx": 51,
+      "start": 165.665,
+      "end": 166.126,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 51,
+      "start": 166.286,
+      "end": 167.727,
+      "source": "match"
+    },
+    {
+      "word": "Little",
+      "line_idx": 52,
+      "start": 167.927,
+      "end": 168.327,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 52,
+      "start": 168.387,
+      "end": 170.249,
+      "source": "match"
+    },
+    {
+      "word": "of",
+      "line_idx": 52,
+      "start": 170.529,
+      "end": 170.709,
+      "source": "match"
+    },
+    {
+      "word": "noes",
+      "line_idx": 52,
+      "start": 170.909,
+      "end": 173.592,
+      "source": "match"
+    },
+    {
+      "word": "Nobody",
+      "line_idx": 53,
+      "start": 173.672,
+      "end": 174.512,
+      "source": "match"
+    },
+    {
+      "word": "knows",
+      "line_idx": 53,
+      "start": 174.552,
+      "end": 176.814,
+      "source": "match"
+    },
+    {
+      "word": "Nobody",
+      "line_idx": 54,
+      "start": 176.874,
+      "end": 178.275,
+      "source": "match"
+    },
+    {
+      "word": "knows",
+      "line_idx": 54,
+      "start": 178.295,
+      "end": 178.916,
+      "source": "match"
+    },
+    {
+      "word": "enough",
+      "line_idx": 54,
+      "start": 179.036,
+      "end": 179.516,
+      "source": "match"
+    },
+    {
+      "word": "to",
+      "line_idx": 54,
+      "start": 179.576,
+      "end": 179.777,
+      "source": "match"
+    },
+    {
+      "word": "care",
+      "line_idx": 54,
+      "start": 179.817,
+      "end": 180.277,
+      "source": "match"
+    },
+    {
+      "word": "Oh",
+      "line_idx": 55,
+      "start": 181.85,
+      "end": 181.93,
+      "source": "match"
+    },
+    {
+      "word": "stay",
+      "line_idx": 55,
+      "start": 182.05,
+      "end": 182.59,
+      "source": "match"
+    },
+    {
+      "word": "then",
+      "line_idx": 55,
+      "start": 182.61,
+      "end": 183.231,
+      "source": "match"
+    },
+    {
+      "word": "Little",
+      "line_idx": 56,
+      "start": 183.251,
+      "end": 183.411,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 56,
+      "start": 183.491,
+      "end": 184.351,
+      "source": "match"
+    },
+    {
+      "word": "Don't",
+      "line_idx": 57,
+      "start": 184.411,
+      "end": 184.651,
+      "source": "match"
+    },
+    {
+      "word": "fly",
+      "line_idx": 57,
+      "start": 184.811,
+      "end": 185.171,
+      "source": "match"
+    },
+    {
+      "word": "away",
+      "line_idx": 57,
+      "start": 185.271,
+      "end": 185.712,
+      "source": "match"
+    },
+    {
+      "word": "Keep",
+      "line_idx": 58,
+      "start": 185.812,
+      "end": 186.492,
+      "source": "match"
+    },
+    {
+      "word": "your",
+      "line_idx": 58,
+      "start": 186.532,
+      "end": 186.752,
+      "source": "match"
+    },
+    {
+      "word": "gravid",
+      "line_idx": 58,
+      "start": 186.792,
+      "end": 187.372,
+      "source": "match"
+    },
+    {
+      "word": "bag",
+      "line_idx": 58,
+      "start": 187.432,
+      "end": 187.893,
+      "source": "match"
+    },
+    {
+      "word": "of",
+      "line_idx": 58,
+      "start": 188.073,
+      "end": 188.213,
+      "source": "match"
+    },
+    {
+      "word": "noes",
+      "line_idx": 58,
+      "start": 188.313,
+      "end": 188.933,
+      "source": "match"
+    },
+    {
+      "word": "There's",
+      "line_idx": 59,
+      "start": 188.973,
+      "end": 189.213,
+      "source": "match"
+    },
+    {
+      "word": "no",
+      "line_idx": 59,
+      "start": 189.253,
+      "end": 189.433,
+      "source": "match"
+    },
+    {
+      "word": "peace",
+      "line_idx": 59,
+      "start": 189.493,
+      "end": 189.873,
+      "source": "match"
+    },
+    {
+      "word": "behind",
+      "line_idx": 59,
+      "start": 189.933,
+      "end": 190.794,
+      "source": "match"
+    },
+    {
+      "word": "There's",
+      "line_idx": 60,
+      "start": 190.814,
+      "end": 191.714,
+      "source": "match"
+    },
+    {
+      "word": "no",
+      "line_idx": 60,
+      "start": 191.794,
+      "end": 192.014,
+      "source": "match"
+    },
+    {
+      "word": "space",
+      "line_idx": 60,
+      "start": 192.114,
+      "end": 192.614,
+      "source": "match"
+    },
+    {
+      "word": "for",
+      "line_idx": 60,
+      "start": 192.674,
+      "end": 192.835,
+      "source": "match"
+    },
+    {
+      "word": "yes",
+      "line_idx": 60,
+      "start": 192.895,
+      "end": 193.215,
+      "source": "match"
+    },
+    {
+      "word": "Stay",
+      "line_idx": 61,
+      "start": 195.776,
+      "end": 196.796,
+      "source": "match"
+    },
+    {
+      "word": "now",
+      "line_idx": 61,
+      "start": 196.896,
+      "end": 197.536,
+      "source": "match"
+    },
+    {
+      "word": "Little",
+      "line_idx": 62,
+      "start": 197.556,
+      "end": 197.697,
+      "source": "match"
+    },
+    {
+      "word": "blackbird",
+      "line_idx": 62,
+      "start": 197.757,
+      "end": 198.837,
+      "source": "match"
+    },
+    {
+      "word": "Don't",
+      "line_idx": 63,
+      "start": 198.877,
+      "end": 199.137,
+      "source": "match"
+    },
+    {
+      "word": "fly",
+      "line_idx": 63,
+      "start": 199.297,
+      "end": 199.837,
+      "source": "match"
+    },
+    {
+      "word": "away",
+      "line_idx": 63,
+      "start": 199.937,
+      "end": 200.458,
+      "source": "match"
+    },
+    {
+      "word": "You're",
+      "line_idx": 64,
+      "start": 200.478,
+      "end": 201.138,
+      "source": "match"
+    },
+    {
+      "word": "my",
+      "line_idx": 64,
+      "start": 201.198,
+      "end": 201.598,
+      "source": "match"
+    },
+    {
+      "word": "leaden",
+      "line_idx": 64,
+      "start": 201.678,
+      "end": 202.298,
+      "source": "match"
+    },
+    {
+      "word": "bag",
+      "line_idx": 64,
+      "start": 202.358,
+      "end": 203.819,
+      "source": "match"
+    },
+    {
+      "word": "of",
+      "line_idx": 64,
+      "start": 203.959,
+      "end": 204.119,
+      "source": "match"
+    },
+    {
+      "word": "noes",
+      "line_idx": 64,
+      "start": 204.259,
+      "end": 208.381,
+      "source": "match"
+    }
+  ],
+  "segments": [
+    {
+      "line_idx": 0,
+      "text": "He's arrived again",
+      "start": 15.893,
+      "end": 17.293,
+      "words": [
+        {
+          "word": "He's",
+          "line_idx": 0,
+          "start": 15.893,
+          "end": 16.133,
+          "source": "match"
+        },
+        {
+          "word": "arrived",
+          "line_idx": 0,
+          "start": 16.233,
+          "end": 16.853,
+          "source": "match"
+        },
+        {
+          "word": "again",
+          "line_idx": 0,
+          "start": 16.933,
+          "end": 17.293,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 1,
+      "text": "Whispering in my ear",
+      "start": 19.034,
+      "end": 21.194,
+      "words": [
+        {
+          "word": "Whispering",
+          "line_idx": 1,
+          "start": 19.034,
+          "end": 20.034,
+          "source": "match"
+        },
+        {
+          "word": "in",
+          "line_idx": 1,
+          "start": 20.054,
+          "end": 20.094,
+          "source": "match"
+        },
+        {
+          "word": "my",
+          "line_idx": 1,
+          "start": 20.234,
+          "end": 20.634,
+          "source": "match"
+        },
+        {
+          "word": "ear",
+          "line_idx": 1,
+          "start": 20.934,
+          "end": 21.194,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 2,
+      "text": "Molten black",
+      "start": 21.354,
+      "end": 22.135,
+      "words": [
+        {
+          "word": "Molten",
+          "line_idx": 2,
+          "start": 21.354,
+          "end": 21.774,
+          "source": "match"
+        },
+        {
+          "word": "black",
+          "line_idx": 2,
+          "start": 21.794,
+          "end": 22.135,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 3,
+      "text": "Pooling in",
+      "start": 22.255,
+      "end": 23.055,
+      "words": [
+        {
+          "word": "Pooling",
+          "line_idx": 3,
+          "start": 22.255,
+          "end": 22.735,
+          "source": "match"
+        },
+        {
+          "word": "in",
+          "line_idx": 3,
+          "start": 22.835,
+          "end": 23.055,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 4,
+      "text": "That's my little blackbird",
+      "start": 23.175,
+      "end": 24.975,
+      "words": [
+        {
+          "word": "That's",
+          "line_idx": 4,
+          "start": 23.175,
+          "end": 23.375,
+          "source": "match"
+        },
+        {
+          "word": "my",
+          "line_idx": 4,
+          "start": 23.435,
+          "end": 23.635,
+          "source": "match"
+        },
+        {
+          "word": "little",
+          "line_idx": 4,
+          "start": 23.695,
+          "end": 24.035,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 4,
+          "start": 24.095,
+          "end": 24.975,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 5,
+      "text": "Little blackbird of noes",
+      "start": 26.836,
+      "end": 30.337,
+      "words": [
+        {
+          "word": "Little",
+          "line_idx": 5,
+          "start": 26.836,
+          "end": 27.196,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 5,
+          "start": 27.256,
+          "end": 27.796,
+          "source": "match"
+        },
+        {
+          "word": "of",
+          "line_idx": 5,
+          "start": 27.836,
+          "end": 27.876,
+          "source": "match"
+        },
+        {
+          "word": "noes",
+          "line_idx": 5,
+          "start": 27.976,
+          "end": 30.337,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 6,
+      "text": "I brush him away",
+      "start": 30.757,
+      "end": 32.117,
+      "words": [
+        {
+          "word": "I",
+          "line_idx": 6,
+          "start": 30.757,
+          "end": 30.877,
+          "source": "match"
+        },
+        {
+          "word": "brush",
+          "line_idx": 6,
+          "start": 30.937,
+          "end": 31.217,
+          "source": "match"
+        },
+        {
+          "word": "him",
+          "line_idx": 6,
+          "start": 31.277,
+          "end": 31.457,
+          "source": "match"
+        },
+        {
+          "word": "away",
+          "line_idx": 6,
+          "start": 31.557,
+          "end": 32.117,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 7,
+      "text": "A deft hop, a flutter",
+      "start": 32.197,
+      "end": 33.858,
+      "words": [
+        {
+          "word": "A",
+          "line_idx": 7,
+          "start": 32.197,
+          "end": 32.257,
+          "source": "match"
+        },
+        {
+          "word": "deft",
+          "line_idx": 7,
+          "start": 32.337,
+          "end": 32.657,
+          "source": "match"
+        },
+        {
+          "word": "hop",
+          "line_idx": 7,
+          "start": 32.697,
+          "end": 33.038,
+          "source": "match"
+        },
+        {
+          "word": "a",
+          "line_idx": 7,
+          "start": 33.298,
+          "end": 33.358,
+          "source": "match"
+        },
+        {
+          "word": "flutter",
+          "line_idx": 7,
+          "start": 33.418,
+          "end": 33.858,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 8,
+      "text": "He pecks back",
+      "start": 33.918,
+      "end": 34.938,
+      "words": [
+        {
+          "word": "He",
+          "line_idx": 8,
+          "start": 33.918,
+          "end": 34.038,
+          "source": "match"
+        },
+        {
+          "word": "pecks",
+          "line_idx": 8,
+          "start": 34.138,
+          "end": 34.458,
+          "source": "match"
+        },
+        {
+          "word": "back",
+          "line_idx": 8,
+          "start": 34.598,
+          "end": 34.938,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 9,
+      "text": "Persistent",
+      "start": 35.058,
+      "end": 36.158,
+      "words": [
+        {
+          "word": "Persistent",
+          "line_idx": 9,
+          "start": 35.058,
+          "end": 36.158,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 10,
+      "text": "Whispering again",
+      "start": 36.398,
+      "end": 38.219,
+      "words": [
+        {
+          "word": "Whispering",
+          "line_idx": 10,
+          "start": 36.398,
+          "end": 37.619,
+          "source": "match"
+        },
+        {
+          "word": "again",
+          "line_idx": 10,
+          "start": 37.739,
+          "end": 38.219,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 11,
+      "text": "Oh why won't you",
+      "start": 40.972,
+      "end": 42.933,
+      "words": [
+        {
+          "word": "Oh",
+          "line_idx": 11,
+          "start": 40.972,
+          "end": 41.853,
+          "source": "match"
+        },
+        {
+          "word": "why",
+          "line_idx": 11,
+          "start": 41.893,
+          "end": 42.313,
+          "source": "match"
+        },
+        {
+          "word": "won't",
+          "line_idx": 11,
+          "start": 42.353,
+          "end": 42.713,
+          "source": "match"
+        },
+        {
+          "word": "you",
+          "line_idx": 11,
+          "start": 42.773,
+          "end": 42.933,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 12,
+      "text": "Little blackbird",
+      "start": 43.273,
+      "end": 44.814,
+      "words": [
+        {
+          "word": "Little",
+          "line_idx": 12,
+          "start": 43.273,
+          "end": 43.673,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 12,
+          "start": 43.734,
+          "end": 44.814,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 13,
+      "text": "Just fly away",
+      "start": 44.854,
+      "end": 46.275,
+      "words": [
+        {
+          "word": "Just",
+          "line_idx": 13,
+          "start": 44.854,
+          "end": 45.114,
+          "source": "match"
+        },
+        {
+          "word": "fly",
+          "line_idx": 13,
+          "start": 45.234,
+          "end": 45.795,
+          "source": "match"
+        },
+        {
+          "word": "away",
+          "line_idx": 13,
+          "start": 45.895,
+          "end": 46.275,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 14,
+      "text": "Carry your leaden bag of noes",
+      "start": 46.655,
+      "end": 49.617,
+      "words": [
+        {
+          "word": "Carry",
+          "line_idx": 14,
+          "start": 46.655,
+          "end": 47.115,
+          "source": "match"
+        },
+        {
+          "word": "your",
+          "line_idx": 14,
+          "start": 47.155,
+          "end": 47.335,
+          "source": "match"
+        },
+        {
+          "word": "leaden",
+          "line_idx": 14,
+          "start": 47.395,
+          "end": 47.916,
+          "source": "substitute",
+          "whisper_heard": "laden"
+        },
+        {
+          "word": "bag",
+          "line_idx": 14,
+          "start": 48.056,
+          "end": 48.556,
+          "source": "match"
+        },
+        {
+          "word": "of",
+          "line_idx": 14,
+          "start": 48.716,
+          "end": 48.916,
+          "source": "match"
+        },
+        {
+          "word": "noes",
+          "line_idx": 14,
+          "start": 48.956,
+          "end": 49.617,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 15,
+      "text": "Leave some peace behind",
+      "start": 49.657,
+      "end": 51.298,
+      "words": [
+        {
+          "word": "Leave",
+          "line_idx": 15,
+          "start": 49.657,
+          "end": 49.837,
+          "source": "match"
+        },
+        {
+          "word": "some",
+          "line_idx": 15,
+          "start": 49.877,
+          "end": 50.057,
+          "source": "match"
+        },
+        {
+          "word": "peace",
+          "line_idx": 15,
+          "start": 50.077,
+          "end": 50.497,
+          "source": "match"
+        },
+        {
+          "word": "behind",
+          "line_idx": 15,
+          "start": 50.597,
+          "end": 51.298,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 16,
+      "text": "Clear out some space for yes",
+      "start": 52.118,
+      "end": 53.859,
+      "words": [
+        {
+          "word": "Clear",
+          "line_idx": 16,
+          "start": 52.118,
+          "end": 52.378,
+          "source": "match"
+        },
+        {
+          "word": "out",
+          "line_idx": 16,
+          "start": 52.438,
+          "end": 52.558,
+          "source": "match"
+        },
+        {
+          "word": "some",
+          "line_idx": 16,
+          "start": 52.578,
+          "end": 52.718,
+          "source": "match"
+        },
+        {
+          "word": "space",
+          "line_idx": 16,
+          "start": 52.758,
+          "end": 53.199,
+          "source": "match"
+        },
+        {
+          "word": "for",
+          "line_idx": 16,
+          "start": 53.259,
+          "end": 53.439,
+          "source": "match"
+        },
+        {
+          "word": "yes",
+          "line_idx": 16,
+          "start": 53.499,
+          "end": 53.859,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 17,
+      "text": "Come on now",
+      "start": 56.26,
+      "end": 57.821,
+      "words": [
+        {
+          "word": "Come",
+          "line_idx": 17,
+          "start": 56.26,
+          "end": 56.6,
+          "source": "match"
+        },
+        {
+          "word": "on",
+          "line_idx": 17,
+          "start": 56.941,
+          "end": 57.081,
+          "source": "match"
+        },
+        {
+          "word": "now",
+          "line_idx": 17,
+          "start": 57.181,
+          "end": 57.821,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 18,
+      "text": "Little blackbird",
+      "start": 57.901,
+      "end": 59.402,
+      "words": [
+        {
+          "word": "Little",
+          "line_idx": 18,
+          "start": 57.901,
+          "end": 58.281,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 18,
+          "start": 58.341,
+          "end": 59.402,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 19,
+      "text": "Just fly away",
+      "start": 59.442,
+      "end": 61.023,
+      "words": [
+        {
+          "word": "Just",
+          "line_idx": 19,
+          "start": 59.442,
+          "end": 59.722,
+          "source": "match"
+        },
+        {
+          "word": "fly",
+          "line_idx": 19,
+          "start": 59.842,
+          "end": 60.382,
+          "source": "match"
+        },
+        {
+          "word": "away",
+          "line_idx": 19,
+          "start": 60.482,
+          "end": 61.023,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 20,
+      "text": "Take your leaden bag of noes",
+      "start": 61.063,
+      "end": 68.407,
+      "words": [
+        {
+          "word": "Take",
+          "line_idx": 20,
+          "start": 61.063,
+          "end": 61.783,
+          "source": "match"
+        },
+        {
+          "word": "your",
+          "line_idx": 20,
+          "start": 61.823,
+          "end": 62.063,
+          "source": "match"
+        },
+        {
+          "word": "leaden",
+          "line_idx": 20,
+          "start": 62.103,
+          "end": 62.784,
+          "source": "substitute",
+          "whisper_heard": "laden"
+        },
+        {
+          "word": "bag",
+          "line_idx": 20,
+          "start": 62.904,
+          "end": 64.324,
+          "source": "match"
+        },
+        {
+          "word": "of",
+          "line_idx": 20,
+          "start": 64.465,
+          "end": 64.605,
+          "source": "match"
+        },
+        {
+          "word": "noes",
+          "line_idx": 20,
+          "start": 64.765,
+          "end": 68.407,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 21,
+      "text": "He settles in now",
+      "start": 78.748,
+      "end": 80.25,
+      "words": [
+        {
+          "word": "He",
+          "line_idx": 21,
+          "start": 78.748,
+          "end": 78.868,
+          "source": "match"
+        },
+        {
+          "word": "settles",
+          "line_idx": 21,
+          "start": 78.948,
+          "end": 79.469,
+          "source": "match"
+        },
+        {
+          "word": "in",
+          "line_idx": 21,
+          "start": 79.569,
+          "end": 79.749,
+          "source": "match"
+        },
+        {
+          "word": "now",
+          "line_idx": 21,
+          "start": 79.909,
+          "end": 80.25,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 22,
+      "text": "Makes himself at home",
+      "start": 80.31,
+      "end": 81.611,
+      "words": [
+        {
+          "word": "Makes",
+          "line_idx": 22,
+          "start": 80.31,
+          "end": 80.57,
+          "source": "match"
+        },
+        {
+          "word": "himself",
+          "line_idx": 22,
+          "start": 80.61,
+          "end": 81.07,
+          "source": "match"
+        },
+        {
+          "word": "at",
+          "line_idx": 22,
+          "start": 81.111,
+          "end": 81.191,
+          "source": "match"
+        },
+        {
+          "word": "home",
+          "line_idx": 22,
+          "start": 81.271,
+          "end": 81.611,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 23,
+      "text": "Drapes himself across the afternoon",
+      "start": 82.412,
+      "end": 85.575,
+      "words": [
+        {
+          "word": "Drapes",
+          "line_idx": 23,
+          "start": 82.412,
+          "end": 82.832,
+          "source": "match"
+        },
+        {
+          "word": "himself",
+          "line_idx": 23,
+          "start": 82.892,
+          "end": 83.353,
+          "source": "match"
+        },
+        {
+          "word": "across",
+          "line_idx": 23,
+          "start": 83.433,
+          "end": 83.773,
+          "source": "match"
+        },
+        {
+          "word": "the",
+          "line_idx": 23,
+          "start": 83.813,
+          "end": 83.953,
+          "source": "match"
+        },
+        {
+          "word": "afternoon",
+          "line_idx": 23,
+          "start": 84.234,
+          "end": 85.575,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 24,
+      "text": "Drinks my tea",
+      "start": 85.615,
+      "end": 87.297,
+      "words": [
+        {
+          "word": "Drinks",
+          "line_idx": 24,
+          "start": 85.615,
+          "end": 85.956,
+          "source": "match"
+        },
+        {
+          "word": "my",
+          "line_idx": 24,
+          "start": 86.096,
+          "end": 86.696,
+          "source": "match"
+        },
+        {
+          "word": "tea",
+          "line_idx": 24,
+          "start": 86.736,
+          "end": 87.297,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 25,
+      "text": "That's my little blackbird",
+      "start": 88.578,
+      "end": 92.703,
+      "words": [
+        {
+          "word": "That's",
+          "line_idx": 25,
+          "start": 88.578,
+          "end": 88.959,
+          "source": "match"
+        },
+        {
+          "word": "my",
+          "line_idx": 25,
+          "start": 89.099,
+          "end": 89.499,
+          "source": "match"
+        },
+        {
+          "word": "little",
+          "line_idx": 25,
+          "start": 89.559,
+          "end": 89.94,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 25,
+          "start": 90.0,
+          "end": 92.703,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 26,
+      "text": "Little blackbird of noes",
+      "start": 92.763,
+      "end": 94.324,
+      "words": [
+        {
+          "word": "Little",
+          "line_idx": 26,
+          "start": 92.763,
+          "end": 93.143,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 26,
+          "start": 93.183,
+          "end": 93.704,
+          "source": "match"
+        },
+        {
+          "word": "of",
+          "line_idx": 26,
+          "start": 93.744,
+          "end": 93.804,
+          "source": "match"
+        },
+        {
+          "word": "noes",
+          "line_idx": 26,
+          "start": 93.904,
+          "end": 94.324,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 27,
+      "text": "I don't brush him away",
+      "start": 94.444,
+      "end": 96.086,
+      "words": [
+        {
+          "word": "I",
+          "line_idx": 27,
+          "start": 94.444,
+          "end": 94.524,
+          "source": "match"
+        },
+        {
+          "word": "don't",
+          "line_idx": 27,
+          "start": 94.564,
+          "end": 94.945,
+          "source": "match"
+        },
+        {
+          "word": "brush",
+          "line_idx": 27,
+          "start": 95.005,
+          "end": 95.325,
+          "source": "match"
+        },
+        {
+          "word": "him",
+          "line_idx": 27,
+          "start": 95.365,
+          "end": 95.525,
+          "source": "match"
+        },
+        {
+          "word": "away",
+          "line_idx": 27,
+          "start": 95.606,
+          "end": 96.086,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 28,
+      "text": "I pour him another",
+      "start": 96.106,
+      "end": 97.908,
+      "words": [
+        {
+          "word": "I",
+          "line_idx": 28,
+          "start": 96.106,
+          "end": 96.126,
+          "source": "match"
+        },
+        {
+          "word": "pour",
+          "line_idx": 28,
+          "start": 96.386,
+          "end": 96.767,
+          "source": "match"
+        },
+        {
+          "word": "him",
+          "line_idx": 28,
+          "start": 96.887,
+          "end": 97.327,
+          "source": "match"
+        },
+        {
+          "word": "another",
+          "line_idx": 28,
+          "start": 97.367,
+          "end": 97.908,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 29,
+      "text": "He's the only one",
+      "start": 97.968,
+      "end": 99.81,
+      "words": [
+        {
+          "word": "He's",
+          "line_idx": 29,
+          "start": 97.968,
+          "end": 98.428,
+          "source": "match"
+        },
+        {
+          "word": "the",
+          "line_idx": 29,
+          "start": 98.489,
+          "end": 98.629,
+          "source": "match"
+        },
+        {
+          "word": "only",
+          "line_idx": 29,
+          "start": 98.809,
+          "end": 99.089,
+          "source": "match"
+        },
+        {
+          "word": "one",
+          "line_idx": 29,
+          "start": 99.63,
+          "end": 99.81,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 30,
+      "text": "Who stayed this long",
+      "start": 99.85,
+      "end": 100.851,
+      "words": [
+        {
+          "word": "Who",
+          "line_idx": 30,
+          "start": 99.85,
+          "end": 99.95,
+          "source": "match"
+        },
+        {
+          "word": "stayed",
+          "line_idx": 30,
+          "start": 99.99,
+          "end": 100.471,
+          "source": "match"
+        },
+        {
+          "word": "this",
+          "line_idx": 30,
+          "start": 100.551,
+          "end": 100.751,
+          "source": "match"
+        },
+        {
+          "word": "long",
+          "line_idx": 30,
+          "start": 100.771,
+          "end": 100.851,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 31,
+      "text": "Who bothered with my name",
+      "start": 103.562,
+      "end": 112.489,
+      "words": [
+        {
+          "word": "Who",
+          "line_idx": 31,
+          "start": 103.562,
+          "end": 112.284,
+          "source": "substitute",
+          "whisper_heard": "Take"
+        },
+        {
+          "word": "bothered",
+          "line_idx": 31,
+          "start": 112.285,
+          "end": 112.485,
+          "source": "interpolated"
+        },
+        {
+          "word": "with",
+          "line_idx": 31,
+          "start": 112.287,
+          "end": 112.487,
+          "source": "interpolated"
+        },
+        {
+          "word": "my",
+          "line_idx": 31,
+          "start": 112.288,
+          "end": 112.488,
+          "source": "interpolated"
+        },
+        {
+          "word": "name",
+          "line_idx": 31,
+          "start": 112.289,
+          "end": 112.489,
+          "source": "interpolated"
+        }
+      ]
+    },
+    {
+      "line_idx": 32,
+      "text": "Oh why won't you",
+      "start": 112.291,
+      "end": 112.495,
+      "words": [
+        {
+          "word": "Oh",
+          "line_idx": 32,
+          "start": 112.291,
+          "end": 112.491,
+          "source": "interpolated"
+        },
+        {
+          "word": "why",
+          "line_idx": 32,
+          "start": 112.292,
+          "end": 112.492,
+          "source": "interpolated"
+        },
+        {
+          "word": "won't",
+          "line_idx": 32,
+          "start": 112.293,
+          "end": 112.493,
+          "source": "interpolated"
+        },
+        {
+          "word": "you",
+          "line_idx": 32,
+          "start": 112.295,
+          "end": 112.495,
+          "source": "interpolated"
+        }
+      ]
+    },
+    {
+      "line_idx": 33,
+      "text": "Little blackbird",
+      "start": 112.296,
+      "end": 112.497,
+      "words": [
+        {
+          "word": "Little",
+          "line_idx": 33,
+          "start": 112.296,
+          "end": 112.496,
+          "source": "interpolated"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 33,
+          "start": 112.297,
+          "end": 112.497,
+          "source": "interpolated"
+        }
+      ]
+    },
+    {
+      "line_idx": 34,
+      "text": "Just fly away",
+      "start": 112.299,
+      "end": 112.501,
+      "words": [
+        {
+          "word": "Just",
+          "line_idx": 34,
+          "start": 112.299,
+          "end": 112.499,
+          "source": "interpolated"
+        },
+        {
+          "word": "fly",
+          "line_idx": 34,
+          "start": 112.3,
+          "end": 112.5,
+          "source": "interpolated"
+        },
+        {
+          "word": "away",
+          "line_idx": 34,
+          "start": 112.301,
+          "end": 112.501,
+          "source": "interpolated"
+        }
+      ]
+    },
+    {
+      "line_idx": 35,
+      "text": "Carry your laden bag of noes",
+      "start": 112.303,
+      "end": 115.565,
+      "words": [
+        {
+          "word": "Carry",
+          "line_idx": 35,
+          "start": 112.303,
+          "end": 112.503,
+          "source": "interpolated"
+        },
+        {
+          "word": "your",
+          "line_idx": 35,
+          "start": 112.304,
+          "end": 112.384,
+          "source": "match"
+        },
+        {
+          "word": "laden",
+          "line_idx": 35,
+          "start": 113.324,
+          "end": 113.924,
+          "source": "match"
+        },
+        {
+          "word": "bag",
+          "line_idx": 35,
+          "start": 114.044,
+          "end": 114.485,
+          "source": "match"
+        },
+        {
+          "word": "of",
+          "line_idx": 35,
+          "start": 114.685,
+          "end": 114.865,
+          "source": "match"
+        },
+        {
+          "word": "noes",
+          "line_idx": 35,
+          "start": 114.945,
+          "end": 115.565,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 36,
+      "text": "Leave some peace behind",
+      "start": 115.625,
+      "end": 117.485,
+      "words": [
+        {
+          "word": "Leave",
+          "line_idx": 36,
+          "start": 115.625,
+          "end": 115.845,
+          "source": "match"
+        },
+        {
+          "word": "some",
+          "line_idx": 36,
+          "start": 115.865,
+          "end": 116.045,
+          "source": "match"
+        },
+        {
+          "word": "peace",
+          "line_idx": 36,
+          "start": 116.085,
+          "end": 116.485,
+          "source": "match"
+        },
+        {
+          "word": "behind",
+          "line_idx": 36,
+          "start": 116.565,
+          "end": 117.485,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 37,
+      "text": "Clear out some space for yes",
+      "start": 118.105,
+      "end": 119.786,
+      "words": [
+        {
+          "word": "Clear",
+          "line_idx": 37,
+          "start": 118.105,
+          "end": 118.385,
+          "source": "match"
+        },
+        {
+          "word": "out",
+          "line_idx": 37,
+          "start": 118.425,
+          "end": 118.525,
+          "source": "match"
+        },
+        {
+          "word": "some",
+          "line_idx": 37,
+          "start": 118.565,
+          "end": 118.705,
+          "source": "match"
+        },
+        {
+          "word": "space",
+          "line_idx": 37,
+          "start": 118.745,
+          "end": 119.185,
+          "source": "match"
+        },
+        {
+          "word": "for",
+          "line_idx": 37,
+          "start": 119.245,
+          "end": 119.426,
+          "source": "match"
+        },
+        {
+          "word": "yes",
+          "line_idx": 37,
+          "start": 119.486,
+          "end": 119.786,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 38,
+      "text": "Come on now",
+      "start": 122.246,
+      "end": 123.866,
+      "words": [
+        {
+          "word": "Come",
+          "line_idx": 38,
+          "start": 122.246,
+          "end": 122.606,
+          "source": "match"
+        },
+        {
+          "word": "on",
+          "line_idx": 38,
+          "start": 122.926,
+          "end": 123.086,
+          "source": "match"
+        },
+        {
+          "word": "now",
+          "line_idx": 38,
+          "start": 123.186,
+          "end": 123.866,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 39,
+      "text": "Little blackbird",
+      "start": 123.926,
+      "end": 125.427,
+      "words": [
+        {
+          "word": "Little",
+          "line_idx": 39,
+          "start": 123.926,
+          "end": 124.307,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 39,
+          "start": 124.347,
+          "end": 125.427,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 40,
+      "text": "Just fly away",
+      "start": 125.467,
+      "end": 126.967,
+      "words": [
+        {
+          "word": "Just",
+          "line_idx": 40,
+          "start": 125.467,
+          "end": 125.687,
+          "source": "match"
+        },
+        {
+          "word": "fly",
+          "line_idx": 40,
+          "start": 125.947,
+          "end": 126.467,
+          "source": "match"
+        },
+        {
+          "word": "away",
+          "line_idx": 40,
+          "start": 126.547,
+          "end": 126.967,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 41,
+      "text": "Take your laden bag of noes",
+      "start": 126.987,
+      "end": 131.268,
+      "words": [
+        {
+          "word": "Take",
+          "line_idx": 41,
+          "start": 126.987,
+          "end": 127.767,
+          "source": "match"
+        },
+        {
+          "word": "your",
+          "line_idx": 41,
+          "start": 127.807,
+          "end": 128.027,
+          "source": "match"
+        },
+        {
+          "word": "laden",
+          "line_idx": 41,
+          "start": 128.087,
+          "end": 128.767,
+          "source": "match"
+        },
+        {
+          "word": "bag",
+          "line_idx": 41,
+          "start": 128.928,
+          "end": 130.368,
+          "source": "match"
+        },
+        {
+          "word": "of",
+          "line_idx": 41,
+          "start": 130.508,
+          "end": 130.628,
+          "source": "match"
+        },
+        {
+          "word": "noes",
+          "line_idx": 41,
+          "start": 130.788,
+          "end": 131.268,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 42,
+      "text": "What was I \u2014",
+      "start": 152.033,
+      "end": 153.154,
+      "words": [
+        {
+          "word": "What",
+          "line_idx": 42,
+          "start": 152.033,
+          "end": 152.233,
+          "source": "match"
+        },
+        {
+          "word": "was",
+          "line_idx": 42,
+          "start": 152.293,
+          "end": 152.533,
+          "source": "match"
+        },
+        {
+          "word": "I",
+          "line_idx": 42,
+          "start": 153.014,
+          "end": 153.154,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 43,
+      "text": "Doesn't matter",
+      "start": 153.274,
+      "end": 154.115,
+      "words": [
+        {
+          "word": "Doesn't",
+          "line_idx": 43,
+          "start": 153.274,
+          "end": 153.634,
+          "source": "match"
+        },
+        {
+          "word": "matter",
+          "line_idx": 43,
+          "start": 153.714,
+          "end": 154.115,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 44,
+      "text": "He knows",
+      "start": 154.195,
+      "end": 155.075,
+      "words": [
+        {
+          "word": "He",
+          "line_idx": 44,
+          "start": 154.195,
+          "end": 154.315,
+          "source": "match"
+        },
+        {
+          "word": "knows",
+          "line_idx": 44,
+          "start": 154.375,
+          "end": 155.075,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 45,
+      "text": "He noes",
+      "start": 155.115,
+      "end": 155.916,
+      "words": [
+        {
+          "word": "He",
+          "line_idx": 45,
+          "start": 155.115,
+          "end": 155.236,
+          "source": "match"
+        },
+        {
+          "word": "noes",
+          "line_idx": 45,
+          "start": 155.336,
+          "end": 155.916,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 46,
+      "text": "Same either way",
+      "start": 155.976,
+      "end": 157.858,
+      "words": [
+        {
+          "word": "Same",
+          "line_idx": 46,
+          "start": 155.976,
+          "end": 156.437,
+          "source": "match"
+        },
+        {
+          "word": "either",
+          "line_idx": 46,
+          "start": 156.597,
+          "end": 157.297,
+          "source": "match"
+        },
+        {
+          "word": "way",
+          "line_idx": 46,
+          "start": 157.357,
+          "end": 157.858,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 47,
+      "text": "Somewhere a window's open",
+      "start": 159.4,
+      "end": 161.202,
+      "words": [
+        {
+          "word": "Somewhere",
+          "line_idx": 47,
+          "start": 159.4,
+          "end": 159.901,
+          "source": "match"
+        },
+        {
+          "word": "a",
+          "line_idx": 47,
+          "start": 160.001,
+          "end": 160.061,
+          "source": "match"
+        },
+        {
+          "word": "window's",
+          "line_idx": 47,
+          "start": 160.101,
+          "end": 160.801,
+          "source": "match"
+        },
+        {
+          "word": "open",
+          "line_idx": 47,
+          "start": 160.922,
+          "end": 161.202,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 48,
+      "text": "Somewhere a kettle clicked",
+      "start": 161.242,
+      "end": 162.843,
+      "words": [
+        {
+          "word": "Somewhere",
+          "line_idx": 48,
+          "start": 161.242,
+          "end": 161.762,
+          "source": "match"
+        },
+        {
+          "word": "a",
+          "line_idx": 48,
+          "start": 161.802,
+          "end": 161.822,
+          "source": "match"
+        },
+        {
+          "word": "kettle",
+          "line_idx": 48,
+          "start": 161.942,
+          "end": 162.523,
+          "source": "match"
+        },
+        {
+          "word": "clicked",
+          "line_idx": 48,
+          "start": 162.583,
+          "end": 162.843,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 49,
+      "text": "I could \u2014",
+      "start": 163.203,
+      "end": 163.564,
+      "words": [
+        {
+          "word": "I",
+          "line_idx": 49,
+          "start": 163.203,
+          "end": 163.263,
+          "source": "match"
+        },
+        {
+          "word": "could",
+          "line_idx": 49,
+          "start": 163.323,
+          "end": 163.564,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 50,
+      "text": "No",
+      "start": 163.784,
+      "end": 164.004,
+      "words": [
+        {
+          "word": "No",
+          "line_idx": 50,
+          "start": 163.784,
+          "end": 164.004,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 51,
+      "text": "That's my little blackbird",
+      "start": 164.725,
+      "end": 167.727,
+      "words": [
+        {
+          "word": "That's",
+          "line_idx": 51,
+          "start": 164.725,
+          "end": 165.025,
+          "source": "match"
+        },
+        {
+          "word": "my",
+          "line_idx": 51,
+          "start": 165.185,
+          "end": 165.585,
+          "source": "match"
+        },
+        {
+          "word": "little",
+          "line_idx": 51,
+          "start": 165.665,
+          "end": 166.126,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 51,
+          "start": 166.286,
+          "end": 167.727,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 52,
+      "text": "Little blackbird of noes",
+      "start": 167.927,
+      "end": 173.592,
+      "words": [
+        {
+          "word": "Little",
+          "line_idx": 52,
+          "start": 167.927,
+          "end": 168.327,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 52,
+          "start": 168.387,
+          "end": 170.249,
+          "source": "match"
+        },
+        {
+          "word": "of",
+          "line_idx": 52,
+          "start": 170.529,
+          "end": 170.709,
+          "source": "match"
+        },
+        {
+          "word": "noes",
+          "line_idx": 52,
+          "start": 170.909,
+          "end": 173.592,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 53,
+      "text": "Nobody knows",
+      "start": 173.672,
+      "end": 176.814,
+      "words": [
+        {
+          "word": "Nobody",
+          "line_idx": 53,
+          "start": 173.672,
+          "end": 174.512,
+          "source": "match"
+        },
+        {
+          "word": "knows",
+          "line_idx": 53,
+          "start": 174.552,
+          "end": 176.814,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 54,
+      "text": "Nobody knows enough to care",
+      "start": 176.874,
+      "end": 180.277,
+      "words": [
+        {
+          "word": "Nobody",
+          "line_idx": 54,
+          "start": 176.874,
+          "end": 178.275,
+          "source": "match"
+        },
+        {
+          "word": "knows",
+          "line_idx": 54,
+          "start": 178.295,
+          "end": 178.916,
+          "source": "match"
+        },
+        {
+          "word": "enough",
+          "line_idx": 54,
+          "start": 179.036,
+          "end": 179.516,
+          "source": "match"
+        },
+        {
+          "word": "to",
+          "line_idx": 54,
+          "start": 179.576,
+          "end": 179.777,
+          "source": "match"
+        },
+        {
+          "word": "care",
+          "line_idx": 54,
+          "start": 179.817,
+          "end": 180.277,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 55,
+      "text": "Oh stay then",
+      "start": 181.85,
+      "end": 183.231,
+      "words": [
+        {
+          "word": "Oh",
+          "line_idx": 55,
+          "start": 181.85,
+          "end": 181.93,
+          "source": "match"
+        },
+        {
+          "word": "stay",
+          "line_idx": 55,
+          "start": 182.05,
+          "end": 182.59,
+          "source": "match"
+        },
+        {
+          "word": "then",
+          "line_idx": 55,
+          "start": 182.61,
+          "end": 183.231,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 56,
+      "text": "Little blackbird",
+      "start": 183.251,
+      "end": 184.351,
+      "words": [
+        {
+          "word": "Little",
+          "line_idx": 56,
+          "start": 183.251,
+          "end": 183.411,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 56,
+          "start": 183.491,
+          "end": 184.351,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 57,
+      "text": "Don't fly away",
+      "start": 184.411,
+      "end": 185.712,
+      "words": [
+        {
+          "word": "Don't",
+          "line_idx": 57,
+          "start": 184.411,
+          "end": 184.651,
+          "source": "match"
+        },
+        {
+          "word": "fly",
+          "line_idx": 57,
+          "start": 184.811,
+          "end": 185.171,
+          "source": "match"
+        },
+        {
+          "word": "away",
+          "line_idx": 57,
+          "start": 185.271,
+          "end": 185.712,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 58,
+      "text": "Keep your gravid bag of noes",
+      "start": 185.812,
+      "end": 188.933,
+      "words": [
+        {
+          "word": "Keep",
+          "line_idx": 58,
+          "start": 185.812,
+          "end": 186.492,
+          "source": "match"
+        },
+        {
+          "word": "your",
+          "line_idx": 58,
+          "start": 186.532,
+          "end": 186.752,
+          "source": "match"
+        },
+        {
+          "word": "gravid",
+          "line_idx": 58,
+          "start": 186.792,
+          "end": 187.372,
+          "source": "match"
+        },
+        {
+          "word": "bag",
+          "line_idx": 58,
+          "start": 187.432,
+          "end": 187.893,
+          "source": "match"
+        },
+        {
+          "word": "of",
+          "line_idx": 58,
+          "start": 188.073,
+          "end": 188.213,
+          "source": "match"
+        },
+        {
+          "word": "noes",
+          "line_idx": 58,
+          "start": 188.313,
+          "end": 188.933,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 59,
+      "text": "There's no peace behind",
+      "start": 188.973,
+      "end": 190.794,
+      "words": [
+        {
+          "word": "There's",
+          "line_idx": 59,
+          "start": 188.973,
+          "end": 189.213,
+          "source": "match"
+        },
+        {
+          "word": "no",
+          "line_idx": 59,
+          "start": 189.253,
+          "end": 189.433,
+          "source": "match"
+        },
+        {
+          "word": "peace",
+          "line_idx": 59,
+          "start": 189.493,
+          "end": 189.873,
+          "source": "match"
+        },
+        {
+          "word": "behind",
+          "line_idx": 59,
+          "start": 189.933,
+          "end": 190.794,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 60,
+      "text": "There's no space for yes",
+      "start": 190.814,
+      "end": 193.215,
+      "words": [
+        {
+          "word": "There's",
+          "line_idx": 60,
+          "start": 190.814,
+          "end": 191.714,
+          "source": "match"
+        },
+        {
+          "word": "no",
+          "line_idx": 60,
+          "start": 191.794,
+          "end": 192.014,
+          "source": "match"
+        },
+        {
+          "word": "space",
+          "line_idx": 60,
+          "start": 192.114,
+          "end": 192.614,
+          "source": "match"
+        },
+        {
+          "word": "for",
+          "line_idx": 60,
+          "start": 192.674,
+          "end": 192.835,
+          "source": "match"
+        },
+        {
+          "word": "yes",
+          "line_idx": 60,
+          "start": 192.895,
+          "end": 193.215,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 61,
+      "text": "Stay now",
+      "start": 195.776,
+      "end": 197.536,
+      "words": [
+        {
+          "word": "Stay",
+          "line_idx": 61,
+          "start": 195.776,
+          "end": 196.796,
+          "source": "match"
+        },
+        {
+          "word": "now",
+          "line_idx": 61,
+          "start": 196.896,
+          "end": 197.536,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 62,
+      "text": "Little blackbird",
+      "start": 197.556,
+      "end": 198.837,
+      "words": [
+        {
+          "word": "Little",
+          "line_idx": 62,
+          "start": 197.556,
+          "end": 197.697,
+          "source": "match"
+        },
+        {
+          "word": "blackbird",
+          "line_idx": 62,
+          "start": 197.757,
+          "end": 198.837,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 63,
+      "text": "Don't fly away",
+      "start": 198.877,
+      "end": 200.458,
+      "words": [
+        {
+          "word": "Don't",
+          "line_idx": 63,
+          "start": 198.877,
+          "end": 199.137,
+          "source": "match"
+        },
+        {
+          "word": "fly",
+          "line_idx": 63,
+          "start": 199.297,
+          "end": 199.837,
+          "source": "match"
+        },
+        {
+          "word": "away",
+          "line_idx": 63,
+          "start": 199.937,
+          "end": 200.458,
+          "source": "match"
+        }
+      ]
+    },
+    {
+      "line_idx": 64,
+      "text": "You're my leaden bag of noes",
+      "start": 200.478,
+      "end": 208.381,
+      "words": [
+        {
+          "word": "You're",
+          "line_idx": 64,
+          "start": 200.478,
+          "end": 201.138,
+          "source": "match"
+        },
+        {
+          "word": "my",
+          "line_idx": 64,
+          "start": 201.198,
+          "end": 201.598,
+          "source": "match"
+        },
+        {
+          "word": "leaden",
+          "line_idx": 64,
+          "start": 201.678,
+          "end": 202.298,
+          "source": "match"
+        },
+        {
+          "word": "bag",
+          "line_idx": 64,
+          "start": 202.358,
+          "end": 203.819,
+          "source": "match"
+        },
+        {
+          "word": "of",
+          "line_idx": 64,
+          "start": 203.959,
+          "end": 204.119,
+          "source": "match"
+        },
+        {
+          "word": "noes",
+          "line_idx": 64,
+          "start": 204.259,
+          "end": 208.381,
+          "source": "match"
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "ground_truth_words": 232,
+    "whisper_words": 223,
+    "output_words": 232,
+    "matched": 215,
+    "substituted": 3,
+    "interpolated": 14,
+    "match_rate": 0.927,
+    "substitute_rate": 0.013,
+    "interpolated_rate": 0.06,
+    "word_recovery": 1.0
+  }
+}

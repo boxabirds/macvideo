@@ -1,0 +1,1675 @@
+{
+  "audio": "/Users/julian/expts/macvideo/pocs/07-whisperx/outputs/vocals.wav",
+  "ground_truth": "music/my-little-blackbird.txt",
+  "duration_s": 228.6,
+  "method": "wav2vec2_forced_align",
+  "words": [
+    {
+      "word": "He's",
+      "start": 15.861,
+      "end": 16.121,
+      "score": 0.874
+    },
+    {
+      "word": "arrived",
+      "start": 16.221,
+      "end": 16.821,
+      "score": 0.652
+    },
+    {
+      "word": "again",
+      "start": 16.901,
+      "end": 17.282,
+      "score": 0.825
+    },
+    {
+      "word": "Whispering",
+      "start": 19.042,
+      "end": 19.982,
+      "score": 0.748
+    },
+    {
+      "word": "in",
+      "start": 20.002,
+      "end": 20.042,
+      "score": 0.0
+    },
+    {
+      "word": "my",
+      "start": 20.222,
+      "end": 20.642,
+      "score": 0.883
+    },
+    {
+      "word": "ear",
+      "start": 20.722,
+      "end": 21.102,
+      "score": 0.302
+    },
+    {
+      "word": "Molten",
+      "start": 21.342,
+      "end": 21.762,
+      "score": 0.731
+    },
+    {
+      "word": "black",
+      "start": 21.822,
+      "end": 22.082,
+      "score": 0.833
+    },
+    {
+      "word": "Pooling",
+      "start": 22.262,
+      "end": 22.742,
+      "score": 0.756
+    },
+    {
+      "word": "in",
+      "start": 22.822,
+      "end": 22.962,
+      "score": 0.651
+    },
+    {
+      "word": "That's",
+      "start": 23.182,
+      "end": 23.342,
+      "score": 0.432
+    },
+    {
+      "word": "my",
+      "start": 23.422,
+      "end": 23.662,
+      "score": 0.917
+    },
+    {
+      "word": "little",
+      "start": 23.722,
+      "end": 24.022,
+      "score": 0.89
+    },
+    {
+      "word": "blackbird",
+      "start": 24.082,
+      "end": 24.962,
+      "score": 0.803
+    },
+    {
+      "word": "Little",
+      "start": 26.842,
+      "end": 27.202,
+      "score": 0.91
+    },
+    {
+      "word": "blackbird",
+      "start": 27.262,
+      "end": 27.802,
+      "score": 0.837
+    },
+    {
+      "word": "of",
+      "start": 27.822,
+      "end": 27.882,
+      "score": 0.818
+    },
+    {
+      "word": "noes",
+      "start": 27.982,
+      "end": 30.303,
+      "score": 0.827
+    },
+    {
+      "word": "I",
+      "start": 30.763,
+      "end": 30.923,
+      "score": 0.723
+    },
+    {
+      "word": "brush",
+      "start": 30.963,
+      "end": 31.203,
+      "score": 0.704
+    },
+    {
+      "word": "him",
+      "start": 31.223,
+      "end": 31.403,
+      "score": 0.582
+    },
+    {
+      "word": "away",
+      "start": 31.623,
+      "end": 32.103,
+      "score": 0.648
+    },
+    {
+      "word": "A",
+      "start": 32.183,
+      "end": 32.263,
+      "score": 0.662
+    },
+    {
+      "word": "deft",
+      "start": 32.343,
+      "end": 32.643,
+      "score": 0.839
+    },
+    {
+      "word": "hop,",
+      "start": 32.683,
+      "end": 33.043,
+      "score": 0.861
+    },
+    {
+      "word": "a",
+      "start": 33.283,
+      "end": 33.343,
+      "score": 0.713
+    },
+    {
+      "word": "flutter",
+      "start": 33.423,
+      "end": 33.863,
+      "score": 0.703
+    },
+    {
+      "word": "He",
+      "start": 33.903,
+      "end": 34.043,
+      "score": 0.985
+    },
+    {
+      "word": "pecks",
+      "start": 34.143,
+      "end": 34.443,
+      "score": 0.745
+    },
+    {
+      "word": "back",
+      "start": 34.603,
+      "end": 34.943,
+      "score": 0.881
+    },
+    {
+      "word": "Persistent",
+      "start": 35.063,
+      "end": 35.963,
+      "score": 0.786
+    },
+    {
+      "word": "Whispering",
+      "start": 36.283,
+      "end": 37.603,
+      "score": 0.702
+    },
+    {
+      "word": "again",
+      "start": 37.723,
+      "end": 41.204,
+      "score": 0.814
+    },
+    {
+      "word": "Oh",
+      "start": 41.424,
+      "end": 41.584,
+      "score": 0.658
+    },
+    {
+      "word": "why",
+      "start": 41.904,
+      "end": 42.324,
+      "score": 0.718
+    },
+    {
+      "word": "won't",
+      "start": 42.364,
+      "end": 42.804,
+      "score": 0.484
+    },
+    {
+      "word": "you",
+      "start": 42.824,
+      "end": 42.964,
+      "score": 0.349
+    },
+    {
+      "word": "Little",
+      "start": 43.284,
+      "end": 43.664,
+      "score": 0.74
+    },
+    {
+      "word": "blackbird",
+      "start": 43.744,
+      "end": 44.824,
+      "score": 0.83
+    },
+    {
+      "word": "Just",
+      "start": 44.864,
+      "end": 45.124,
+      "score": 0.806
+    },
+    {
+      "word": "fly",
+      "start": 45.244,
+      "end": 45.804,
+      "score": 0.856
+    },
+    {
+      "word": "away",
+      "start": 45.884,
+      "end": 46.304,
+      "score": 0.748
+    },
+    {
+      "word": "Carry",
+      "start": 46.664,
+      "end": 47.144,
+      "score": 0.955
+    },
+    {
+      "word": "your",
+      "start": 47.164,
+      "end": 47.324,
+      "score": 0.392
+    },
+    {
+      "word": "leaden",
+      "start": 47.384,
+      "end": 47.824,
+      "score": 0.429
+    },
+    {
+      "word": "bag",
+      "start": 48.064,
+      "end": 48.544,
+      "score": 0.6
+    },
+    {
+      "word": "of",
+      "start": 48.604,
+      "end": 48.924,
+      "score": 0.774
+    },
+    {
+      "word": "noes",
+      "start": 48.984,
+      "end": 49.604,
+      "score": 0.812
+    },
+    {
+      "word": "Leave",
+      "start": 49.644,
+      "end": 49.844,
+      "score": 0.384
+    },
+    {
+      "word": "some",
+      "start": 49.864,
+      "end": 50.064,
+      "score": 0.771
+    },
+    {
+      "word": "peace",
+      "start": 50.104,
+      "end": 50.504,
+      "score": 0.745
+    },
+    {
+      "word": "behind",
+      "start": 50.584,
+      "end": 51.284,
+      "score": 0.8
+    },
+    {
+      "word": "Clear",
+      "start": 52.105,
+      "end": 52.385,
+      "score": 0.946
+    },
+    {
+      "word": "out",
+      "start": 52.445,
+      "end": 52.565,
+      "score": 0.785
+    },
+    {
+      "word": "some",
+      "start": 52.585,
+      "end": 52.725,
+      "score": 0.796
+    },
+    {
+      "word": "space",
+      "start": 52.745,
+      "end": 53.185,
+      "score": 0.893
+    },
+    {
+      "word": "for",
+      "start": 53.265,
+      "end": 53.445,
+      "score": 0.824
+    },
+    {
+      "word": "yes",
+      "start": 53.505,
+      "end": 53.885,
+      "score": 0.826
+    },
+    {
+      "word": "Come",
+      "start": 56.245,
+      "end": 56.565,
+      "score": 0.833
+    },
+    {
+      "word": "on",
+      "start": 56.925,
+      "end": 57.125,
+      "score": 0.878
+    },
+    {
+      "word": "now",
+      "start": 57.185,
+      "end": 57.865,
+      "score": 0.78
+    },
+    {
+      "word": "Little",
+      "start": 57.905,
+      "end": 58.285,
+      "score": 0.774
+    },
+    {
+      "word": "blackbird",
+      "start": 58.325,
+      "end": 59.385,
+      "score": 0.821
+    },
+    {
+      "word": "Just",
+      "start": 59.445,
+      "end": 59.705,
+      "score": 0.804
+    },
+    {
+      "word": "fly",
+      "start": 59.845,
+      "end": 60.365,
+      "score": 0.902
+    },
+    {
+      "word": "away",
+      "start": 60.465,
+      "end": 61.025,
+      "score": 0.76
+    },
+    {
+      "word": "Take",
+      "start": 61.085,
+      "end": 61.745,
+      "score": 0.631
+    },
+    {
+      "word": "your",
+      "start": 61.825,
+      "end": 62.065,
+      "score": 0.446
+    },
+    {
+      "word": "leaden",
+      "start": 62.105,
+      "end": 62.825,
+      "score": 0.768
+    },
+    {
+      "word": "bag",
+      "start": 62.906,
+      "end": 64.326,
+      "score": 0.753
+    },
+    {
+      "word": "of",
+      "start": 64.446,
+      "end": 64.586,
+      "score": 0.758
+    },
+    {
+      "word": "noes",
+      "start": 64.766,
+      "end": 68.526,
+      "score": 0.808
+    },
+    {
+      "word": "He",
+      "start": 78.727,
+      "end": 78.907,
+      "score": 0.945
+    },
+    {
+      "word": "settles",
+      "start": 78.967,
+      "end": 79.467,
+      "score": 0.909
+    },
+    {
+      "word": "in",
+      "start": 79.567,
+      "end": 79.787,
+      "score": 0.881
+    },
+    {
+      "word": "now",
+      "start": 79.947,
+      "end": 80.167,
+      "score": 0.502
+    },
+    {
+      "word": "Makes",
+      "start": 80.207,
+      "end": 80.567,
+      "score": 0.467
+    },
+    {
+      "word": "himself",
+      "start": 80.607,
+      "end": 81.047,
+      "score": 0.893
+    },
+    {
+      "word": "at",
+      "start": 81.127,
+      "end": 81.207,
+      "score": 0.92
+    },
+    {
+      "word": "home",
+      "start": 81.267,
+      "end": 81.667,
+      "score": 0.835
+    },
+    {
+      "word": "Drapes",
+      "start": 82.427,
+      "end": 82.847,
+      "score": 0.812
+    },
+    {
+      "word": "himself",
+      "start": 82.887,
+      "end": 83.347,
+      "score": 0.892
+    },
+    {
+      "word": "across",
+      "start": 83.427,
+      "end": 83.767,
+      "score": 0.935
+    },
+    {
+      "word": "the",
+      "start": 83.807,
+      "end": 84.007,
+      "score": 0.795
+    },
+    {
+      "word": "afternoon",
+      "start": 84.207,
+      "end": 85.587,
+      "score": 0.689
+    },
+    {
+      "word": "Drinks",
+      "start": 85.627,
+      "end": 85.948,
+      "score": 0.621
+    },
+    {
+      "word": "my",
+      "start": 86.068,
+      "end": 86.648,
+      "score": 0.854
+    },
+    {
+      "word": "tea",
+      "start": 86.728,
+      "end": 87.368,
+      "score": 0.627
+    },
+    {
+      "word": "That's",
+      "start": 88.588,
+      "end": 88.948,
+      "score": 0.761
+    },
+    {
+      "word": "my",
+      "start": 89.088,
+      "end": 89.488,
+      "score": 0.981
+    },
+    {
+      "word": "little",
+      "start": 89.548,
+      "end": 89.928,
+      "score": 0.868
+    },
+    {
+      "word": "blackbird",
+      "start": 89.988,
+      "end": 92.708,
+      "score": 0.698
+    },
+    {
+      "word": "Little",
+      "start": 92.748,
+      "end": 93.148,
+      "score": 0.756
+    },
+    {
+      "word": "blackbird",
+      "start": 93.188,
+      "end": 93.668,
+      "score": 0.697
+    },
+    {
+      "word": "of",
+      "start": 93.708,
+      "end": 93.808,
+      "score": 0.356
+    },
+    {
+      "word": "noes",
+      "start": 93.888,
+      "end": 94.328,
+      "score": 0.83
+    },
+    {
+      "word": "I",
+      "start": 94.428,
+      "end": 94.508,
+      "score": 0.621
+    },
+    {
+      "word": "don't",
+      "start": 94.568,
+      "end": 94.948,
+      "score": 0.671
+    },
+    {
+      "word": "brush",
+      "start": 94.988,
+      "end": 95.248,
+      "score": 0.851
+    },
+    {
+      "word": "him",
+      "start": 95.308,
+      "end": 95.468,
+      "score": 0.331
+    },
+    {
+      "word": "away",
+      "start": 95.568,
+      "end": 96.108,
+      "score": 0.856
+    },
+    {
+      "word": "I",
+      "start": 96.248,
+      "end": 96.308,
+      "score": 0.444
+    },
+    {
+      "word": "pour",
+      "start": 96.388,
+      "end": 96.768,
+      "score": 0.634
+    },
+    {
+      "word": "him",
+      "start": 96.848,
+      "end": 97.309,
+      "score": 0.855
+    },
+    {
+      "word": "another",
+      "start": 97.349,
+      "end": 97.889,
+      "score": 0.706
+    },
+    {
+      "word": "He's",
+      "start": 97.969,
+      "end": 98.429,
+      "score": 0.619
+    },
+    {
+      "word": "the",
+      "start": 98.469,
+      "end": 98.669,
+      "score": 0.674
+    },
+    {
+      "word": "only",
+      "start": 98.769,
+      "end": 99.089,
+      "score": 0.886
+    },
+    {
+      "word": "one",
+      "start": 99.629,
+      "end": 99.789,
+      "score": 0.63
+    },
+    {
+      "word": "Who",
+      "start": 99.829,
+      "end": 99.949,
+      "score": 0.654
+    },
+    {
+      "word": "stayed",
+      "start": 99.969,
+      "end": 100.489,
+      "score": 0.552
+    },
+    {
+      "word": "this",
+      "start": 100.529,
+      "end": 100.709,
+      "score": 0.74
+    },
+    {
+      "word": "long",
+      "start": 100.769,
+      "end": 102.969,
+      "score": 0.54
+    },
+    {
+      "word": "Who",
+      "start": 102.989,
+      "end": 103.229,
+      "score": 0.857
+    },
+    {
+      "word": "bothered",
+      "start": 103.289,
+      "end": 103.949,
+      "score": 0.704
+    },
+    {
+      "word": "with",
+      "start": 103.989,
+      "end": 104.249,
+      "score": 0.735
+    },
+    {
+      "word": "my",
+      "start": 104.369,
+      "end": 104.789,
+      "score": 0.824
+    },
+    {
+      "word": "name",
+      "start": 104.829,
+      "end": 107.129,
+      "score": 0.484
+    },
+    {
+      "word": "Oh",
+      "start": 107.209,
+      "end": 107.809,
+      "score": 0.716
+    },
+    {
+      "word": "why",
+      "start": 107.849,
+      "end": 108.269,
+      "score": 0.7
+    },
+    {
+      "word": "won't",
+      "start": 108.309,
+      "end": 108.79,
+      "score": 0.46
+    },
+    {
+      "word": "you",
+      "start": 108.83,
+      "end": 109.19,
+      "score": 0.745
+    },
+    {
+      "word": "Little",
+      "start": 109.23,
+      "end": 109.65,
+      "score": 0.733
+    },
+    {
+      "word": "blackbird",
+      "start": 109.69,
+      "end": 110.79,
+      "score": 0.764
+    },
+    {
+      "word": "Just",
+      "start": 110.83,
+      "end": 110.99,
+      "score": 0.392
+    },
+    {
+      "word": "fly",
+      "start": 111.23,
+      "end": 111.91,
+      "score": 0.846
+    },
+    {
+      "word": "away",
+      "start": 111.93,
+      "end": 112.43,
+      "score": 0.642
+    },
+    {
+      "word": "Carry",
+      "start": 112.65,
+      "end": 113.11,
+      "score": 0.883
+    },
+    {
+      "word": "your",
+      "start": 113.13,
+      "end": 113.29,
+      "score": 0.331
+    },
+    {
+      "word": "laden",
+      "start": 113.35,
+      "end": 113.97,
+      "score": 0.677
+    },
+    {
+      "word": "bag",
+      "start": 114.03,
+      "end": 114.51,
+      "score": 0.839
+    },
+    {
+      "word": "of",
+      "start": 114.67,
+      "end": 114.91,
+      "score": 0.696
+    },
+    {
+      "word": "noes",
+      "start": 114.97,
+      "end": 115.57,
+      "score": 0.803
+    },
+    {
+      "word": "Leave",
+      "start": 115.63,
+      "end": 115.83,
+      "score": 0.489
+    },
+    {
+      "word": "some",
+      "start": 115.85,
+      "end": 116.07,
+      "score": 0.638
+    },
+    {
+      "word": "peace",
+      "start": 116.09,
+      "end": 116.49,
+      "score": 0.784
+    },
+    {
+      "word": "behind",
+      "start": 116.55,
+      "end": 117.43,
+      "score": 0.919
+    },
+    {
+      "word": "Clear",
+      "start": 118.11,
+      "end": 118.39,
+      "score": 0.876
+    },
+    {
+      "word": "out",
+      "start": 118.43,
+      "end": 118.55,
+      "score": 0.949
+    },
+    {
+      "word": "some",
+      "start": 118.57,
+      "end": 118.71,
+      "score": 0.867
+    },
+    {
+      "word": "space",
+      "start": 118.75,
+      "end": 119.21,
+      "score": 0.916
+    },
+    {
+      "word": "for",
+      "start": 119.25,
+      "end": 119.43,
+      "score": 0.955
+    },
+    {
+      "word": "yes",
+      "start": 119.49,
+      "end": 119.83,
+      "score": 0.816
+    },
+    {
+      "word": "Come",
+      "start": 122.251,
+      "end": 122.651,
+      "score": 0.812
+    },
+    {
+      "word": "on",
+      "start": 122.971,
+      "end": 123.111,
+      "score": 0.871
+    },
+    {
+      "word": "now",
+      "start": 123.211,
+      "end": 123.871,
+      "score": 0.585
+    },
+    {
+      "word": "Little",
+      "start": 123.931,
+      "end": 124.311,
+      "score": 0.61
+    },
+    {
+      "word": "blackbird",
+      "start": 124.351,
+      "end": 125.451,
+      "score": 0.646
+    },
+    {
+      "word": "Just",
+      "start": 125.491,
+      "end": 125.651,
+      "score": 0.293
+    },
+    {
+      "word": "fly",
+      "start": 125.931,
+      "end": 126.411,
+      "score": 0.709
+    },
+    {
+      "word": "away",
+      "start": 126.511,
+      "end": 127.051,
+      "score": 0.793
+    },
+    {
+      "word": "Take",
+      "start": 127.111,
+      "end": 127.771,
+      "score": 0.594
+    },
+    {
+      "word": "your",
+      "start": 127.811,
+      "end": 128.071,
+      "score": 0.47
+    },
+    {
+      "word": "laden",
+      "start": 128.111,
+      "end": 128.851,
+      "score": 0.787
+    },
+    {
+      "word": "bag",
+      "start": 128.931,
+      "end": 130.371,
+      "score": 0.824
+    },
+    {
+      "word": "of",
+      "start": 130.511,
+      "end": 130.691,
+      "score": 0.768
+    },
+    {
+      "word": "noes",
+      "start": 130.791,
+      "end": 138.132,
+      "score": 0.664
+    },
+    {
+      "word": "What",
+      "start": 152.053,
+      "end": 152.233,
+      "score": 0.808
+    },
+    {
+      "word": "was",
+      "start": 152.293,
+      "end": 152.533,
+      "score": 0.846
+    },
+    {
+      "word": "I",
+      "start": 152.993,
+      "end": 153.133,
+      "score": 0.795
+    },
+    {
+      "word": "\u2014",
+      "start": 153.233,
+      "end": 153.253,
+      "score": 0.765
+    },
+    {
+      "word": "Doesn't",
+      "start": 153.273,
+      "end": 153.613,
+      "score": 0.588
+    },
+    {
+      "word": "matter",
+      "start": 153.713,
+      "end": 154.133,
+      "score": 0.823
+    },
+    {
+      "word": "He",
+      "start": 154.173,
+      "end": 154.314,
+      "score": 0.903
+    },
+    {
+      "word": "knows",
+      "start": 154.374,
+      "end": 155.074,
+      "score": 0.691
+    },
+    {
+      "word": "He",
+      "start": 155.114,
+      "end": 155.254,
+      "score": 0.768
+    },
+    {
+      "word": "noes",
+      "start": 155.314,
+      "end": 155.934,
+      "score": 0.7
+    },
+    {
+      "word": "Same",
+      "start": 155.974,
+      "end": 156.414,
+      "score": 0.716
+    },
+    {
+      "word": "either",
+      "start": 156.694,
+      "end": 157.314,
+      "score": 0.584
+    },
+    {
+      "word": "way",
+      "start": 157.354,
+      "end": 159.394,
+      "score": 0.86
+    },
+    {
+      "word": "Somewhere",
+      "start": 159.434,
+      "end": 159.914,
+      "score": 0.661
+    },
+    {
+      "word": "a",
+      "start": 159.994,
+      "end": 160.074,
+      "score": 0.671
+    },
+    {
+      "word": "window's",
+      "start": 160.094,
+      "end": 160.814,
+      "score": 0.545
+    },
+    {
+      "word": "open",
+      "start": 160.914,
+      "end": 161.214,
+      "score": 0.782
+    },
+    {
+      "word": "Somewhere",
+      "start": 161.254,
+      "end": 161.754,
+      "score": 0.639
+    },
+    {
+      "word": "a",
+      "start": 161.794,
+      "end": 161.894,
+      "score": 0.701
+    },
+    {
+      "word": "kettle",
+      "start": 161.954,
+      "end": 162.554,
+      "score": 0.517
+    },
+    {
+      "word": "clicked",
+      "start": 162.594,
+      "end": 162.854,
+      "score": 0.713
+    },
+    {
+      "word": "I",
+      "start": 163.214,
+      "end": 163.294,
+      "score": 0.807
+    },
+    {
+      "word": "could",
+      "start": 163.334,
+      "end": 163.554,
+      "score": 0.822
+    },
+    {
+      "word": "\u2014",
+      "start": 163.574,
+      "end": 163.594,
+      "score": 0.948
+    },
+    {
+      "word": "No",
+      "start": 163.774,
+      "end": 163.994,
+      "score": 0.812
+    },
+    {
+      "word": "That's",
+      "start": 164.734,
+      "end": 165.034,
+      "score": 0.766
+    },
+    {
+      "word": "my",
+      "start": 165.174,
+      "end": 165.594,
+      "score": 0.907
+    },
+    {
+      "word": "little",
+      "start": 165.654,
+      "end": 166.115,
+      "score": 0.855
+    },
+    {
+      "word": "blackbird",
+      "start": 166.295,
+      "end": 167.755,
+      "score": 0.782
+    },
+    {
+      "word": "Little",
+      "start": 167.935,
+      "end": 168.335,
+      "score": 0.827
+    },
+    {
+      "word": "blackbird",
+      "start": 168.395,
+      "end": 170.235,
+      "score": 0.776
+    },
+    {
+      "word": "of",
+      "start": 170.295,
+      "end": 170.795,
+      "score": 0.767
+    },
+    {
+      "word": "noes",
+      "start": 170.915,
+      "end": 173.595,
+      "score": 0.746
+    },
+    {
+      "word": "Nobody",
+      "start": 173.655,
+      "end": 174.555,
+      "score": 0.804
+    },
+    {
+      "word": "knows",
+      "start": 174.575,
+      "end": 176.815,
+      "score": 0.657
+    },
+    {
+      "word": "Nobody",
+      "start": 176.855,
+      "end": 178.256,
+      "score": 0.637
+    },
+    {
+      "word": "knows",
+      "start": 178.276,
+      "end": 178.916,
+      "score": 0.351
+    },
+    {
+      "word": "enough",
+      "start": 179.156,
+      "end": 179.536,
+      "score": 0.479
+    },
+    {
+      "word": "to",
+      "start": 179.576,
+      "end": 179.796,
+      "score": 0.862
+    },
+    {
+      "word": "care",
+      "start": 179.836,
+      "end": 181.756,
+      "score": 0.472
+    },
+    {
+      "word": "Oh",
+      "start": 181.816,
+      "end": 181.996,
+      "score": 0.515
+    },
+    {
+      "word": "stay",
+      "start": 182.056,
+      "end": 182.616,
+      "score": 0.532
+    },
+    {
+      "word": "then",
+      "start": 182.636,
+      "end": 183.076,
+      "score": 0.349
+    },
+    {
+      "word": "Little",
+      "start": 183.116,
+      "end": 183.436,
+      "score": 0.606
+    },
+    {
+      "word": "blackbird",
+      "start": 183.496,
+      "end": 184.396,
+      "score": 0.676
+    },
+    {
+      "word": "Don't",
+      "start": 184.436,
+      "end": 184.676,
+      "score": 0.512
+    },
+    {
+      "word": "fly",
+      "start": 184.836,
+      "end": 185.176,
+      "score": 0.788
+    },
+    {
+      "word": "away",
+      "start": 185.256,
+      "end": 185.816,
+      "score": 0.771
+    },
+    {
+      "word": "Keep",
+      "start": 185.856,
+      "end": 186.496,
+      "score": 0.778
+    },
+    {
+      "word": "your",
+      "start": 186.536,
+      "end": 186.756,
+      "score": 0.518
+    },
+    {
+      "word": "gravid",
+      "start": 186.816,
+      "end": 187.376,
+      "score": 0.75
+    },
+    {
+      "word": "bag",
+      "start": 187.436,
+      "end": 187.896,
+      "score": 0.89
+    },
+    {
+      "word": "of",
+      "start": 187.976,
+      "end": 188.236,
+      "score": 0.738
+    },
+    {
+      "word": "noes",
+      "start": 188.316,
+      "end": 188.977,
+      "score": 0.838
+    },
+    {
+      "word": "There's",
+      "start": 189.017,
+      "end": 189.217,
+      "score": 0.524
+    },
+    {
+      "word": "no",
+      "start": 189.257,
+      "end": 189.437,
+      "score": 0.808
+    },
+    {
+      "word": "peace",
+      "start": 189.477,
+      "end": 189.877,
+      "score": 0.735
+    },
+    {
+      "word": "behind",
+      "start": 189.937,
+      "end": 190.837,
+      "score": 0.816
+    },
+    {
+      "word": "There's",
+      "start": 191.517,
+      "end": 191.697,
+      "score": 0.406
+    },
+    {
+      "word": "no",
+      "start": 191.797,
+      "end": 192.037,
+      "score": 0.872
+    },
+    {
+      "word": "space",
+      "start": 192.137,
+      "end": 192.617,
+      "score": 0.967
+    },
+    {
+      "word": "for",
+      "start": 192.677,
+      "end": 192.857,
+      "score": 0.898
+    },
+    {
+      "word": "yes",
+      "start": 192.897,
+      "end": 193.277,
+      "score": 0.835
+    },
+    {
+      "word": "Stay",
+      "start": 195.797,
+      "end": 196.817,
+      "score": 0.788
+    },
+    {
+      "word": "now",
+      "start": 196.897,
+      "end": 197.557,
+      "score": 0.476
+    },
+    {
+      "word": "Little",
+      "start": 197.597,
+      "end": 197.717,
+      "score": 0.022
+    },
+    {
+      "word": "blackbird",
+      "start": 197.777,
+      "end": 198.857,
+      "score": 0.706
+    },
+    {
+      "word": "Don't",
+      "start": 198.917,
+      "end": 199.137,
+      "score": 0.572
+    },
+    {
+      "word": "fly",
+      "start": 199.317,
+      "end": 199.837,
+      "score": 0.872
+    },
+    {
+      "word": "away",
+      "start": 199.937,
+      "end": 200.518,
+      "score": 0.797
+    },
+    {
+      "word": "You're",
+      "start": 200.538,
+      "end": 201.178,
+      "score": 0.514
+    },
+    {
+      "word": "my",
+      "start": 201.198,
+      "end": 201.638,
+      "score": 0.857
+    },
+    {
+      "word": "leaden",
+      "start": 201.698,
+      "end": 202.318,
+      "score": 0.675
+    },
+    {
+      "word": "bag",
+      "start": 202.378,
+      "end": 203.818,
+      "score": 0.853
+    },
+    {
+      "word": "of",
+      "start": 203.958,
+      "end": 204.118,
+      "score": 0.737
+    },
+    {
+      "word": "noes",
+      "start": 204.258,
+      "end": 208.278,
+      "score": 0.716
+    }
+  ],
+  "word_count": 234,
+  "lines": [
+    {
+      "line_idx": 0,
+      "text": "He's arrived again"
+    },
+    {
+      "line_idx": 1,
+      "text": "Whispering in my ear"
+    },
+    {
+      "line_idx": 2,
+      "text": "Molten black"
+    },
+    {
+      "line_idx": 3,
+      "text": "Pooling in"
+    },
+    {
+      "line_idx": 4,
+      "text": "That's my little blackbird"
+    },
+    {
+      "line_idx": 5,
+      "text": "Little blackbird of noes"
+    },
+    {
+      "line_idx": 6,
+      "text": "I brush him away"
+    },
+    {
+      "line_idx": 7,
+      "text": "A deft hop, a flutter"
+    },
+    {
+      "line_idx": 8,
+      "text": "He pecks back"
+    },
+    {
+      "line_idx": 9,
+      "text": "Persistent"
+    },
+    {
+      "line_idx": 10,
+      "text": "Whispering again"
+    },
+    {
+      "line_idx": 11,
+      "text": "Oh why won't you"
+    },
+    {
+      "line_idx": 12,
+      "text": "Little blackbird"
+    },
+    {
+      "line_idx": 13,
+      "text": "Just fly away"
+    },
+    {
+      "line_idx": 14,
+      "text": "Carry your leaden bag of noes"
+    },
+    {
+      "line_idx": 15,
+      "text": "Leave some peace behind"
+    },
+    {
+      "line_idx": 16,
+      "text": "Clear out some space for yes"
+    },
+    {
+      "line_idx": 17,
+      "text": "Come on now"
+    },
+    {
+      "line_idx": 18,
+      "text": "Little blackbird"
+    },
+    {
+      "line_idx": 19,
+      "text": "Just fly away"
+    },
+    {
+      "line_idx": 20,
+      "text": "Take your leaden bag of noes"
+    },
+    {
+      "line_idx": 21,
+      "text": "He settles in now"
+    },
+    {
+      "line_idx": 22,
+      "text": "Makes himself at home"
+    },
+    {
+      "line_idx": 23,
+      "text": "Drapes himself across the afternoon"
+    },
+    {
+      "line_idx": 24,
+      "text": "Drinks my tea"
+    },
+    {
+      "line_idx": 25,
+      "text": "That's my little blackbird"
+    },
+    {
+      "line_idx": 26,
+      "text": "Little blackbird of noes"
+    },
+    {
+      "line_idx": 27,
+      "text": "I don't brush him away"
+    },
+    {
+      "line_idx": 28,
+      "text": "I pour him another"
+    },
+    {
+      "line_idx": 29,
+      "text": "He's the only one"
+    },
+    {
+      "line_idx": 30,
+      "text": "Who stayed this long"
+    },
+    {
+      "line_idx": 31,
+      "text": "Who bothered with my name"
+    },
+    {
+      "line_idx": 32,
+      "text": "Oh why won't you"
+    },
+    {
+      "line_idx": 33,
+      "text": "Little blackbird"
+    },
+    {
+      "line_idx": 34,
+      "text": "Just fly away"
+    },
+    {
+      "line_idx": 35,
+      "text": "Carry your laden bag of noes"
+    },
+    {
+      "line_idx": 36,
+      "text": "Leave some peace behind"
+    },
+    {
+      "line_idx": 37,
+      "text": "Clear out some space for yes"
+    },
+    {
+      "line_idx": 38,
+      "text": "Come on now"
+    },
+    {
+      "line_idx": 39,
+      "text": "Little blackbird"
+    },
+    {
+      "line_idx": 40,
+      "text": "Just fly away"
+    },
+    {
+      "line_idx": 41,
+      "text": "Take your laden bag of noes"
+    },
+    {
+      "line_idx": 42,
+      "text": "What was I \u2014"
+    },
+    {
+      "line_idx": 43,
+      "text": "Doesn't matter"
+    },
+    {
+      "line_idx": 44,
+      "text": "He knows"
+    },
+    {
+      "line_idx": 45,
+      "text": "He noes"
+    },
+    {
+      "line_idx": 46,
+      "text": "Same either way"
+    },
+    {
+      "line_idx": 47,
+      "text": "Somewhere a window's open"
+    },
+    {
+      "line_idx": 48,
+      "text": "Somewhere a kettle clicked"
+    },
+    {
+      "line_idx": 49,
+      "text": "I could \u2014"
+    },
+    {
+      "line_idx": 50,
+      "text": "No"
+    },
+    {
+      "line_idx": 51,
+      "text": "That's my little blackbird"
+    },
+    {
+      "line_idx": 52,
+      "text": "Little blackbird of noes"
+    },
+    {
+      "line_idx": 53,
+      "text": "Nobody knows"
+    },
+    {
+      "line_idx": 54,
+      "text": "Nobody knows enough to care"
+    },
+    {
+      "line_idx": 55,
+      "text": "Oh stay then"
+    },
+    {
+      "line_idx": 56,
+      "text": "Little blackbird"
+    },
+    {
+      "line_idx": 57,
+      "text": "Don't fly away"
+    },
+    {
+      "line_idx": 58,
+      "text": "Keep your gravid bag of noes"
+    },
+    {
+      "line_idx": 59,
+      "text": "There's no peace behind"
+    },
+    {
+      "line_idx": 60,
+      "text": "There's no space for yes"
+    },
+    {
+      "line_idx": 61,
+      "text": "Stay now"
+    },
+    {
+      "line_idx": 62,
+      "text": "Little blackbird"
+    },
+    {
+      "line_idx": 63,
+      "text": "Don't fly away"
+    },
+    {
+      "line_idx": 64,
+      "text": "You're my leaden bag of noes"
+    }
+  ]
+}

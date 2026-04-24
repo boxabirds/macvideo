@@ -370,8 +370,9 @@ def write_gallery(run_dir: Path, songs: list, filters: list, results: dict) -> N
                 rel = f"{song_stem}/{filt['name'].replace(' ', '_')}"
                 cells.append(
                     f"<td class='done'>"
-                    f"<a href='{rel}/clip.mp4'><img src='{rel}/keyframe.png' loading='lazy'></a>"
-                    f"<div class='meta'><a href='{rel}/clip.mp4'>▶ clip</a> · <a href='{rel}/prompts.json'>prompts</a></div>"
+                    f"<video src='{rel}/clip.mp4' poster='{rel}/keyframe.png' "
+                    f"controls preload='none' muted loop></video>"
+                    f"<div class='meta'><a href='{rel}/prompts.json'>prompts</a></div>"
                     f"</td>"
                 )
             else:
@@ -401,6 +402,7 @@ def write_gallery(run_dir: Path, songs: list, filters: list, results: dict) -> N
   .sub {{ font-size: 10px; opacity: .6; font-weight: 400; }}
   td {{ width: 320px; height: 230px; }}
   td img {{ width: 100%; height: 180px; object-fit: cover; display: block; }}
+  td video {{ width: 100%; height: 180px; object-fit: cover; display: block; background: #000; }}
   td .meta {{ font-size: 11px; margin-top: 4px; }}
   td.done {{ background: #efe; }}
   td.failed, td.pending {{ background: #fdd; }}

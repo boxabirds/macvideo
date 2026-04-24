@@ -1,0 +1,1723 @@
+{
+  "audio": "/Users/julian/expts/macvideo/pocs/07-whisperx/outputs/vocals.wav",
+  "ground_truth": "music/busy-invisible.txt",
+  "duration_s": 208.992,
+  "method": "wav2vec2_forced_align",
+  "words": [
+    {
+      "word": "[Verse",
+      "start": 6.98,
+      "end": 7.2,
+      "score": 0.28
+    },
+    {
+      "word": "1]",
+      "start": 7.22,
+      "end": 7.26,
+      "score": 0.504
+    },
+    {
+      "word": "They",
+      "start": 7.28,
+      "end": 7.38,
+      "score": 0.126
+    },
+    {
+      "word": "don't",
+      "start": 7.4,
+      "end": 7.56,
+      "score": 0.531
+    },
+    {
+      "word": "see",
+      "start": 7.72,
+      "end": 8.2,
+      "score": 0.906
+    },
+    {
+      "word": "me",
+      "start": 8.26,
+      "end": 8.6,
+      "score": 0.922
+    },
+    {
+      "word": "They",
+      "start": 10.241,
+      "end": 10.401,
+      "score": 0.593
+    },
+    {
+      "word": "don't",
+      "start": 10.501,
+      "end": 10.821,
+      "score": 0.828
+    },
+    {
+      "word": "see",
+      "start": 10.941,
+      "end": 11.181,
+      "score": 0.881
+    },
+    {
+      "word": "my",
+      "start": 11.261,
+      "end": 11.601,
+      "score": 0.962
+    },
+    {
+      "word": "tears",
+      "start": 11.721,
+      "end": 12.521,
+      "score": 0.751
+    },
+    {
+      "word": "They",
+      "start": 15.021,
+      "end": 15.241,
+      "score": 0.883
+    },
+    {
+      "word": "don't",
+      "start": 15.281,
+      "end": 15.701,
+      "score": 0.718
+    },
+    {
+      "word": "listen",
+      "start": 15.801,
+      "end": 16.361,
+      "score": 0.883
+    },
+    {
+      "word": "For",
+      "start": 16.381,
+      "end": 16.521,
+      "score": 0.26
+    },
+    {
+      "word": "my",
+      "start": 16.541,
+      "end": 16.581,
+      "score": 0.008
+    },
+    {
+      "word": "fears",
+      "start": 16.601,
+      "end": 16.821,
+      "score": 0.36
+    },
+    {
+      "word": "I",
+      "start": 16.841,
+      "end": 16.861,
+      "score": 0.001
+    },
+    {
+      "word": "have",
+      "start": 16.901,
+      "end": 17.041,
+      "score": 0.174
+    },
+    {
+      "word": "mouths",
+      "start": 17.121,
+      "end": 17.241,
+      "score": 0.009
+    },
+    {
+      "word": "in",
+      "start": 17.261,
+      "end": 17.301,
+      "score": 0.004
+    },
+    {
+      "word": "pictures",
+      "start": 17.341,
+      "end": 17.721,
+      "score": 0.372
+    },
+    {
+      "word": "Frozen",
+      "start": 18.701,
+      "end": 19.081,
+      "score": 0.624
+    },
+    {
+      "word": "in",
+      "start": 19.101,
+      "end": 19.141,
+      "score": 0.0
+    },
+    {
+      "word": "a",
+      "start": 19.161,
+      "end": 19.181,
+      "score": 0.002
+    },
+    {
+      "word": "smile",
+      "start": 19.221,
+      "end": 19.541,
+      "score": 0.454
+    },
+    {
+      "word": "They",
+      "start": 19.701,
+      "end": 19.981,
+      "score": 0.454
+    },
+    {
+      "word": "don't",
+      "start": 20.001,
+      "end": 20.181,
+      "score": 0.274
+    },
+    {
+      "word": "listen",
+      "start": 20.201,
+      "end": 20.421,
+      "score": 0.274
+    },
+    {
+      "word": "For",
+      "start": 22.501,
+      "end": 22.561,
+      "score": 0.0
+    },
+    {
+      "word": "my",
+      "start": 22.581,
+      "end": 22.621,
+      "score": 0.0
+    },
+    {
+      "word": "fears",
+      "start": 22.641,
+      "end": 22.741,
+      "score": 0.034
+    },
+    {
+      "word": "I",
+      "start": 22.761,
+      "end": 22.781,
+      "score": 0.001
+    },
+    {
+      "word": "have",
+      "start": 22.821,
+      "end": 22.961,
+      "score": 0.425
+    },
+    {
+      "word": "mouths",
+      "start": 23.021,
+      "end": 23.521,
+      "score": 0.7
+    },
+    {
+      "word": "in",
+      "start": 23.581,
+      "end": 23.701,
+      "score": 0.624
+    },
+    {
+      "word": "pictures",
+      "start": 23.781,
+      "end": 24.381,
+      "score": 0.873
+    },
+    {
+      "word": "Frozen",
+      "start": 25.701,
+      "end": 26.482,
+      "score": 0.691
+    },
+    {
+      "word": "in",
+      "start": 26.982,
+      "end": 27.142,
+      "score": 0.465
+    },
+    {
+      "word": "a",
+      "start": 27.202,
+      "end": 27.322,
+      "score": 0.672
+    },
+    {
+      "word": "smile",
+      "start": 27.422,
+      "end": 28.062,
+      "score": 0.914
+    },
+    {
+      "word": "I",
+      "start": 30.482,
+      "end": 30.542,
+      "score": 0.834
+    },
+    {
+      "word": "have",
+      "start": 30.562,
+      "end": 30.662,
+      "score": 0.094
+    },
+    {
+      "word": "rooms",
+      "start": 30.702,
+      "end": 31.262,
+      "score": 0.675
+    },
+    {
+      "word": "of",
+      "start": 31.442,
+      "end": 31.602,
+      "score": 0.483
+    },
+    {
+      "word": "voices",
+      "start": 31.762,
+      "end": 32.722,
+      "score": 0.903
+    },
+    {
+      "word": "I've",
+      "start": 32.982,
+      "end": 33.122,
+      "score": 0.162
+    },
+    {
+      "word": "not",
+      "start": 33.222,
+      "end": 33.622,
+      "score": 0.87
+    },
+    {
+      "word": "been",
+      "start": 33.762,
+      "end": 34.042,
+      "score": 0.766
+    },
+    {
+      "word": "in",
+      "start": 34.202,
+      "end": 34.582,
+      "score": 0.894
+    },
+    {
+      "word": "for",
+      "start": 34.722,
+      "end": 35.242,
+      "score": 0.852
+    },
+    {
+      "word": "a",
+      "start": 35.382,
+      "end": 35.462,
+      "score": 0.681
+    },
+    {
+      "word": "while",
+      "start": 35.522,
+      "end": 36.102,
+      "score": 0.862
+    },
+    {
+      "word": "And",
+      "start": 38.642,
+      "end": 38.742,
+      "score": 0.815
+    },
+    {
+      "word": "it",
+      "start": 38.842,
+      "end": 38.882,
+      "score": 0.161
+    },
+    {
+      "word": "doesn't",
+      "start": 39.022,
+      "end": 39.682,
+      "score": 0.577
+    },
+    {
+      "word": "help",
+      "start": 39.782,
+      "end": 40.162,
+      "score": 0.716
+    },
+    {
+      "word": "me",
+      "start": 40.282,
+      "end": 40.862,
+      "score": 0.848
+    },
+    {
+      "word": "To",
+      "start": 41.502,
+      "end": 41.702,
+      "score": 0.774
+    },
+    {
+      "word": "know",
+      "start": 41.742,
+      "end": 42.342,
+      "score": 0.521
+    },
+    {
+      "word": "I'm",
+      "start": 42.482,
+      "end": 42.682,
+      "score": 0.577
+    },
+    {
+      "word": "not",
+      "start": 42.782,
+      "end": 43.322,
+      "score": 0.765
+    },
+    {
+      "word": "alone",
+      "start": 43.382,
+      "end": 44.263,
+      "score": 0.726
+    },
+    {
+      "word": "In",
+      "start": 46.323,
+      "end": 46.463,
+      "score": 0.686
+    },
+    {
+      "word": "my",
+      "start": 46.543,
+      "end": 46.903,
+      "score": 0.924
+    },
+    {
+      "word": "loneliness",
+      "start": 47.003,
+      "end": 47.783,
+      "score": 0.522
+    },
+    {
+      "word": "[Chorus]",
+      "start": 47.803,
+      "end": 48.363,
+      "score": 0.649
+    },
+    {
+      "word": "I'm",
+      "start": 51.523,
+      "end": 51.783,
+      "score": 0.507
+    },
+    {
+      "word": "the",
+      "start": 51.823,
+      "end": 51.903,
+      "score": 0.206
+    },
+    {
+      "word": "busy",
+      "start": 52.063,
+      "end": 52.603,
+      "score": 0.937
+    },
+    {
+      "word": "invisible",
+      "start": 52.703,
+      "end": 53.823,
+      "score": 0.803
+    },
+    {
+      "word": "An",
+      "start": 54.383,
+      "end": 54.503,
+      "score": 0.794
+    },
+    {
+      "word": "indifferent",
+      "start": 54.663,
+      "end": 55.743,
+      "score": 0.612
+    },
+    {
+      "word": "backdrop",
+      "start": 55.823,
+      "end": 56.623,
+      "score": 0.952
+    },
+    {
+      "word": "An",
+      "start": 58.363,
+      "end": 58.483,
+      "score": 0.736
+    },
+    {
+      "word": "extra",
+      "start": 58.623,
+      "end": 58.963,
+      "score": 0.888
+    },
+    {
+      "word": "in",
+      "start": 59.143,
+      "end": 59.263,
+      "score": 0.506
+    },
+    {
+      "word": "the",
+      "start": 59.303,
+      "end": 59.663,
+      "score": 0.555
+    },
+    {
+      "word": "scene",
+      "start": 59.763,
+      "end": 61.303,
+      "score": 0.781
+    },
+    {
+      "word": "Of",
+      "start": 61.483,
+      "end": 61.583,
+      "score": 0.57
+    },
+    {
+      "word": "other",
+      "start": 61.704,
+      "end": 61.944,
+      "score": 0.918
+    },
+    {
+      "word": "people's",
+      "start": 62.044,
+      "end": 63.344,
+      "score": 0.624
+    },
+    {
+      "word": "lives",
+      "start": 63.564,
+      "end": 64.104,
+      "score": 0.73
+    },
+    {
+      "word": "I'm",
+      "start": 67.564,
+      "end": 67.844,
+      "score": 0.38
+    },
+    {
+      "word": "the",
+      "start": 67.864,
+      "end": 67.924,
+      "score": 0.013
+    },
+    {
+      "word": "busy",
+      "start": 68.084,
+      "end": 68.624,
+      "score": 0.902
+    },
+    {
+      "word": "invisible",
+      "start": 68.704,
+      "end": 69.784,
+      "score": 0.897
+    },
+    {
+      "word": "The",
+      "start": 70.284,
+      "end": 70.424,
+      "score": 0.457
+    },
+    {
+      "word": "supporting",
+      "start": 70.524,
+      "end": 72.324,
+      "score": 0.831
+    },
+    {
+      "word": "act",
+      "start": 72.444,
+      "end": 72.684,
+      "score": 0.523
+    },
+    {
+      "word": "In",
+      "start": 75.044,
+      "end": 75.284,
+      "score": 0.804
+    },
+    {
+      "word": "the",
+      "start": 75.344,
+      "end": 75.724,
+      "score": 0.754
+    },
+    {
+      "word": "laughter",
+      "start": 75.804,
+      "end": 78.584,
+      "score": 0.837
+    },
+    {
+      "word": "Of",
+      "start": 78.744,
+      "end": 78.864,
+      "score": 0.698
+    },
+    {
+      "word": "other",
+      "start": 79.004,
+      "end": 79.265,
+      "score": 0.831
+    },
+    {
+      "word": "rooms",
+      "start": 79.305,
+      "end": 80.045,
+      "score": 0.777
+    },
+    {
+      "word": "[Verse",
+      "start": 80.065,
+      "end": 81.625,
+      "score": 0.533
+    },
+    {
+      "word": "2]",
+      "start": 81.665,
+      "end": 83.605,
+      "score": 0.921
+    },
+    {
+      "word": "I'm",
+      "start": 83.925,
+      "end": 84.085,
+      "score": 0.398
+    },
+    {
+      "word": "waiting",
+      "start": 84.145,
+      "end": 84.525,
+      "score": 0.576
+    },
+    {
+      "word": "I'm",
+      "start": 84.545,
+      "end": 85.065,
+      "score": 0.505
+    },
+    {
+      "word": "listening",
+      "start": 85.125,
+      "end": 85.865,
+      "score": 0.521
+    },
+    {
+      "word": "But",
+      "start": 86.345,
+      "end": 86.465,
+      "score": 0.856
+    },
+    {
+      "word": "the",
+      "start": 86.505,
+      "end": 86.605,
+      "score": 0.874
+    },
+    {
+      "word": "walls",
+      "start": 86.645,
+      "end": 86.885,
+      "score": 0.921
+    },
+    {
+      "word": "aren't",
+      "start": 86.965,
+      "end": 87.105,
+      "score": 0.469
+    },
+    {
+      "word": "talking",
+      "start": 87.145,
+      "end": 87.545,
+      "score": 0.934
+    },
+    {
+      "word": "back",
+      "start": 87.625,
+      "end": 88.285,
+      "score": 0.806
+    },
+    {
+      "word": "Nobody's",
+      "start": 88.385,
+      "end": 89.065,
+      "score": 0.863
+    },
+    {
+      "word": "talking",
+      "start": 89.125,
+      "end": 89.565,
+      "score": 0.847
+    },
+    {
+      "word": "back",
+      "start": 89.645,
+      "end": 90.365,
+      "score": 0.531
+    },
+    {
+      "word": "I",
+      "start": 90.485,
+      "end": 90.585,
+      "score": 0.842
+    },
+    {
+      "word": "reach",
+      "start": 90.645,
+      "end": 90.905,
+      "score": 0.755
+    },
+    {
+      "word": "into",
+      "start": 91.025,
+      "end": 91.805,
+      "score": 0.878
+    },
+    {
+      "word": "memory",
+      "start": 91.905,
+      "end": 93.045,
+      "score": 0.841
+    },
+    {
+      "word": "An",
+      "start": 93.405,
+      "end": 93.505,
+      "score": 0.853
+    },
+    {
+      "word": "unfamiliar",
+      "start": 93.665,
+      "end": 94.445,
+      "score": 0.67
+    },
+    {
+      "word": "shape",
+      "start": 94.585,
+      "end": 94.945,
+      "score": 0.97
+    },
+    {
+      "word": "Of",
+      "start": 95.425,
+      "end": 95.505,
+      "score": 0.899
+    },
+    {
+      "word": "people",
+      "start": 95.625,
+      "end": 95.985,
+      "score": 0.923
+    },
+    {
+      "word": "close",
+      "start": 96.085,
+      "end": 96.585,
+      "score": 0.862
+    },
+    {
+      "word": "Of",
+      "start": 96.685,
+      "end": 96.785,
+      "score": 0.856
+    },
+    {
+      "word": "warmth",
+      "start": 96.886,
+      "end": 97.306,
+      "score": 0.72
+    },
+    {
+      "word": "The",
+      "start": 97.386,
+      "end": 97.506,
+      "score": 0.89
+    },
+    {
+      "word": "doorbell",
+      "start": 97.606,
+      "end": 98.346,
+      "score": 0.918
+    },
+    {
+      "word": "rings",
+      "start": 98.406,
+      "end": 98.746,
+      "score": 0.912
+    },
+    {
+      "word": "Transactional",
+      "start": 98.826,
+      "end": 99.626,
+      "score": 0.765
+    },
+    {
+      "word": "A",
+      "start": 100.726,
+      "end": 100.866,
+      "score": 0.794
+    },
+    {
+      "word": "package",
+      "start": 101.146,
+      "end": 101.866,
+      "score": 0.631
+    },
+    {
+      "word": "on",
+      "start": 102.086,
+      "end": 102.326,
+      "score": 0.818
+    },
+    {
+      "word": "the",
+      "start": 102.366,
+      "end": 102.486,
+      "score": 0.378
+    },
+    {
+      "word": "step",
+      "start": 102.506,
+      "end": 102.806,
+      "score": 0.65
+    },
+    {
+      "word": "A",
+      "start": 103.446,
+      "end": 103.486,
+      "score": 0.524
+    },
+    {
+      "word": "stranger",
+      "start": 103.546,
+      "end": 104.046,
+      "score": 0.866
+    },
+    {
+      "word": "gone",
+      "start": 104.146,
+      "end": 104.426,
+      "score": 0.503
+    },
+    {
+      "word": "The",
+      "start": 104.926,
+      "end": 105.066,
+      "score": 0.255
+    },
+    {
+      "word": "deafening",
+      "start": 105.166,
+      "end": 106.066,
+      "score": 0.646
+    },
+    {
+      "word": "presence",
+      "start": 106.146,
+      "end": 107.366,
+      "score": 0.606
+    },
+    {
+      "word": "Of",
+      "start": 107.506,
+      "end": 107.626,
+      "score": 0.414
+    },
+    {
+      "word": "absence",
+      "start": 107.646,
+      "end": 108.806,
+      "score": 0.739
+    },
+    {
+      "word": "[Chorus]",
+      "start": 108.826,
+      "end": 111.386,
+      "score": 0.632
+    },
+    {
+      "word": "I'm",
+      "start": 111.786,
+      "end": 111.846,
+      "score": 0.012
+    },
+    {
+      "word": "the",
+      "start": 111.986,
+      "end": 112.086,
+      "score": 0.218
+    },
+    {
+      "word": "busy",
+      "start": 112.186,
+      "end": 112.826,
+      "score": 0.927
+    },
+    {
+      "word": "invisible",
+      "start": 113.006,
+      "end": 113.846,
+      "score": 0.834
+    },
+    {
+      "word": "An",
+      "start": 114.447,
+      "end": 114.547,
+      "score": 0.779
+    },
+    {
+      "word": "indifferent",
+      "start": 114.727,
+      "end": 115.827,
+      "score": 0.684
+    },
+    {
+      "word": "backdrop",
+      "start": 115.907,
+      "end": 116.647,
+      "score": 0.913
+    },
+    {
+      "word": "An",
+      "start": 118.467,
+      "end": 118.567,
+      "score": 0.76
+    },
+    {
+      "word": "extra",
+      "start": 118.727,
+      "end": 119.127,
+      "score": 0.815
+    },
+    {
+      "word": "in",
+      "start": 119.227,
+      "end": 119.387,
+      "score": 0.685
+    },
+    {
+      "word": "the",
+      "start": 119.427,
+      "end": 119.767,
+      "score": 0.554
+    },
+    {
+      "word": "scene",
+      "start": 119.907,
+      "end": 121.427,
+      "score": 0.561
+    },
+    {
+      "word": "Of",
+      "start": 121.587,
+      "end": 121.707,
+      "score": 0.816
+    },
+    {
+      "word": "other",
+      "start": 121.807,
+      "end": 122.087,
+      "score": 0.891
+    },
+    {
+      "word": "people's",
+      "start": 122.147,
+      "end": 123.467,
+      "score": 0.804
+    },
+    {
+      "word": "lives",
+      "start": 123.687,
+      "end": 124.527,
+      "score": 0.768
+    },
+    {
+      "word": "I'm",
+      "start": 124.907,
+      "end": 125.087,
+      "score": 0.461
+    },
+    {
+      "word": "the",
+      "start": 125.527,
+      "end": 125.707,
+      "score": 0.588
+    },
+    {
+      "word": "busy",
+      "start": 128.207,
+      "end": 128.707,
+      "score": 0.721
+    },
+    {
+      "word": "invisible",
+      "start": 128.827,
+      "end": 129.847,
+      "score": 0.909
+    },
+    {
+      "word": "The",
+      "start": 130.467,
+      "end": 130.547,
+      "score": 0.539
+    },
+    {
+      "word": "supporting",
+      "start": 130.667,
+      "end": 131.647,
+      "score": 0.668
+    },
+    {
+      "word": "act",
+      "start": 132.068,
+      "end": 133.208,
+      "score": 0.767
+    },
+    {
+      "word": "In",
+      "start": 135.088,
+      "end": 135.468,
+      "score": 0.858
+    },
+    {
+      "word": "the",
+      "start": 135.508,
+      "end": 135.748,
+      "score": 0.607
+    },
+    {
+      "word": "laughter",
+      "start": 135.928,
+      "end": 137.288,
+      "score": 0.721
+    },
+    {
+      "word": "Of",
+      "start": 138.788,
+      "end": 138.888,
+      "score": 0.894
+    },
+    {
+      "word": "other",
+      "start": 139.088,
+      "end": 139.368,
+      "score": 0.944
+    },
+    {
+      "word": "rooms",
+      "start": 139.448,
+      "end": 139.788,
+      "score": 0.435
+    },
+    {
+      "word": "[Bridge]",
+      "start": 139.808,
+      "end": 140.088,
+      "score": 0.279
+    },
+    {
+      "word": "It's",
+      "start": 143.488,
+      "end": 143.648,
+      "score": 0.786
+    },
+    {
+      "word": "Friday",
+      "start": 143.708,
+      "end": 144.208,
+      "score": 0.864
+    },
+    {
+      "word": "I",
+      "start": 144.228,
+      "end": 144.248,
+      "score": 0.001
+    },
+    {
+      "word": "blink",
+      "start": 144.708,
+      "end": 144.988,
+      "score": 0.797
+    },
+    {
+      "word": "It's",
+      "start": 145.528,
+      "end": 145.668,
+      "score": 0.848
+    },
+    {
+      "word": "Monday",
+      "start": 145.748,
+      "end": 146.208,
+      "score": 0.856
+    },
+    {
+      "word": "I",
+      "start": 146.588,
+      "end": 146.708,
+      "score": 0.846
+    },
+    {
+      "word": "blink",
+      "start": 146.728,
+      "end": 147.008,
+      "score": 0.825
+    },
+    {
+      "word": "It's",
+      "start": 147.528,
+      "end": 147.728,
+      "score": 0.634
+    },
+    {
+      "word": "April",
+      "start": 147.848,
+      "end": 148.228,
+      "score": 0.747
+    },
+    {
+      "word": "I",
+      "start": 148.608,
+      "end": 148.708,
+      "score": 0.837
+    },
+    {
+      "word": "blink",
+      "start": 148.748,
+      "end": 149.028,
+      "score": 0.805
+    },
+    {
+      "word": "It's",
+      "start": 149.528,
+      "end": 149.669,
+      "score": 0.66
+    },
+    {
+      "word": "Christmas",
+      "start": 149.729,
+      "end": 150.269,
+      "score": 0.805
+    },
+    {
+      "word": "Another",
+      "start": 150.569,
+      "end": 151.189,
+      "score": 0.81
+    },
+    {
+      "word": "year",
+      "start": 151.249,
+      "end": 152.649,
+      "score": 0.586
+    },
+    {
+      "word": "Another",
+      "start": 152.729,
+      "end": 153.149,
+      "score": 0.735
+    },
+    {
+      "word": "grey",
+      "start": 153.269,
+      "end": 153.609,
+      "score": 0.799
+    },
+    {
+      "word": "hair",
+      "start": 153.749,
+      "end": 154.309,
+      "score": 0.681
+    },
+    {
+      "word": "Another",
+      "start": 154.569,
+      "end": 155.149,
+      "score": 0.797
+    },
+    {
+      "word": "five",
+      "start": 155.269,
+      "end": 155.729,
+      "score": 0.441
+    },
+    {
+      "word": "years",
+      "start": 155.789,
+      "end": 156.189,
+      "score": 0.559
+    },
+    {
+      "word": "Five",
+      "start": 156.289,
+      "end": 156.889,
+      "score": 0.535
+    },
+    {
+      "word": "more",
+      "start": 156.909,
+      "end": 159.309,
+      "score": 0.695
+    },
+    {
+      "word": "years",
+      "start": 159.329,
+      "end": 159.569,
+      "score": 0.438
+    },
+    {
+      "word": "Of",
+      "start": 159.709,
+      "end": 159.829,
+      "score": 0.829
+    },
+    {
+      "word": "tears",
+      "start": 159.969,
+      "end": 160.689,
+      "score": 0.497
+    },
+    {
+      "word": "[Final",
+      "start": 160.769,
+      "end": 160.929,
+      "score": 0.115
+    },
+    {
+      "word": "chorus",
+      "start": 160.969,
+      "end": 161.289,
+      "score": 0.426
+    },
+    {
+      "word": "\u2014",
+      "start": 161.349,
+      "end": 161.369,
+      "score": 0.292
+    },
+    {
+      "word": "fragmenting]",
+      "start": 161.389,
+      "end": 163.769,
+      "score": 0.417
+    },
+    {
+      "word": "I'm",
+      "start": 163.829,
+      "end": 164.049,
+      "score": 0.636
+    },
+    {
+      "word": "the",
+      "start": 164.109,
+      "end": 164.189,
+      "score": 0.186
+    },
+    {
+      "word": "busy",
+      "start": 164.349,
+      "end": 164.869,
+      "score": 0.941
+    },
+    {
+      "word": "invisible",
+      "start": 165.209,
+      "end": 166.029,
+      "score": 0.809
+    },
+    {
+      "word": "An",
+      "start": 166.609,
+      "end": 166.729,
+      "score": 0.744
+    },
+    {
+      "word": "indifferent",
+      "start": 166.929,
+      "end": 167.97,
+      "score": 0.689
+    },
+    {
+      "word": "backdrop",
+      "start": 168.07,
+      "end": 169.53,
+      "score": 0.953
+    },
+    {
+      "word": "An",
+      "start": 170.61,
+      "end": 170.73,
+      "score": 0.798
+    },
+    {
+      "word": "extra",
+      "start": 170.89,
+      "end": 171.29,
+      "score": 0.899
+    },
+    {
+      "word": "in",
+      "start": 171.39,
+      "end": 171.55,
+      "score": 0.714
+    },
+    {
+      "word": "the",
+      "start": 171.59,
+      "end": 171.87,
+      "score": 0.503
+    },
+    {
+      "word": "scene",
+      "start": 172.07,
+      "end": 173.59,
+      "score": 0.719
+    },
+    {
+      "word": "Of",
+      "start": 173.75,
+      "end": 173.87,
+      "score": 0.837
+    },
+    {
+      "word": "other",
+      "start": 173.97,
+      "end": 174.23,
+      "score": 0.817
+    },
+    {
+      "word": "people's",
+      "start": 174.31,
+      "end": 175.57,
+      "score": 0.805
+    },
+    {
+      "word": "lives",
+      "start": 175.81,
+      "end": 176.35,
+      "score": 0.837
+    },
+    {
+      "word": "I'm",
+      "start": 177.27,
+      "end": 178.25,
+      "score": 0.354
+    },
+    {
+      "word": "the",
+      "start": 178.81,
+      "end": 180.15,
+      "score": 0.88
+    },
+    {
+      "word": "busy",
+      "start": 180.37,
+      "end": 180.89,
+      "score": 0.917
+    },
+    {
+      "word": "invisible",
+      "start": 180.97,
+      "end": 182.01,
+      "score": 0.809
+    },
+    {
+      "word": "The",
+      "start": 182.61,
+      "end": 182.71,
+      "score": 0.469
+    },
+    {
+      "word": "supporting",
+      "start": 182.81,
+      "end": 183.81,
+      "score": 0.834
+    },
+    {
+      "word": "act",
+      "start": 184.21,
+      "end": 184.41,
+      "score": 0.743
+    },
+    {
+      "word": "[Coda]",
+      "start": 184.51,
+      "end": 186.791,
+      "score": 0.805
+    },
+    {
+      "word": "United",
+      "start": 187.011,
+      "end": 187.291,
+      "score": 0.391
+    },
+    {
+      "word": "we",
+      "start": 187.611,
+      "end": 187.951,
+      "score": 0.874
+    },
+    {
+      "word": "fall",
+      "start": 188.071,
+      "end": 188.391,
+      "score": 0.705
+    },
+    {
+      "word": "In",
+      "start": 190.671,
+      "end": 190.771,
+      "score": 0.796
+    },
+    {
+      "word": "our",
+      "start": 191.031,
+      "end": 191.211,
+      "score": 0.888
+    },
+    {
+      "word": "solitude",
+      "start": 191.351,
+      "end": 192.251,
+      "score": 0.805
+    },
+    {
+      "word": "I'm",
+      "start": 194.791,
+      "end": 194.931,
+      "score": 0.34
+    },
+    {
+      "word": "the",
+      "start": 195.131,
+      "end": 195.271,
+      "score": 0.521
+    },
+    {
+      "word": "busy",
+      "start": 195.411,
+      "end": 195.851,
+      "score": 0.959
+    },
+    {
+      "word": "Invisible",
+      "start": 195.871,
+      "end": 197.831,
+      "score": 0.698
+    }
+  ],
+  "word_count": 236,
+  "lines": [
+    {
+      "line_idx": 0,
+      "text": "[Verse 1]"
+    },
+    {
+      "line_idx": 1,
+      "text": "They don't see me"
+    },
+    {
+      "line_idx": 2,
+      "text": "They don't see my tears"
+    },
+    {
+      "line_idx": 3,
+      "text": "They don't listen"
+    },
+    {
+      "line_idx": 4,
+      "text": "For my fears"
+    },
+    {
+      "line_idx": 5,
+      "text": "I have mouths in pictures"
+    },
+    {
+      "line_idx": 6,
+      "text": "Frozen in a smile"
+    },
+    {
+      "line_idx": 7,
+      "text": "They don't listen"
+    },
+    {
+      "line_idx": 8,
+      "text": "For my fears"
+    },
+    {
+      "line_idx": 9,
+      "text": "I have mouths in pictures"
+    },
+    {
+      "line_idx": 10,
+      "text": "Frozen in a smile"
+    },
+    {
+      "line_idx": 11,
+      "text": "I have rooms of voices"
+    },
+    {
+      "line_idx": 12,
+      "text": "I've not been in for a while"
+    },
+    {
+      "line_idx": 13,
+      "text": "And it doesn't help me"
+    },
+    {
+      "line_idx": 14,
+      "text": "To know I'm not alone"
+    },
+    {
+      "line_idx": 15,
+      "text": "In my loneliness"
+    },
+    {
+      "line_idx": 16,
+      "text": "[Chorus]"
+    },
+    {
+      "line_idx": 17,
+      "text": "I'm the busy invisible"
+    },
+    {
+      "line_idx": 18,
+      "text": "An indifferent backdrop"
+    },
+    {
+      "line_idx": 19,
+      "text": "An extra in the scene"
+    },
+    {
+      "line_idx": 20,
+      "text": "Of other people's lives"
+    },
+    {
+      "line_idx": 21,
+      "text": "I'm the busy invisible"
+    },
+    {
+      "line_idx": 22,
+      "text": "The supporting act"
+    },
+    {
+      "line_idx": 23,
+      "text": "In the laughter"
+    },
+    {
+      "line_idx": 24,
+      "text": "Of other rooms"
+    },
+    {
+      "line_idx": 25,
+      "text": "[Verse 2]"
+    },
+    {
+      "line_idx": 26,
+      "text": "I'm waiting"
+    },
+    {
+      "line_idx": 27,
+      "text": "I'm listening"
+    },
+    {
+      "line_idx": 28,
+      "text": "But the walls aren't talking back"
+    },
+    {
+      "line_idx": 29,
+      "text": "Nobody's talking back"
+    },
+    {
+      "line_idx": 30,
+      "text": "I reach into memory"
+    },
+    {
+      "line_idx": 31,
+      "text": "An unfamiliar shape"
+    },
+    {
+      "line_idx": 32,
+      "text": "Of people close"
+    },
+    {
+      "line_idx": 33,
+      "text": "Of warmth"
+    },
+    {
+      "line_idx": 34,
+      "text": "The doorbell rings"
+    },
+    {
+      "line_idx": 35,
+      "text": "Transactional"
+    },
+    {
+      "line_idx": 36,
+      "text": "A package on the step"
+    },
+    {
+      "line_idx": 37,
+      "text": "A stranger gone"
+    },
+    {
+      "line_idx": 38,
+      "text": "The deafening presence"
+    },
+    {
+      "line_idx": 39,
+      "text": "Of absence"
+    },
+    {
+      "line_idx": 40,
+      "text": "[Chorus]"
+    },
+    {
+      "line_idx": 41,
+      "text": "I'm the busy invisible"
+    },
+    {
+      "line_idx": 42,
+      "text": "An indifferent backdrop"
+    },
+    {
+      "line_idx": 43,
+      "text": "An extra in the scene"
+    },
+    {
+      "line_idx": 44,
+      "text": "Of other people's lives"
+    },
+    {
+      "line_idx": 45,
+      "text": "I'm the busy invisible"
+    },
+    {
+      "line_idx": 46,
+      "text": "The supporting act"
+    },
+    {
+      "line_idx": 47,
+      "text": "In the laughter"
+    },
+    {
+      "line_idx": 48,
+      "text": "Of other rooms"
+    },
+    {
+      "line_idx": 49,
+      "text": "[Bridge]"
+    },
+    {
+      "line_idx": 50,
+      "text": "It's Friday"
+    },
+    {
+      "line_idx": 51,
+      "text": "I blink"
+    },
+    {
+      "line_idx": 52,
+      "text": "It's Monday"
+    },
+    {
+      "line_idx": 53,
+      "text": "I blink"
+    },
+    {
+      "line_idx": 54,
+      "text": "It's April"
+    },
+    {
+      "line_idx": 55,
+      "text": "I blink"
+    },
+    {
+      "line_idx": 56,
+      "text": "It's Christmas"
+    },
+    {
+      "line_idx": 57,
+      "text": "Another year"
+    },
+    {
+      "line_idx": 58,
+      "text": "Another grey hair"
+    },
+    {
+      "line_idx": 59,
+      "text": "Another five years"
+    },
+    {
+      "line_idx": 60,
+      "text": "Five more years"
+    },
+    {
+      "line_idx": 61,
+      "text": "Of tears"
+    },
+    {
+      "line_idx": 62,
+      "text": "[Final chorus \u2014 fragmenting]"
+    },
+    {
+      "line_idx": 63,
+      "text": "I'm the busy invisible"
+    },
+    {
+      "line_idx": 64,
+      "text": "An indifferent backdrop"
+    },
+    {
+      "line_idx": 65,
+      "text": "An extra in the scene"
+    },
+    {
+      "line_idx": 66,
+      "text": "Of other people's lives"
+    },
+    {
+      "line_idx": 67,
+      "text": "I'm the busy invisible"
+    },
+    {
+      "line_idx": 68,
+      "text": "The supporting act"
+    },
+    {
+      "line_idx": 69,
+      "text": "[Coda]"
+    },
+    {
+      "line_idx": 70,
+      "text": "United we fall"
+    },
+    {
+      "line_idx": 71,
+      "text": "In our solitude"
+    },
+    {
+      "line_idx": 72,
+      "text": "I'm the busy"
+    },
+    {
+      "line_idx": 73,
+      "text": "Invisible"
+    }
+  ]
+}

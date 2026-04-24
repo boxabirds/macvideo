@@ -1,0 +1,1537 @@
+{
+  "audio": "/Users/julian/expts/macvideo/pocs/07-whisperx/outputs/vocals.wav",
+  "ground_truth": "music/chronophobia.txt",
+  "duration_s": 210.027,
+  "method": "wav2vec2_forced_align",
+  "words": [
+    {
+      "word": "[Verse",
+      "start": 6.08,
+      "end": 9.26,
+      "score": 0.357
+    },
+    {
+      "word": "1]",
+      "start": 9.28,
+      "end": 9.34,
+      "score": 0.262
+    },
+    {
+      "word": "Light",
+      "start": 13.98,
+      "end": 14.48,
+      "score": 0.655
+    },
+    {
+      "word": "finds",
+      "start": 14.941,
+      "end": 15.901,
+      "score": 0.724
+    },
+    {
+      "word": "me",
+      "start": 15.981,
+      "end": 16.261,
+      "score": 0.856
+    },
+    {
+      "word": "Before",
+      "start": 18.241,
+      "end": 19.041,
+      "score": 0.604
+    },
+    {
+      "word": "I",
+      "start": 19.061,
+      "end": 19.321,
+      "score": 0.844
+    },
+    {
+      "word": "ask",
+      "start": 19.341,
+      "end": 19.581,
+      "score": 0.614
+    },
+    {
+      "word": "it",
+      "start": 19.601,
+      "end": 19.781,
+      "score": 0.692
+    },
+    {
+      "word": "to",
+      "start": 19.921,
+      "end": 20.281,
+      "score": 0.926
+    },
+    {
+      "word": "Same",
+      "start": 21.961,
+      "end": 23.961,
+      "score": 0.802
+    },
+    {
+      "word": "window",
+      "start": 23.981,
+      "end": 24.741,
+      "score": 0.641
+    },
+    {
+      "word": "But",
+      "start": 25.501,
+      "end": 25.641,
+      "score": 0.829
+    },
+    {
+      "word": "the",
+      "start": 25.741,
+      "end": 25.861,
+      "score": 0.807
+    },
+    {
+      "word": "glass",
+      "start": 25.961,
+      "end": 26.761,
+      "score": 0.653
+    },
+    {
+      "word": "keeps",
+      "start": 26.941,
+      "end": 27.721,
+      "score": 0.808
+    },
+    {
+      "word": "thinning",
+      "start": 27.901,
+      "end": 28.461,
+      "score": 0.645
+    },
+    {
+      "word": "Something",
+      "start": 29.881,
+      "end": 31.781,
+      "score": 0.778
+    },
+    {
+      "word": "soft",
+      "start": 31.901,
+      "end": 32.361,
+      "score": 0.741
+    },
+    {
+      "word": "Slipping",
+      "start": 33.881,
+      "end": 34.481,
+      "score": 0.623
+    },
+    {
+      "word": "off",
+      "start": 34.561,
+      "end": 34.701,
+      "score": 0.861
+    },
+    {
+      "word": "its",
+      "start": 34.741,
+      "end": 34.861,
+      "score": 0.659
+    },
+    {
+      "word": "hanger",
+      "start": 34.921,
+      "end": 35.561,
+      "score": 0.73
+    },
+    {
+      "word": "A",
+      "start": 37.761,
+      "end": 37.801,
+      "score": 0.673
+    },
+    {
+      "word": "crease",
+      "start": 37.941,
+      "end": 38.901,
+      "score": 0.78
+    },
+    {
+      "word": "in",
+      "start": 39.101,
+      "end": 39.261,
+      "score": 0.776
+    },
+    {
+      "word": "the",
+      "start": 39.301,
+      "end": 39.481,
+      "score": 0.627
+    },
+    {
+      "word": "face",
+      "start": 39.661,
+      "end": 40.361,
+      "score": 0.792
+    },
+    {
+      "word": "That",
+      "start": 40.461,
+      "end": 40.841,
+      "score": 0.515
+    },
+    {
+      "word": "wasn't",
+      "start": 40.981,
+      "end": 41.401,
+      "score": 0.697
+    },
+    {
+      "word": "mine",
+      "start": 41.641,
+      "end": 42.261,
+      "score": 0.841
+    },
+    {
+      "word": "last",
+      "start": 42.321,
+      "end": 43.701,
+      "score": 0.632
+    },
+    {
+      "word": "winter",
+      "start": 43.921,
+      "end": 44.262,
+      "score": 0.697
+    },
+    {
+      "word": "[Chorus]",
+      "start": 44.282,
+      "end": 44.702,
+      "score": 0.477
+    },
+    {
+      "word": "I'm",
+      "start": 45.562,
+      "end": 45.702,
+      "score": 0.574
+    },
+    {
+      "word": "frightened",
+      "start": 45.902,
+      "end": 46.662,
+      "score": 0.681
+    },
+    {
+      "word": "of",
+      "start": 46.782,
+      "end": 46.882,
+      "score": 0.478
+    },
+    {
+      "word": "warmth",
+      "start": 46.922,
+      "end": 47.202,
+      "score": 0.368
+    },
+    {
+      "word": "leaving",
+      "start": 47.322,
+      "end": 47.762,
+      "score": 0.87
+    },
+    {
+      "word": "skin",
+      "start": 47.842,
+      "end": 48.422,
+      "score": 0.876
+    },
+    {
+      "word": "The",
+      "start": 49.742,
+      "end": 49.882,
+      "score": 0.697
+    },
+    {
+      "word": "weight",
+      "start": 49.982,
+      "end": 50.382,
+      "score": 0.674
+    },
+    {
+      "word": "of",
+      "start": 50.482,
+      "end": 50.702,
+      "score": 0.66
+    },
+    {
+      "word": "a",
+      "start": 50.802,
+      "end": 50.902,
+      "score": 0.554
+    },
+    {
+      "word": "breath",
+      "start": 51.002,
+      "end": 51.362,
+      "score": 0.714
+    },
+    {
+      "word": "I",
+      "start": 51.802,
+      "end": 51.922,
+      "score": 0.677
+    },
+    {
+      "word": "won't",
+      "start": 51.982,
+      "end": 52.282,
+      "score": 0.666
+    },
+    {
+      "word": "get",
+      "start": 52.382,
+      "end": 52.762,
+      "score": 0.577
+    },
+    {
+      "word": "again",
+      "start": 52.802,
+      "end": 53.902,
+      "score": 0.678
+    },
+    {
+      "word": "Blink",
+      "start": 53.922,
+      "end": 54.302,
+      "score": 0.719
+    },
+    {
+      "word": "and",
+      "start": 54.482,
+      "end": 54.702,
+      "score": 0.554
+    },
+    {
+      "word": "the",
+      "start": 54.742,
+      "end": 54.822,
+      "score": 0.187
+    },
+    {
+      "word": "colour",
+      "start": 54.942,
+      "end": 55.362,
+      "score": 0.42
+    },
+    {
+      "word": "bleeds",
+      "start": 55.442,
+      "end": 55.942,
+      "score": 0.661
+    },
+    {
+      "word": "out",
+      "start": 56.242,
+      "end": 56.442,
+      "score": 0.696
+    },
+    {
+      "word": "Frames",
+      "start": 56.942,
+      "end": 57.402,
+      "score": 0.853
+    },
+    {
+      "word": "go",
+      "start": 57.482,
+      "end": 57.822,
+      "score": 0.835
+    },
+    {
+      "word": "quiet",
+      "start": 57.922,
+      "end": 58.402,
+      "score": 0.702
+    },
+    {
+      "word": "but",
+      "start": 58.502,
+      "end": 58.662,
+      "score": 0.841
+    },
+    {
+      "word": "the",
+      "start": 58.742,
+      "end": 58.862,
+      "score": 0.948
+    },
+    {
+      "word": "hollow",
+      "start": 58.942,
+      "end": 59.402,
+      "score": 0.677
+    },
+    {
+      "word": "stays",
+      "start": 59.422,
+      "end": 59.922,
+      "score": 0.728
+    },
+    {
+      "word": "loud",
+      "start": 60.022,
+      "end": 60.742,
+      "score": 0.79
+    },
+    {
+      "word": "If",
+      "start": 60.822,
+      "end": 60.902,
+      "score": 0.728
+    },
+    {
+      "word": "I",
+      "start": 61.242,
+      "end": 61.402,
+      "score": 0.733
+    },
+    {
+      "word": "can't",
+      "start": 61.462,
+      "end": 61.942,
+      "score": 0.566
+    },
+    {
+      "word": "keep",
+      "start": 62.042,
+      "end": 63.122,
+      "score": 0.775
+    },
+    {
+      "word": "what",
+      "start": 63.242,
+      "end": 63.642,
+      "score": 0.388
+    },
+    {
+      "word": "I",
+      "start": 63.722,
+      "end": 63.862,
+      "score": 0.794
+    },
+    {
+      "word": "carry",
+      "start": 63.922,
+      "end": 64.702,
+      "score": 0.546
+    },
+    {
+      "word": "What",
+      "start": 66.222,
+      "end": 66.502,
+      "score": 0.589
+    },
+    {
+      "word": "am",
+      "start": 66.542,
+      "end": 66.642,
+      "score": 0.506
+    },
+    {
+      "word": "I",
+      "start": 66.742,
+      "end": 66.882,
+      "score": 0.769
+    },
+    {
+      "word": "carrying",
+      "start": 66.942,
+      "end": 67.702,
+      "score": 0.76
+    },
+    {
+      "word": "it",
+      "start": 67.782,
+      "end": 67.862,
+      "score": 0.635
+    },
+    {
+      "word": "for",
+      "start": 68.002,
+      "end": 68.742,
+      "score": 0.873
+    },
+    {
+      "word": "I'm",
+      "start": 68.782,
+      "end": 68.902,
+      "score": 0.201
+    },
+    {
+      "word": "frightened",
+      "start": 68.962,
+      "end": 69.642,
+      "score": 0.566
+    },
+    {
+      "word": "of",
+      "start": 69.782,
+      "end": 69.842,
+      "score": 0.272
+    },
+    {
+      "word": "warmth",
+      "start": 70.482,
+      "end": 71.002,
+      "score": 0.594
+    },
+    {
+      "word": "leaving",
+      "start": 71.242,
+      "end": 72.142,
+      "score": 0.83
+    },
+    {
+      "word": "skin",
+      "start": 72.282,
+      "end": 72.942,
+      "score": 0.924
+    },
+    {
+      "word": "And",
+      "start": 74.283,
+      "end": 74.403,
+      "score": 0.474
+    },
+    {
+      "word": "I",
+      "start": 74.703,
+      "end": 74.923,
+      "score": 0.834
+    },
+    {
+      "word": "feel",
+      "start": 74.983,
+      "end": 75.443,
+      "score": 0.764
+    },
+    {
+      "word": "it",
+      "start": 75.623,
+      "end": 75.803,
+      "score": 0.739
+    },
+    {
+      "word": "through",
+      "start": 75.943,
+      "end": 86.603,
+      "score": 0.784
+    },
+    {
+      "word": "your",
+      "start": 86.723,
+      "end": 86.883,
+      "score": 0.31
+    },
+    {
+      "word": "door",
+      "start": 86.903,
+      "end": 87.323,
+      "score": 0.458
+    },
+    {
+      "word": "Little",
+      "start": 87.583,
+      "end": 88.803,
+      "score": 0.674
+    },
+    {
+      "word": "paper",
+      "start": 91.743,
+      "end": 92.203,
+      "score": 0.593
+    },
+    {
+      "word": "boats",
+      "start": 93.983,
+      "end": 94.323,
+      "score": 0.49
+    },
+    {
+      "word": "Sinking",
+      "start": 94.363,
+      "end": 95.463,
+      "score": 0.737
+    },
+    {
+      "word": "in",
+      "start": 95.603,
+      "end": 95.703,
+      "score": 0.478
+    },
+    {
+      "word": "a",
+      "start": 95.723,
+      "end": 95.743,
+      "score": 0.007
+    },
+    {
+      "word": "drawer",
+      "start": 95.783,
+      "end": 96.023,
+      "score": 0.435
+    },
+    {
+      "word": "Names",
+      "start": 96.043,
+      "end": 96.143,
+      "score": 0.015
+    },
+    {
+      "word": "I",
+      "start": 96.163,
+      "end": 96.183,
+      "score": 0.0
+    },
+    {
+      "word": "whisper",
+      "start": 96.263,
+      "end": 97.043,
+      "score": 0.675
+    },
+    {
+      "word": "Then",
+      "start": 97.063,
+      "end": 97.283,
+      "score": 0.637
+    },
+    {
+      "word": "let",
+      "start": 97.323,
+      "end": 97.443,
+      "score": 0.383
+    },
+    {
+      "word": "go",
+      "start": 97.523,
+      "end": 97.943,
+      "score": 0.869
+    },
+    {
+      "word": "of",
+      "start": 98.363,
+      "end": 98.543,
+      "score": 0.767
+    },
+    {
+      "word": "in",
+      "start": 98.623,
+      "end": 98.783,
+      "score": 0.802
+    },
+    {
+      "word": "the",
+      "start": 98.803,
+      "end": 99.143,
+      "score": 0.581
+    },
+    {
+      "word": "hallway",
+      "start": 99.283,
+      "end": 100.043,
+      "score": 0.661
+    },
+    {
+      "word": "[Bridge]",
+      "start": 100.063,
+      "end": 100.883,
+      "score": 0.592
+    },
+    {
+      "word": "Tell",
+      "start": 100.963,
+      "end": 101.203,
+      "score": 0.436
+    },
+    {
+      "word": "me",
+      "start": 101.223,
+      "end": 101.503,
+      "score": 0.73
+    },
+    {
+      "word": "Is",
+      "start": 101.583,
+      "end": 101.683,
+      "score": 0.563
+    },
+    {
+      "word": "it",
+      "start": 101.703,
+      "end": 101.903,
+      "score": 0.329
+    },
+    {
+      "word": "wasted",
+      "start": 102.003,
+      "end": 102.563,
+      "score": 0.535
+    },
+    {
+      "word": "If",
+      "start": 102.663,
+      "end": 102.923,
+      "score": 0.75
+    },
+    {
+      "word": "I",
+      "start": 102.943,
+      "end": 102.963,
+      "score": 0.001
+    },
+    {
+      "word": "spend",
+      "start": 102.983,
+      "end": 103.444,
+      "score": 0.5
+    },
+    {
+      "word": "tonight",
+      "start": 103.504,
+      "end": 103.904,
+      "score": 0.434
+    },
+    {
+      "word": "just",
+      "start": 104.024,
+      "end": 104.344,
+      "score": 0.602
+    },
+    {
+      "word": "listening",
+      "start": 104.944,
+      "end": 105.764,
+      "score": 0.709
+    },
+    {
+      "word": "To",
+      "start": 105.804,
+      "end": 105.884,
+      "score": 0.464
+    },
+    {
+      "word": "the",
+      "start": 105.964,
+      "end": 106.084,
+      "score": 0.408
+    },
+    {
+      "word": "hum",
+      "start": 106.204,
+      "end": 106.404,
+      "score": 0.419
+    },
+    {
+      "word": "beneath",
+      "start": 106.984,
+      "end": 107.484,
+      "score": 0.347
+    },
+    {
+      "word": "the",
+      "start": 107.504,
+      "end": 107.604,
+      "score": 0.239
+    },
+    {
+      "word": "silence",
+      "start": 107.624,
+      "end": 109.504,
+      "score": 0.694
+    },
+    {
+      "word": "To",
+      "start": 109.524,
+      "end": 109.784,
+      "score": 0.592
+    },
+    {
+      "word": "the",
+      "start": 109.804,
+      "end": 109.864,
+      "score": 0.323
+    },
+    {
+      "word": "room",
+      "start": 110.024,
+      "end": 111.524,
+      "score": 0.77
+    },
+    {
+      "word": "slowly",
+      "start": 111.724,
+      "end": 112.644,
+      "score": 0.619
+    },
+    {
+      "word": "breathing",
+      "start": 112.724,
+      "end": 115.024,
+      "score": 0.681
+    },
+    {
+      "word": "To",
+      "start": 115.484,
+      "end": 115.724,
+      "score": 0.808
+    },
+    {
+      "word": "the",
+      "start": 115.764,
+      "end": 115.844,
+      "score": 0.703
+    },
+    {
+      "word": "hum",
+      "start": 115.924,
+      "end": 116.264,
+      "score": 0.514
+    },
+    {
+      "word": "beneath",
+      "start": 116.284,
+      "end": 116.664,
+      "score": 0.458
+    },
+    {
+      "word": "the",
+      "start": 116.724,
+      "end": 116.864,
+      "score": 0.696
+    },
+    {
+      "word": "silence",
+      "start": 116.924,
+      "end": 117.424,
+      "score": 0.481
+    },
+    {
+      "word": "To",
+      "start": 117.484,
+      "end": 117.744,
+      "score": 0.782
+    },
+    {
+      "word": "the",
+      "start": 117.784,
+      "end": 117.944,
+      "score": 0.687
+    },
+    {
+      "word": "room",
+      "start": 118.024,
+      "end": 118.284,
+      "score": 0.463
+    },
+    {
+      "word": "slowly",
+      "start": 118.324,
+      "end": 118.904,
+      "score": 0.793
+    },
+    {
+      "word": "breathing",
+      "start": 118.984,
+      "end": 119.424,
+      "score": 0.461
+    },
+    {
+      "word": "Promise",
+      "start": 119.464,
+      "end": 119.864,
+      "score": 0.505
+    },
+    {
+      "word": "me",
+      "start": 120.024,
+      "end": 120.264,
+      "score": 0.938
+    },
+    {
+      "word": "the",
+      "start": 120.284,
+      "end": 120.524,
+      "score": 0.647
+    },
+    {
+      "word": "ordinary",
+      "start": 120.644,
+      "end": 121.524,
+      "score": 0.712
+    },
+    {
+      "word": "hours",
+      "start": 121.604,
+      "end": 122.904,
+      "score": 0.706
+    },
+    {
+      "word": "Count",
+      "start": 122.964,
+      "end": 123.244,
+      "score": 0.795
+    },
+    {
+      "word": "the",
+      "start": 123.284,
+      "end": 123.444,
+      "score": 0.789
+    },
+    {
+      "word": "way",
+      "start": 123.504,
+      "end": 123.764,
+      "score": 0.754
+    },
+    {
+      "word": "the",
+      "start": 123.804,
+      "end": 123.904,
+      "score": 0.73
+    },
+    {
+      "word": "bright",
+      "start": 123.984,
+      "end": 124.444,
+      "score": 0.6
+    },
+    {
+      "word": "ones",
+      "start": 124.644,
+      "end": 124.884,
+      "score": 0.496
+    },
+    {
+      "word": "do",
+      "start": 124.984,
+      "end": 126.584,
+      "score": 0.914
+    },
+    {
+      "word": "'Cause",
+      "start": 126.684,
+      "end": 127.284,
+      "score": 0.615
+    },
+    {
+      "word": "I",
+      "start": 127.364,
+      "end": 127.504,
+      "score": 0.823
+    },
+    {
+      "word": "keep",
+      "start": 127.524,
+      "end": 128.224,
+      "score": 0.81
+    },
+    {
+      "word": "catching",
+      "start": 128.504,
+      "end": 129.844,
+      "score": 0.798
+    },
+    {
+      "word": "water",
+      "start": 129.904,
+      "end": 130.744,
+      "score": 0.682
+    },
+    {
+      "word": "While",
+      "start": 130.784,
+      "end": 131.304,
+      "score": 0.609
+    },
+    {
+      "word": "I'm",
+      "start": 133.345,
+      "end": 133.805,
+      "score": 0.641
+    },
+    {
+      "word": "spilling",
+      "start": 133.825,
+      "end": 134.745,
+      "score": 0.811
+    },
+    {
+      "word": "it",
+      "start": 134.785,
+      "end": 134.905,
+      "score": 0.362
+    },
+    {
+      "word": "with",
+      "start": 135.165,
+      "end": 135.505,
+      "score": 0.513
+    },
+    {
+      "word": "you",
+      "start": 135.565,
+      "end": 135.685,
+      "score": 0.244
+    },
+    {
+      "word": "[Final",
+      "start": 135.705,
+      "end": 137.125,
+      "score": 0.676
+    },
+    {
+      "word": "Chorus]",
+      "start": 137.185,
+      "end": 137.465,
+      "score": 0.37
+    },
+    {
+      "word": "I'm",
+      "start": 137.625,
+      "end": 137.805,
+      "score": 0.453
+    },
+    {
+      "word": "frightened",
+      "start": 137.985,
+      "end": 138.765,
+      "score": 0.761
+    },
+    {
+      "word": "of",
+      "start": 138.885,
+      "end": 138.945,
+      "score": 0.4
+    },
+    {
+      "word": "warmth",
+      "start": 138.985,
+      "end": 139.285,
+      "score": 0.323
+    },
+    {
+      "word": "leaving",
+      "start": 139.385,
+      "end": 139.885,
+      "score": 0.913
+    },
+    {
+      "word": "skin",
+      "start": 139.945,
+      "end": 141.325,
+      "score": 0.927
+    },
+    {
+      "word": "The",
+      "start": 141.765,
+      "end": 141.925,
+      "score": 0.843
+    },
+    {
+      "word": "weight",
+      "start": 142.025,
+      "end": 142.425,
+      "score": 0.657
+    },
+    {
+      "word": "of",
+      "start": 142.585,
+      "end": 142.785,
+      "score": 0.71
+    },
+    {
+      "word": "a",
+      "start": 142.845,
+      "end": 142.925,
+      "score": 0.583
+    },
+    {
+      "word": "breath",
+      "start": 143.045,
+      "end": 143.385,
+      "score": 0.815
+    },
+    {
+      "word": "I",
+      "start": 143.825,
+      "end": 143.905,
+      "score": 0.655
+    },
+    {
+      "word": "won't",
+      "start": 144.045,
+      "end": 144.345,
+      "score": 0.636
+    },
+    {
+      "word": "get",
+      "start": 144.405,
+      "end": 144.945,
+      "score": 0.786
+    },
+    {
+      "word": "again",
+      "start": 145.305,
+      "end": 146.005,
+      "score": 0.662
+    },
+    {
+      "word": "Blink",
+      "start": 146.025,
+      "end": 146.385,
+      "score": 0.587
+    },
+    {
+      "word": "and",
+      "start": 146.645,
+      "end": 146.825,
+      "score": 0.716
+    },
+    {
+      "word": "the",
+      "start": 146.845,
+      "end": 146.925,
+      "score": 0.192
+    },
+    {
+      "word": "colour",
+      "start": 147.005,
+      "end": 147.465,
+      "score": 0.457
+    },
+    {
+      "word": "bleeds",
+      "start": 147.485,
+      "end": 148.525,
+      "score": 0.579
+    },
+    {
+      "word": "out",
+      "start": 148.965,
+      "end": 149.345,
+      "score": 0.645
+    },
+    {
+      "word": "Still",
+      "start": 149.445,
+      "end": 149.785,
+      "score": 0.729
+    },
+    {
+      "word": "You're",
+      "start": 150.745,
+      "end": 150.925,
+      "score": 0.385
+    },
+    {
+      "word": "here",
+      "start": 150.985,
+      "end": 151.245,
+      "score": 0.383
+    },
+    {
+      "word": "in",
+      "start": 151.265,
+      "end": 151.505,
+      "score": 0.44
+    },
+    {
+      "word": "this",
+      "start": 151.545,
+      "end": 151.765,
+      "score": 0.57
+    },
+    {
+      "word": "slow",
+      "start": 151.905,
+      "end": 152.345,
+      "score": 0.768
+    },
+    {
+      "word": "Sinking",
+      "start": 153.025,
+      "end": 153.525,
+      "score": 0.817
+    },
+    {
+      "word": "light",
+      "start": 153.645,
+      "end": 154.325,
+      "score": 0.595
+    },
+    {
+      "word": "If",
+      "start": 154.405,
+      "end": 154.525,
+      "score": 0.619
+    },
+    {
+      "word": "I",
+      "start": 155.085,
+      "end": 155.225,
+      "score": 0.829
+    },
+    {
+      "word": "can't",
+      "start": 155.265,
+      "end": 155.925,
+      "score": 0.65
+    },
+    {
+      "word": "keep",
+      "start": 159.045,
+      "end": 159.225,
+      "score": 0.313
+    },
+    {
+      "word": "what",
+      "start": 159.305,
+      "end": 159.745,
+      "score": 0.642
+    },
+    {
+      "word": "I",
+      "start": 159.845,
+      "end": 159.965,
+      "score": 0.824
+    },
+    {
+      "word": "carry",
+      "start": 160.025,
+      "end": 160.705,
+      "score": 0.752
+    },
+    {
+      "word": "Let",
+      "start": 162.005,
+      "end": 162.246,
+      "score": 0.917
+    },
+    {
+      "word": "me",
+      "start": 162.286,
+      "end": 162.486,
+      "score": 0.924
+    },
+    {
+      "word": "just",
+      "start": 162.546,
+      "end": 162.826,
+      "score": 0.858
+    },
+    {
+      "word": "be",
+      "start": 163.006,
+      "end": 163.266,
+      "score": 0.796
+    },
+    {
+      "word": "where",
+      "start": 163.306,
+      "end": 163.546,
+      "score": 0.421
+    },
+    {
+      "word": "you",
+      "start": 163.586,
+      "end": 163.826,
+      "score": 0.865
+    },
+    {
+      "word": "are",
+      "start": 164.786,
+      "end": 164.906,
+      "score": 0.605
+    },
+    {
+      "word": "I'm",
+      "start": 165.646,
+      "end": 165.786,
+      "score": 0.515
+    },
+    {
+      "word": "frightened",
+      "start": 166.006,
+      "end": 166.766,
+      "score": 0.702
+    },
+    {
+      "word": "of",
+      "start": 166.886,
+      "end": 166.966,
+      "score": 0.452
+    },
+    {
+      "word": "warmth",
+      "start": 167.046,
+      "end": 167.326,
+      "score": 0.394
+    },
+    {
+      "word": "leaving",
+      "start": 167.406,
+      "end": 167.886,
+      "score": 0.882
+    },
+    {
+      "word": "skin",
+      "start": 167.946,
+      "end": 168.306,
+      "score": 0.892
+    },
+    {
+      "word": "But",
+      "start": 169.286,
+      "end": 169.466,
+      "score": 0.948
+    },
+    {
+      "word": "I'll",
+      "start": 169.666,
+      "end": 169.906,
+      "score": 0.782
+    },
+    {
+      "word": "take",
+      "start": 169.966,
+      "end": 170.486,
+      "score": 0.74
+    },
+    {
+      "word": "these",
+      "start": 170.766,
+      "end": 171.406,
+      "score": 0.605
+    },
+    {
+      "word": "hands",
+      "start": 171.486,
+      "end": 174.446,
+      "score": 0.818
+    },
+    {
+      "word": "Tangled",
+      "start": 177.946,
+      "end": 178.766,
+      "score": 0.825
+    },
+    {
+      "word": "in",
+      "start": 178.926,
+      "end": 179.186,
+      "score": 0.891
+    },
+    {
+      "word": "your",
+      "start": 179.266,
+      "end": 179.866,
+      "score": 0.635
+    },
+    {
+      "word": "peace",
+      "start": 179.966,
+      "end": 180.346,
+      "score": 0.388
+    }
+  ],
+  "word_count": 223,
+  "lines": [
+    {
+      "line_idx": 0,
+      "text": "[Verse 1]"
+    },
+    {
+      "line_idx": 1,
+      "text": "Light finds me"
+    },
+    {
+      "line_idx": 2,
+      "text": "Before I ask it to"
+    },
+    {
+      "line_idx": 3,
+      "text": "Same window"
+    },
+    {
+      "line_idx": 4,
+      "text": "But the glass keeps thinning"
+    },
+    {
+      "line_idx": 5,
+      "text": "Something soft"
+    },
+    {
+      "line_idx": 6,
+      "text": "Slipping off its hanger"
+    },
+    {
+      "line_idx": 7,
+      "text": "A crease in the face"
+    },
+    {
+      "line_idx": 8,
+      "text": "That wasn't mine last winter"
+    },
+    {
+      "line_idx": 9,
+      "text": "[Chorus]"
+    },
+    {
+      "line_idx": 10,
+      "text": "I'm frightened of warmth leaving skin"
+    },
+    {
+      "line_idx": 11,
+      "text": "The weight of a breath"
+    },
+    {
+      "line_idx": 12,
+      "text": "I won't get again"
+    },
+    {
+      "line_idx": 13,
+      "text": "Blink and the colour bleeds out"
+    },
+    {
+      "line_idx": 14,
+      "text": "Frames go quiet but the hollow stays loud"
+    },
+    {
+      "line_idx": 15,
+      "text": "If I can't keep what I carry"
+    },
+    {
+      "line_idx": 16,
+      "text": "What am I carrying it for"
+    },
+    {
+      "line_idx": 17,
+      "text": "I'm frightened of warmth leaving skin"
+    },
+    {
+      "line_idx": 18,
+      "text": "And I feel it through your door"
+    },
+    {
+      "line_idx": 19,
+      "text": "Little paper boats"
+    },
+    {
+      "line_idx": 20,
+      "text": "Sinking in a drawer"
+    },
+    {
+      "line_idx": 21,
+      "text": "Names I whisper"
+    },
+    {
+      "line_idx": 22,
+      "text": "Then let go of in the hallway"
+    },
+    {
+      "line_idx": 23,
+      "text": "[Bridge]"
+    },
+    {
+      "line_idx": 24,
+      "text": "Tell me Is it wasted"
+    },
+    {
+      "line_idx": 25,
+      "text": "If I spend tonight just listening"
+    },
+    {
+      "line_idx": 26,
+      "text": "To the hum beneath the silence"
+    },
+    {
+      "line_idx": 27,
+      "text": "To the room slowly breathing"
+    },
+    {
+      "line_idx": 28,
+      "text": "To the hum beneath the silence"
+    },
+    {
+      "line_idx": 29,
+      "text": "To the room slowly breathing"
+    },
+    {
+      "line_idx": 30,
+      "text": "Promise me the ordinary hours"
+    },
+    {
+      "line_idx": 31,
+      "text": "Count the way the bright ones do"
+    },
+    {
+      "line_idx": 32,
+      "text": "'Cause I keep catching water"
+    },
+    {
+      "line_idx": 33,
+      "text": "While I'm spilling it with you"
+    },
+    {
+      "line_idx": 34,
+      "text": "[Final Chorus]"
+    },
+    {
+      "line_idx": 35,
+      "text": "I'm frightened of warmth leaving skin"
+    },
+    {
+      "line_idx": 36,
+      "text": "The weight of a breath"
+    },
+    {
+      "line_idx": 37,
+      "text": "I won't get again"
+    },
+    {
+      "line_idx": 38,
+      "text": "Blink and the colour bleeds out"
+    },
+    {
+      "line_idx": 39,
+      "text": "Still"
+    },
+    {
+      "line_idx": 40,
+      "text": "You're here in this slow"
+    },
+    {
+      "line_idx": 41,
+      "text": "Sinking light If"
+    },
+    {
+      "line_idx": 42,
+      "text": "I can't keep what I carry"
+    },
+    {
+      "line_idx": 43,
+      "text": "Let me just be where you are"
+    },
+    {
+      "line_idx": 44,
+      "text": "I'm frightened of warmth leaving skin"
+    },
+    {
+      "line_idx": 45,
+      "text": "But I'll take these hands"
+    },
+    {
+      "line_idx": 46,
+      "text": "Tangled in your peace"
+    }
+  ]
+}
