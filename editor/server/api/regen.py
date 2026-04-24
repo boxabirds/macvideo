@@ -14,13 +14,16 @@ Routes:
 from __future__ import annotations
 
 import asyncio
-from typing import Literal
+import os
+from pathlib import Path
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from .. import config as _cfg
+from ..pipeline.regen import regenerate_scene_clip, regenerate_scene_keyframe
 from ..regen.events import hub
 from ..regen.queue import clip_queue, keyframe_queue, RegenJob
 from ..regen.runs import (
@@ -30,8 +33,17 @@ from ..regen.runs import (
     list_song_runs,
     update_run_status,
 )
-from ..regen.stub_handlers import stub_clip_handler, stub_keyframe_handler
 from .common import get_db
+
+
+def _override_gen_keyframes() -> Optional[Path]:
+    p = os.environ.get("EDITOR_FAKE_GEN_KEYFRAMES")
+    return Path(p) if p else None
+
+
+def _override_render_clips() -> Optional[Path]:
+    p = os.environ.get("EDITOR_FAKE_RENDER_CLIPS")
+    return Path(p) if p else None
 
 
 router = APIRouter()
@@ -52,7 +64,8 @@ class TakeTriggerResponse(BaseModel):
 @router.post("/songs/{slug}/scenes/{idx}/takes", response_model=TakeTriggerResponse)
 async def trigger_take(slug: str, idx: int, body: TakeTriggerBody, conn=Depends(get_db)):
     row = conn.execute("""
-        SELECT s.id AS scene_id, s.image_prompt, g.id AS song_id, g.quality_mode
+        SELECT s.id AS scene_id, s.image_prompt, s.scene_index,
+               g.id AS song_id, g.slug, g.filter, g.abstraction, g.quality_mode
         FROM scenes s JOIN songs g ON g.id = s.song_id
         WHERE g.slug = ? AND s.scene_index = ?
     """, (slug, idx)).fetchone()
@@ -60,7 +73,6 @@ async def trigger_take(slug: str, idx: int, body: TakeTriggerBody, conn=Depends(
         raise HTTPException(status_code=404,
                             detail=f"scene {idx} of song '{slug}' not found")
 
-    # 409 if another regen of the same (scene, artefact_kind) is pending/running
     conflict = conn.execute("""
         SELECT id FROM regen_runs
         WHERE song_id = ? AND scene_id = ? AND artefact_kind = ?
@@ -82,38 +94,69 @@ async def trigger_take(slug: str, idx: int, body: TakeTriggerBody, conn=Depends(
         conn, scope=scope, song_id=row["song_id"], scene_id=row["scene_id"],
         artefact_kind=body.artefact_kind, quality_mode=quality_mode,
     )
-
     run = get_run(conn, run_id)
     if run is None:
         raise HTTPException(status_code=500, detail="run creation failed")
 
-    # Pick the right queue + handler. Stub handlers for now; real subprocess
-    # wrappers go here when the pipeline integration lands.
+    slug_captured = row["slug"]
+    scene_index = row["scene_index"]
+    song_filter = row["filter"] or "charcoal"
+    song_abstraction = row["abstraction"] or 25
+    song_quality_mode = row["quality_mode"] or "draft"
+
     if body.artefact_kind == "keyframe":
-        handler = lambda r: stub_keyframe_handler(r, db_path=_cfg.DB_PATH)  # noqa: E731
+        async def handler(r):  # noqa: ANN001
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                lambda: regenerate_scene_keyframe(
+                    song_slug=slug_captured, scene_index=scene_index,
+                    song_filter=song_filter, song_abstraction=song_abstraction,
+                    song_quality_mode=song_quality_mode,
+                    source_run_id=r.id,
+                    script_path=_override_gen_keyframes(),
+                ),
+            )
         queue = keyframe_queue
         estimate = 15
     else:
-        handler = lambda r: stub_clip_handler(r, db_path=_cfg.DB_PATH)  # noqa: E731
+        async def handler(r):  # noqa: ANN001
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                lambda: regenerate_scene_clip(
+                    song_slug=slug_captured, scene_index=scene_index,
+                    song_filter=song_filter,
+                    song_quality_mode=song_quality_mode,
+                    source_run_id=r.id,
+                    script_path=_override_render_clips(),
+                ),
+            )
         queue = clip_queue
         estimate = 1200 if quality_mode == "final" else 120
 
     queue.submit(RegenJob(run=run, handler=handler))
-
     return TakeTriggerResponse(run_id=run_id, status="pending", estimated_seconds=estimate)
 
 
 @router.post("/regen/{run_id}/cancel")
 async def cancel_run(run_id: int, conn=Depends(get_db)):
+    from ..pipeline.subprocess_runner import cancel_run as cancel_subprocess
     run = get_run(conn, run_id)
     if run is None:
         raise HTTPException(status_code=404, detail=f"run {run_id} not found")
     if run.status not in ("pending", "running"):
         raise HTTPException(status_code=409,
                             detail=f"run {run_id} already in terminal state '{run.status}'")
+    # SIGTERM the subprocess (SIGKILL after 2s). Its rescan cleanup in
+    # regen.py then deletes any partial file so no corrupt asset lingers.
+    signalled = cancel_subprocess(run_id)
     update_run_status(conn, run_id, "cancelled")
-    # Real cancellation would SIGTERM the subprocess; for the stub we just flip state.
-    return {"run_id": run_id, "status": "cancelled"}
+    return {
+        "run_id": run_id,
+        "status": "cancelled",
+        "subprocess_signalled": signalled,
+    }
 
 
 @router.get("/songs/{slug}/regen")

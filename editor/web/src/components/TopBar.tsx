@@ -1,9 +1,9 @@
 // Top bar: song identity + filter / abstraction / quality-mode controls
 // (stories 4 and 8). Changes go through the confirmation dialog for stories
 // where regen scope matters.
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { QualityMode, SongDetail } from "../types";
-import { patchSong } from "../api";
+import { patchSong, previewChange, type ChainPreview } from "../api";
 
 const FILTER_OPTIONS = [
   "oil impasto", "mosaic", "stained glass", "claymation", "watercolour",
@@ -126,10 +126,38 @@ function ConfirmationModal({
   };
   const [label, from] = labels[kind];
   const isCosmetic = kind === "quality_mode";
-  const cost = isCosmetic ? "No Gemini calls" : `~${sceneCount * 2 + 2} Gemini calls · ~$${(sceneCount * 0.04 + 0.05).toFixed(2)}`;
+
+  // For filter/abstraction changes, fetch the authoritative estimate from
+  // /preview-change so the numbers match what the backend will actually do.
+  const [preview, setPreview] = useState<ChainPreview | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  useEffect(() => {
+    if (isCosmetic) return;
+    let cancelled = false;
+    previewChange(song.slug, {
+      [kind]: kind === "abstraction" ? Number(newValue) : String(newValue),
+    } as { filter?: string; abstraction?: number })
+      .then(p => { if (!cancelled) setPreview(p); })
+      .catch(e => { if (!cancelled) setPreviewError(String(e)); });
+    return () => { cancelled = true; };
+  }, [isCosmetic, song.slug, kind, newValue]);
+
+  const cost = isCosmetic
+    ? "No Gemini calls"
+    : preview
+      ? `~${preview.estimate.gemini_calls} Gemini calls · ~$${preview.estimate.estimated_usd.toFixed(2)}`
+      : "computing estimate…";
   const time = isCosmetic
     ? "Instant (rendered clips preserved as takes)"
-    : `~${Math.round(sceneCount * 0.3)} min of API calls`;
+    : preview
+      ? `~${Math.round(preview.estimate.estimated_seconds / 60)} min (${preview.estimate.confidence} confidence)`
+      : "";
+  const scope = isCosmetic
+    ? `Mark existing ${clipCount} clip takes as stale (preserved)`
+    : preview
+      ? `World description, storyboard, ${preview.scope.scenes_with_new_prompts} image prompts, ${preview.scope.keyframes_to_generate} keyframes`
+      : `World description, storyboard, ${sceneCount} image prompts, ${sceneCount} keyframes`;
+  const conflict = preview?.would_conflict_with;
 
   return (
     <div className="dialog-backdrop" role="dialog" aria-modal="true">
@@ -139,9 +167,7 @@ function ConfirmationModal({
           <p>Changing the {label} from <b>{String(from)}</b> to <b>{String(newValue)}</b>.</p>
           <dl>
             <dt>Regenerate</dt>
-            <dd>{isCosmetic
-              ? `Mark existing ${clipCount} clip takes as stale (preserved)`
-              : `World description, scene storyboard, ${sceneCount} image prompts, ${sceneCount} keyframes`}</dd>
+            <dd>{scope}</dd>
             <dt>Estimated cost</dt>
             <dd>{cost}</dd>
             <dt>Estimated time</dt>
@@ -149,13 +175,28 @@ function ConfirmationModal({
             <dt>Clip takes</dt>
             <dd>{clipCount} existing clips will be marked stale but preserved as takes</dd>
           </dl>
+          {previewError ? (
+            <p style={{ color: "#e06060" }}>Preview failed: {previewError}</p>
+          ) : null}
+          {conflict ? (
+            <p style={{ color: "#e06060" }}>
+              ⚠️ Another chain is already running (run #{conflict.run_id}).
+              {" "}{conflict.reason}
+            </p>
+          ) : null}
           <p style={{ color: "var(--text-dim)", fontSize: 12 }}>
             Note: clip re-rendering is NOT automatic — trigger it per scene or from the final-video action.
           </p>
         </div>
         <div className="actions">
           <button onClick={onCancel}>Cancel</button>
-          <button className="primary" onClick={onConfirm}>Apply change</button>
+          <button
+            className="primary"
+            onClick={onConfirm}
+            disabled={!!conflict}
+          >
+            Apply change
+          </button>
         </div>
       </div>
     </div>

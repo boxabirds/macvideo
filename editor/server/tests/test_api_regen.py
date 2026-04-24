@@ -118,6 +118,31 @@ def test_cancel_run_moves_it_to_cancelled(client_for, tmp_env, fixture_song_one)
     # Either cancelled-early or the stub already finished; both fine for test.
 
 
+def test_sse_event_fires_on_regen_transitions(client_for, tmp_env, fixture_song_one):
+    """regen.status-stream — trigger a regen, assert the SSE endpoint
+    broadcasts at least one event describing the run.
+    """
+    fixture_song_one(tmp_env["music"], tmp_env["outputs"])
+    client_for.post("/api/import")
+
+    # Start a keyframe regen; the fake script completes quickly but still
+    # publishes 'running' + 'done' events to the hub.
+    r = client_for.post(
+        "/api/songs/tiny-song/scenes/1/takes",
+        json={"artefact_kind": "keyframe"},
+    )
+    assert r.status_code == 200
+    run_id = r.json()["run_id"]
+    _wait_for_run(client_for, run_id, "tiny-song")
+
+    # The hub's history replay is our proof the events were published.
+    from editor.server.regen.events import hub
+    recent = list(hub.history())
+    matching = [e for e in recent if e.run_id == run_id]
+    # At least one 'done' event must be present.
+    assert any(e.status == "done" for e in matching), recent
+
+
 def test_list_regen_runs(client_for, tmp_env, fixture_song_one):
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")

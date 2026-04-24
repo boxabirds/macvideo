@@ -11,6 +11,7 @@ export default function SplitPane({ left, right }: { left: ReactNode; right: Rea
   const [lhsPx, setLhsPx] = useState<number>(
     () => localGet<number>(STORAGE_KEY, STORAGE_VERSION, DEFAULT_LHS_PX),
   );
+  const [persistFailed, setPersistFailed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ active: boolean; startX: number; startLhs: number }>({
     active: false, startX: 0, startLhs: 0,
@@ -46,13 +47,21 @@ export default function SplitPane({ left, right }: { left: ReactNode; right: Rea
     if (current) {
       const v = parseInt(current, 10);
       setLhsPx(v);
-      localSet(STORAGE_KEY, STORAGE_VERSION, v);
+      const { ok } = localSet(STORAGE_KEY, STORAGE_VERSION, v);
+      if (!ok) setPersistFailed(true);
     }
+  }, []);
+
+  const onPointerCancel = useCallback(() => {
+    if (!drag.current.active) return;
+    drag.current.active = false;
+    document.body.style.cursor = "";
   }, []);
 
   const onDoubleClick = useCallback(() => {
     setLhsPx(DEFAULT_LHS_PX);
-    localSet(STORAGE_KEY, STORAGE_VERSION, DEFAULT_LHS_PX);
+    const { ok } = localSet(STORAGE_KEY, STORAGE_VERSION, DEFAULT_LHS_PX);
+    if (!ok) setPersistFailed(true);
     containerRef.current?.style.setProperty("--lhs-px", `${DEFAULT_LHS_PX}px`);
   }, []);
 
@@ -78,11 +87,18 @@ export default function SplitPane({ left, right }: { left: ReactNode; right: Rea
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
         onDoubleClick={onDoubleClick}
         role="separator"
         aria-orientation="vertical"
+        tabIndex={-1}
       />
       {right}
+      {persistFailed ? (
+        <div className="split-persist-notice" role="status">
+          Split won't be saved (local storage unavailable).
+        </div>
+      ) : null}
     </div>
   );
 }

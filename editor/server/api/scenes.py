@@ -208,3 +208,35 @@ def patch_scene(slug: str, idx: int, body: ScenePatchBody, conn=Depends(get_db))
 def list_camera_intents():
     """Allowed vocabulary for camera_intent (used by the frontend dropdown)."""
     return {"values": CAMERA_INTENTS}
+
+
+@router.get("/songs/{slug}/scenes/{idx}/takes")
+def list_scene_takes(slug: str, idx: int, conn=Depends(get_db)):
+    """All takes for a scene (keyframes + clips), most recent first. Used
+    by the story 5 TakePicker to let the user compare and pick."""
+    row = _fetch_scene(conn, slug, idx)
+    takes = conn.execute("""
+        SELECT id, artefact_kind, asset_path, created_at, quality_mode,
+               source_run_id, prompt_snapshot
+        FROM takes WHERE scene_id = ?
+        ORDER BY created_at DESC
+    """, (row["id"],)).fetchall()
+
+    selected = {
+        "keyframe": row["selected_keyframe_take_id"],
+        "clip": row["selected_clip_take_id"],
+    }
+    return {
+        "takes": [
+            {
+                "id": t["id"],
+                "artefact_kind": t["artefact_kind"],
+                "asset_path": t["asset_path"],
+                "created_at": t["created_at"],
+                "quality_mode": t["quality_mode"],
+                "source_run_id": t["source_run_id"],
+                "is_selected": t["id"] == selected.get(t["artefact_kind"]),
+            }
+            for t in takes
+        ],
+    }

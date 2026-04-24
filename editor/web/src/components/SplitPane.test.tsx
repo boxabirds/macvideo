@@ -34,4 +34,17 @@ describe("SplitPane", () => {
     const editor = container.querySelector(".editor") as HTMLElement;
     expect(editor.style.getPropertyValue("--lhs-px")).toBe("480px");
   });
+
+  it("shows the persist-failed notice when localStorage throws on write", async () => {
+    const origSet = Storage.prototype.setItem;
+    Storage.prototype.setItem = () => { throw new Error("QuotaExceeded"); };
+    try {
+      render(<SplitPane left={<div>L</div>} right={<div>R</div>} />);
+      const sep = screen.getByRole("separator");
+      await userEvent.dblClick(sep);
+      expect(screen.getByRole("status")).toHaveTextContent(/won't be saved/i);
+    } finally {
+      Storage.prototype.setItem = origSet;
+    }
+  });
 });

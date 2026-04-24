@@ -71,6 +71,11 @@ class RegenEventHub:
                 # Back-pressure: drop the slow subscriber.
                 self._queues.discard(q)
 
+    def history(self) -> list[RegenEvent]:
+        """Snapshot of the event replay ring. Used by tests + by new
+        subscribers that don't pass Last-Event-ID."""
+        return list(self._recent)
+
     async def subscribe(self, last_event_id: Optional[int] = None) -> AsyncIterator[RegenEvent]:
         q: asyncio.Queue[RegenEvent] = asyncio.Queue(maxsize=100)
         # Replay any events newer than last_event_id

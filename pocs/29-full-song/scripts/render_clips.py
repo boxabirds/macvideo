@@ -21,6 +21,13 @@ HEIGHT = 1088             # closest divisible-by-64 to 1080 (LTX constraint)
 FPS = 30
 SEED_BASE = 42
 
+# Quality-mode-aware dimensions. Editor story 8 passes --quality-mode to
+# pick between draft (small + fast) and final (1080p + 30fps).
+MODE_DIMENSIONS = {
+    "draft": {"width": 512, "height": 320, "fps": 24},
+    "final": {"width": 1920, "height": 1088, "fps": 30},
+}
+
 NEG = "blurry, low quality, worst quality, distorted, watermark, subtitle"
 
 CAMERA_LANGUAGE = {
@@ -53,15 +60,16 @@ def build_prompt(shot: dict, sb: dict, filter_word: str) -> str:
     return " ".join(p for p in pieces if p)
 
 
-def run_ltx(keyframe: Path, out_mp4: Path, log: Path, prompt: str, num_frames: int, seed: int) -> bool:
+def run_ltx(keyframe: Path, out_mp4: Path, log: Path, prompt: str, num_frames: int, seed: int,
+            *, width: int = WIDTH, height: int = HEIGHT, fps: int = FPS) -> bool:
     cmd = [
         "uv", "run", "mlx_video.ltx_2.generate",
         "--seed", str(seed),
         "--pipeline", "dev-two-stage",
         "--model-repo", "prince-canuma/LTX-2.3-dev",
         "--text-encoder-repo", "mlx-community/gemma-3-12b-it-bf16",
-        "--width", str(WIDTH), "--height", str(HEIGHT),
-        "--num-frames", str(num_frames), "--fps", str(FPS),
+        "--width", str(width), "--height", str(height),
+        "--num-frames", str(num_frames), "--fps", str(fps),
         "--image", str(keyframe),
         "--image-strength", "1.0",
         "--image-frame-idx", "0",
@@ -156,6 +164,8 @@ def main() -> None:
     ap.add_argument("--run-dir", required=True)
     ap.add_argument("--filter", dest="filter_word", required=True)
     ap.add_argument("--skip-render", action="store_true", help="only concat+mux")
+    ap.add_argument("--quality-mode", choices=["draft", "final"], default=None,
+                    help="override width/height/fps; omit = legacy 1080p/30fps")
     args = ap.parse_args()
 
     run_dir = Path(args.run_dir)
@@ -188,7 +198,9 @@ def main() -> None:
         prompt = build_prompt(s, sb, args.filter_word)
         log = clips_dir / f"stdout_{idx:03d}.log"
         t0 = time.time()
-        ok = run_ltx(kf, clip, log, prompt, s["num_frames"], SEED_BASE + idx)
+        dims = MODE_DIMENSIONS.get(args.quality_mode or "", {"width": WIDTH, "height": HEIGHT, "fps": FPS})
+        ok = run_ltx(kf, clip, log, prompt, s["num_frames"], SEED_BASE + idx,
+                     width=dims["width"], height=dims["height"], fps=dims["fps"])
         dt = time.time() - t0
         if ok:
             print(f"[shot {idx:3d}] clip OK ({dt:.0f}s, {s['num_frames']}f)")

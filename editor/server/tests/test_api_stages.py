@@ -32,12 +32,16 @@ def test_run_keyframes_stage_creates_takes_for_missing_scenes(client_for, tmp_en
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")
 
-    # Nuke scene 2's keyframe take so the stage has real work to do
+    # Nuke scene 2's keyframe take AND delete the file so gen_keyframes.py
+    # (real or fake) has work to do.
     from editor.server.store import connection
     with connection(tmp_env["db"]) as c:
         c.execute(
             "UPDATE scenes SET selected_keyframe_take_id = NULL "
             "WHERE scene_index = 2 AND song_id = (SELECT id FROM songs WHERE slug='tiny-song')")
+    kf2 = tmp_env["outputs"] / "tiny-song" / "keyframes" / "keyframe_002.png"
+    if kf2.exists():
+        kf2.unlink()
 
     before = client_for.get("/api/songs/tiny-song").json()
     before_kf = sum(1 for s in before["scenes"] if s["selected_keyframe_path"])
@@ -66,6 +70,46 @@ def test_render_final_refuses_when_any_scene_missing_keyframe(client_for, tmp_en
     r = client_for.post("/api/songs/tiny-song/render-final")
     assert r.status_code == 422
     assert 1 in r.json()["detail"]["affected_scenes"]
+
+
+def test_run_all_outstanding_queues_undone_stages(client_for, tmp_env, fixture_song_one):
+    """PRD: 'run all outstanding' runs every un-done stage in dependency order."""
+    fixture_song_one(tmp_env["music"], tmp_env["outputs"])
+    client_for.post("/api/import")
+
+    # Nuke world_brief so world-brief onward need to run. Tiny-song fixture
+    # already has scenes + keyframes, so we also need to null the keyframe
+    # takes for the 'keyframes' stage to look undone.
+    from editor.server.store import connection
+    with connection(tmp_env["db"]) as c:
+        c.execute("UPDATE songs SET world_brief = NULL, sequence_arc = NULL "
+                  "WHERE slug = 'tiny-song'")
+
+    r = client_for.post("/api/songs/tiny-song/run-all-stages")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    triggered_stages = [t["stage"] for t in body["triggered"]]
+    # world-brief onwards should be queued (transcribe is already done since
+    # scenes > 0 in the fixture).
+    assert "world-brief" in triggered_stages
+    # blocked_at should be None because the chain ran through in order.
+    assert body["blocked_at"] is None
+
+
+def test_run_all_outstanding_409_when_chain_already_running(client_for, tmp_env, fixture_song_one):
+    fixture_song_one(tmp_env["music"], tmp_env["outputs"])
+    client_for.post("/api/import")
+
+    # Seed an in-flight run.
+    from editor.server.store import connection
+    with connection(tmp_env["db"]) as c:
+        c.execute("""
+            INSERT INTO regen_runs (scope, song_id, status, created_at)
+            VALUES ('stage_world_brief', (SELECT id FROM songs WHERE slug='tiny-song'), 'running', 0)
+        """)
+
+    r = client_for.post("/api/songs/tiny-song/run-all-stages")
+    assert r.status_code == 409
 
 
 def test_render_final_happy_path_creates_finished_video(client_for, tmp_env, fixture_song_one):

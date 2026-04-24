@@ -281,6 +281,23 @@ button { font: inherit; cursor: pointer; }
 
 .scene-row.current { outline: 2px solid var(--accent); }
 
+/* Field-level badges: unsaved buffer, saving, save failed. */
+.scene-row .field-badge {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10px;
+  line-height: 1;
+  vertical-align: middle;
+}
+.scene-row .field-badge.dirty  { color: #c99a30; }
+.scene-row .field-badge.saving { color: var(--text-dim); }
+.scene-row .field-badge.error  { color: #e06060; cursor: help; }
+
+.scene-row .field-error {
+  border-color: #e06060 !important;
+  outline: 1px solid rgba(224, 96, 96, 0.35);
+}
+
 /* ---------- preview pane -------------------------------------------------*/
 
 .preview {

@@ -9,16 +9,28 @@ Routes:
 
 from __future__ import annotations
 
+import asyncio
+import json
+import os
 import time
-from typing import Literal
+from pathlib import Path
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from .. import config as _cfg
 from ..importer import import_all
+from ..pipeline.stages import run_gen_keyframes_for_stage
+from ..regen.queue import RegenJob, keyframe_queue
+from ..regen.runs import create_run, get_run
 from ..store.schema import QualityMode
 from .common import get_db, parse_dirty_flags, scene_asset_paths
+
+
+def _override_gen_keyframes() -> Optional[Path]:
+    p = os.environ.get("EDITOR_FAKE_GEN_KEYFRAMES")
+    return Path(p) if p else None
 
 
 router = APIRouter()
@@ -251,6 +263,81 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
         f"UPDATE songs SET {sets}, updated_at = ? WHERE id = ?",
         values,
     )
+
+    # Story 4: a filter or abstraction change triggers the full regen chain
+    # (Pass A → Pass C → all Pass B → all keyframes) and marks every existing
+    # clip take stale (kept as history — see filter.chain-execute design).
+    chain_triggering = any(k in patch_fields for k in ("filter", "abstraction"))
+    if chain_triggering:
+        # Mark every scene with a clip_stale flag so the user sees affected clips.
+        rows = conn.execute(
+            "SELECT id, dirty_flags FROM scenes WHERE song_id = ? "
+            "AND selected_clip_take_id IS NOT NULL",
+            (song["id"],),
+        ).fetchall()
+        for r in rows:
+            flags = set(parse_dirty_flags(r["dirty_flags"]))
+            flags.add("clip_stale")
+            conn.execute(
+                "UPDATE scenes SET dirty_flags = ?, updated_at = ? WHERE id = ?",
+                (json.dumps(sorted(flags)), time.time(), r["id"]),
+            )
+
+        # Also invalidate the cached world_brief/storyboard so the next
+        # chain run regenerates them (matching the PRD: filter change →
+        # replace world brief, replace storyboard).
+        conn.execute(
+            "UPDATE songs SET world_brief = NULL, sequence_arc = NULL, updated_at = ? "
+            "WHERE id = ?", (time.time(), song["id"]),
+        )
+
+        # Story 8: a quality_mode change marks every existing clip take
+        # stale (matches mode.toggle's design). But a mode change is NOT
+        # a chain trigger.
+    if "quality_mode" in patch_fields and not chain_triggering:
+        rows = conn.execute(
+            "SELECT id, dirty_flags FROM scenes WHERE song_id = ? "
+            "AND selected_clip_take_id IS NOT NULL",
+            (song["id"],),
+        ).fetchall()
+        for r in rows:
+            flags = set(parse_dirty_flags(r["dirty_flags"]))
+            flags.add("clip_stale")
+            conn.execute(
+                "UPDATE scenes SET dirty_flags = ?, updated_at = ? WHERE id = ?",
+                (json.dumps(sorted(flags)), time.time(), r["id"]),
+            )
+
+    if chain_triggering:
+        # Enqueue the chain: runs gen_keyframes.py end-to-end against the
+        # song's run_dir. Cached character_brief/storyboard/image_prompts/keyframes
+        # were wiped above, so the subprocess regenerates all of them.
+        scope = "song_filter" if "filter" in patch_fields else "song_abstraction"
+        run_id = create_run(conn, scope=scope, song_id=song["id"])
+        run = get_run(conn, run_id)
+        assert run is not None
+        slug_captured = slug
+        new_filter = patch_fields.get("filter", song["filter"]) or "charcoal"
+        new_abstraction = patch_fields.get("abstraction", song["abstraction"]) or 25
+        new_quality_mode = patch_fields.get("quality_mode", song["quality_mode"]) or "draft"
+
+        async def handler(r):  # noqa: ANN001
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(
+                None,
+                lambda: run_gen_keyframes_for_stage(
+                    song_slug=slug_captured,
+                    song_filter=new_filter,
+                    song_abstraction=new_abstraction,
+                    song_quality_mode=new_quality_mode,
+                    source_run_id=r.id,
+                    stage="keyframes",
+                    redo=True,
+                    script_path=_override_gen_keyframes(),
+                ),
+            )
+
+        keyframe_queue.submit(RegenJob(run=run, handler=handler))
 
     return get_song(slug, conn)
 

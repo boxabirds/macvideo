@@ -8,7 +8,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import config as _cfg
-from .api import assets, regen as regen_api, scenes, songs, stages as stages_api
+from .api import (
+    assets,
+    preview_change as preview_change_api,
+    regen as regen_api,
+    scenes,
+    songs,
+    stages as stages_api,
+)
 from .importer import import_all
 from .regen.queue import configure_queues
 from .store import init_db
@@ -40,6 +47,7 @@ def create_app() -> FastAPI:
 
     app.include_router(songs.router, prefix="/api")
     app.include_router(scenes.router, prefix="/api")
+    app.include_router(preview_change_api.router, prefix="/api")
     app.include_router(regen_api.router, prefix="/api")
     app.include_router(regen_api.events_router)  # /events/regen
     app.include_router(stages_api.router, prefix="/api")

@@ -23,4 +23,14 @@ describe("localSetting", () => {
     localStorage.setItem("k", "not-json{");
     expect(localGet("k", 1, "fallback")).toBe("fallback");
   });
+
+  it("returns ok:false when setItem throws", () => {
+    const orig = Storage.prototype.setItem;
+    Storage.prototype.setItem = () => { throw new Error("QuotaExceeded"); };
+    try {
+      expect(localSet("k", 1, "x")).toEqual({ ok: false });
+    } finally {
+      Storage.prototype.setItem = orig;
+    }
+  });
 });

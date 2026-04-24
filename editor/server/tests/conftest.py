@@ -12,31 +12,55 @@ import pytest
 
 _TESTS_DIR = Path(__file__).resolve().parent
 _FIXTURES_DIR = _TESTS_DIR / "fixtures"
+_FAKE_SCRIPTS = _TESTS_DIR / "fake_scripts"
 
 
 @pytest.fixture
 def tmp_env(monkeypatch):
-    """A temp dir with DB path + empty music + empty outputs folders."""
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        db_path = root / "editor.db"
-        music = root / "music"
-        outputs = root / "outputs"
-        music.mkdir()
-        outputs.mkdir()
-        monkeypatch.setenv("EDITOR_DB_PATH", str(db_path))
-        monkeypatch.setenv("EDITOR_MUSIC_DIR", str(music))
-        monkeypatch.setenv("EDITOR_OUTPUTS_DIR", str(outputs))
-        # Reload the config module so the new env vars are seen
-        from importlib import reload
-        import editor.server.config as cfg
-        reload(cfg)
+    """A temp dir with DB path + empty music + empty outputs folders.
+
+    Also points the pipeline's gen_keyframes / render_clips overrides at the
+    fake scripts under tests/fake_scripts/ so tests never spawn real Gemini /
+    LTX subprocesses. Individual tests can unset these env vars if they
+    specifically want to test the real-script path.
+    """
+    td = tempfile.mkdtemp()
+    root = Path(td)
+    db_path = root / "editor.db"
+    music = root / "music"
+    outputs = root / "outputs"
+    music.mkdir()
+    outputs.mkdir()
+    monkeypatch.setenv("EDITOR_DB_PATH", str(db_path))
+    monkeypatch.setenv("EDITOR_MUSIC_DIR", str(music))
+    monkeypatch.setenv("EDITOR_OUTPUTS_DIR", str(outputs))
+    monkeypatch.setenv(
+        "EDITOR_FAKE_GEN_KEYFRAMES",
+        str(_FAKE_SCRIPTS / "fake_gen_keyframes.py"),
+    )
+    monkeypatch.setenv(
+        "EDITOR_FAKE_RENDER_CLIPS",
+        str(_FAKE_SCRIPTS / "fake_render_clips.py"),
+    )
+    from importlib import reload
+    import editor.server.config as cfg
+    reload(cfg)
+    try:
         yield {
             "db": db_path,
             "music": music,
             "outputs": outputs,
             "root": root,
         }
+    finally:
+        # Background workers may still be writing into the temp dir when the
+        # test function returns. Give them a brief grace period then clean up
+        # best-effort. `ignore_errors=True` swallows the 'directory not empty'
+        # race caused by a straggling subprocess write.
+        import time
+        time.sleep(0.15)
+        import shutil
+        shutil.rmtree(td, ignore_errors=True)
 
 
 @pytest.fixture

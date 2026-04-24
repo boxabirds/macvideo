@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import PipelinePanel from "./PipelinePanel";
 import type { SongDetail, StageStatus } from "../types";
 
@@ -38,4 +39,54 @@ describe("PipelinePanel", () => {
       .find(el => el.textContent?.includes("keyframes (1/5)"))!;
     expect(kf).toHaveClass("progress");
   });
+
+  it("confirms a re-run when the stage is already done, then POSTs to the stage endpoint", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ run_id: 1, status: "pending" }),
+    } as Response);
+    // @ts-expect-error
+    globalThis.fetch = fetchSpy;
+
+    render(<PipelinePanel song={makeSong()} status={status()} />);
+    // world-brief is "done", so clicking its button should open a confirm dialog.
+    const worldBriefRow = screen.getByText(/world description/).parentElement!;
+    const runBtn = worldBriefRow.querySelector("button")!;
+    await userEvent.click(runBtn);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    const confirm = screen.getByRole("button", { name: /^Re-run$/i });
+    await userEvent.click(confirm);
+
+    await new Promise(r => setTimeout(r, 10));
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("/api/songs/tiny/stages/world-brief"),
+      expect.objectContaining({ method: "POST" }),
+    );
+    const urls = fetchSpy.mock.calls.map(c => c[0] as string);
+    const stageCall = urls.find(u => u.includes("/stages/world-brief"));
+    expect(stageCall).toBeDefined();
+    expect(stageCall!).toContain("redo=true");
+  });
+
+  it("POSTs without confirm for a stage not yet done", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ run_id: 1, status: "pending" }),
+    } as Response);
+    // @ts-expect-error
+    globalThis.fetch = fetchSpy;
+
+    render(<PipelinePanel song={makeSong()} status={status({
+      transcription: "done", world_brief: "empty", storyboard: "empty",
+      keyframes_done: 0, keyframes_total: 2,
+    })} />);
+    const row = screen.getByText(/world description/).parentElement!;
+    await userEvent.click(row.querySelector("button")!);
+    await new Promise(r => setTimeout(r, 10));
+    expect(fetchSpy).toHaveBeenCalled();
+    const urls = fetchSpy.mock.calls.map(c => c[0] as string);
+    const stageCall = urls.find(u => u.includes("/stages/world-brief"));
+    expect(stageCall).toBeDefined();
+    expect(stageCall!).toContain("redo=false");
+  });
 });
+
+afterEach(() => vi.restoreAllMocks());

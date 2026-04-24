@@ -77,3 +77,90 @@ export async function listCameraIntents(): Promise<{ values: string[] }> {
 export async function triggerImport(): Promise<unknown> {
   return handle(await fetch("/api/import", { method: "POST" }));
 }
+
+export type RegenTriggerResponse = {
+  run_id: number;
+  status: string;
+  estimated_seconds: number;
+};
+
+export async function regenerateScene(
+  slug: string, idx: number,
+  artefactKind: "keyframe" | "clip",
+): Promise<RegenTriggerResponse> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/scenes/${idx}/takes`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ artefact_kind: artefactKind }),
+    },
+  ));
+}
+
+export type ChainPreview = {
+  from: { filter: string | null; abstraction: number | null };
+  to: { filter: string | null; abstraction: number | null };
+  scope: {
+    will_regen_world_brief: boolean;
+    will_regen_storyboard: boolean;
+    scenes_with_new_prompts: number;
+    keyframes_to_generate: number;
+    clips_marked_stale: number;
+    clips_deleted: number;
+  };
+  estimate: {
+    gemini_calls: number;
+    estimated_usd: number;
+    estimated_seconds: number;
+    confidence: "high" | "medium" | "low";
+  };
+  would_conflict_with: { run_id: number; reason: string } | null;
+};
+
+export async function previewChange(
+  slug: string,
+  body: { filter?: string; abstraction?: number },
+): Promise<ChainPreview> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/preview-change`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  ));
+}
+
+export type SceneTake = {
+  id: number;
+  artefact_kind: "keyframe" | "clip";
+  asset_path: string;
+  created_at: number;
+  quality_mode: string | null;
+  is_selected: boolean;
+};
+
+export async function listTakes(slug: string, idx: number): Promise<{ takes: SceneTake[] }> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/scenes/${idx}/takes`,
+  ));
+}
+
+export async function selectTake(
+  slug: string, idx: number, takeId: number,
+  artefactKind: "keyframe" | "clip",
+): Promise<Scene> {
+  const body: Record<string, unknown> =
+    artefactKind === "keyframe"
+      ? { selected_keyframe_take_id: takeId, selection_pinned: true }
+      : { selected_clip_take_id: takeId, selection_pinned: true };
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/scenes/${idx}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  ));
+}
