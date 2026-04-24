@@ -1,0 +1,279 @@
+"""Songs + per-song endpoints.
+
+Routes:
+    GET  /api/songs                 list songs with production status
+    GET  /api/songs/{slug}          full song + scenes
+    PATCH /api/songs/{slug}         update filter / abstraction / quality_mode
+    POST /api/import                force a re-scan from music/ + outputs/
+"""
+
+from __future__ import annotations
+
+import time
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+
+from .. import config as _cfg
+from ..importer import import_all
+from ..store.schema import QualityMode
+from .common import get_db, parse_dirty_flags, scene_asset_paths
+
+
+router = APIRouter()
+
+
+# ---------- models ----------------------------------------------------------
+
+class StageStatus(BaseModel):
+    transcription: Literal["empty", "done", "error"]
+    world_brief: Literal["empty", "done", "error"]
+    storyboard: Literal["empty", "done", "error"]
+    keyframes_done: int
+    keyframes_total: int
+    clips_done: int
+    clips_total: int
+    final: Literal["empty", "done"]
+
+
+class SongSummary(BaseModel):
+    slug: str
+    audio_path: str
+    duration_s: float | None
+    size_bytes: int | None
+    filter: str | None
+    abstraction: int | None
+    quality_mode: QualityMode
+    status: StageStatus
+
+
+class SongListResponse(BaseModel):
+    songs: list[SongSummary]
+
+
+class SceneSummary(BaseModel):
+    index: int
+    kind: str
+    target_text: str
+    start_s: float
+    end_s: float
+    target_duration_s: float
+    num_frames: int
+    beat: str | None
+    camera_intent: str | None
+    subject_focus: str | None
+    prev_link: str | None
+    next_link: str | None
+    image_prompt: str | None
+    prompt_is_user_authored: bool
+    selected_keyframe_path: str | None
+    selected_clip_path: str | None
+    missing_assets: list[str]
+    dirty_flags: list[str]
+
+
+class SongDetailResponse(BaseModel):
+    slug: str
+    audio_path: str
+    duration_s: float | None
+    size_bytes: int | None
+    filter: str | None
+    abstraction: int | None
+    quality_mode: QualityMode
+    world_brief: str | None
+    sequence_arc: str | None
+    scenes: list[SceneSummary]
+
+
+class SongPatchBody(BaseModel):
+    filter: str | None = Field(default=None)
+    abstraction: int | None = Field(default=None, ge=0, le=100)
+    quality_mode: QualityMode | None = None
+    world_brief: str | None = None
+
+
+# ---------- helpers ---------------------------------------------------------
+
+def _compute_status(conn, song_id: int) -> StageStatus:
+    scene_total = conn.execute(
+        "SELECT COUNT(*) FROM scenes WHERE song_id = ?", (song_id,)
+    ).fetchone()[0]
+    kf_done = conn.execute(
+        "SELECT COUNT(*) FROM scenes WHERE song_id = ? AND selected_keyframe_take_id IS NOT NULL",
+        (song_id,),
+    ).fetchone()[0]
+    clip_done = conn.execute(
+        "SELECT COUNT(*) FROM scenes WHERE song_id = ? AND selected_clip_take_id IS NOT NULL",
+        (song_id,),
+    ).fetchone()[0]
+    song_row = conn.execute(
+        "SELECT world_brief, sequence_arc FROM songs WHERE id = ?", (song_id,)
+    ).fetchone()
+    storyboard_done = conn.execute(
+        "SELECT COUNT(*) FROM scenes WHERE song_id = ? AND beat IS NOT NULL",
+        (song_id,),
+    ).fetchone()[0] > 0
+    final_done = conn.execute(
+        "SELECT COUNT(*) FROM finished_videos WHERE song_id = ?", (song_id,)
+    ).fetchone()[0] > 0
+
+    return StageStatus(
+        transcription="done" if scene_total > 0 else "empty",
+        world_brief="done" if song_row and song_row["world_brief"] else "empty",
+        storyboard="done" if storyboard_done else "empty",
+        keyframes_done=kf_done,
+        keyframes_total=scene_total,
+        clips_done=clip_done,
+        clips_total=scene_total,
+        final="done" if final_done else "empty",
+    )
+
+
+# ---------- routes ----------------------------------------------------------
+
+@router.get("/songs", response_model=SongListResponse)
+def list_songs(conn=Depends(get_db)):
+    rows = conn.execute(
+        "SELECT id, slug, audio_path, duration_s, size_bytes, filter, abstraction, quality_mode "
+        "FROM songs ORDER BY slug"
+    ).fetchall()
+    songs = [
+        SongSummary(
+            slug=r["slug"],
+            audio_path=r["audio_path"],
+            duration_s=r["duration_s"],
+            size_bytes=r["size_bytes"],
+            filter=r["filter"],
+            abstraction=r["abstraction"],
+            quality_mode=r["quality_mode"],
+            status=_compute_status(conn, r["id"]),
+        )
+        for r in rows
+    ]
+    return SongListResponse(songs=songs)
+
+
+def _fetch_song_row(conn, slug: str):
+    row = conn.execute("SELECT * FROM songs WHERE slug = ?", (slug,)).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"song '{slug}' not found")
+    return row
+
+
+@router.get("/songs/{slug}", response_model=SongDetailResponse)
+def get_song(slug: str, conn=Depends(get_db)):
+    song = _fetch_song_row(conn, slug)
+    scenes = conn.execute("""
+        SELECT s.*,
+               kf.asset_path AS selected_keyframe_path,
+               cl.asset_path AS selected_clip_path
+        FROM scenes s
+        LEFT JOIN takes kf ON kf.id = s.selected_keyframe_take_id
+        LEFT JOIN takes cl ON cl.id = s.selected_clip_take_id
+        WHERE s.song_id = ?
+        ORDER BY s.scene_index
+    """, (song["id"],)).fetchall()
+
+    scene_payload: list[SceneSummary] = []
+    for r in scenes:
+        kf_path, clip_path, missing = scene_asset_paths(r)
+        scene_payload.append(SceneSummary(
+            index=r["scene_index"],
+            kind=r["kind"],
+            target_text=r["target_text"],
+            start_s=r["start_s"],
+            end_s=r["end_s"],
+            target_duration_s=r["target_duration_s"],
+            num_frames=r["num_frames"],
+            beat=r["beat"],
+            camera_intent=r["camera_intent"],
+            subject_focus=r["subject_focus"],
+            prev_link=r["prev_link"],
+            next_link=r["next_link"],
+            image_prompt=r["image_prompt"],
+            prompt_is_user_authored=bool(r["prompt_is_user_authored"]),
+            selected_keyframe_path=kf_path,
+            selected_clip_path=clip_path,
+            missing_assets=missing,
+            dirty_flags=parse_dirty_flags(r["dirty_flags"]),
+        ))
+
+    return SongDetailResponse(
+        slug=song["slug"],
+        audio_path=song["audio_path"],
+        duration_s=song["duration_s"],
+        size_bytes=song["size_bytes"],
+        filter=song["filter"],
+        abstraction=song["abstraction"],
+        quality_mode=song["quality_mode"],
+        world_brief=song["world_brief"],
+        sequence_arc=song["sequence_arc"],
+        scenes=scene_payload,
+    )
+
+
+@router.patch("/songs/{slug}", response_model=SongDetailResponse)
+def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
+    song = _fetch_song_row(conn, slug)
+
+    patch_fields: dict[str, object] = {}
+    if body.filter is not None:
+        patch_fields["filter"] = body.filter
+    if body.abstraction is not None:
+        patch_fields["abstraction"] = body.abstraction
+    if body.quality_mode is not None:
+        patch_fields["quality_mode"] = body.quality_mode.value
+    if body.world_brief is not None:
+        patch_fields["world_brief"] = body.world_brief
+
+    if not patch_fields:
+        return get_song(slug, conn)
+
+    # Refuse filter / abstraction / quality_mode changes while a regen run
+    # for the song is pending or running — matches the story 4 and 8 design.
+    if any(k in patch_fields for k in ("filter", "abstraction", "quality_mode")):
+        active = conn.execute("""
+            SELECT id FROM regen_runs
+            WHERE song_id = ?
+              AND status IN ('pending', 'running')
+            LIMIT 1
+        """, (song["id"],)).fetchone()
+        if active:
+            raise HTTPException(
+                status_code=409,
+                detail=f"regeneration run {active['id']} is in progress for this song",
+            )
+
+    sets = ", ".join(f"{k} = ?" for k in patch_fields.keys())
+    values = list(patch_fields.values()) + [time.time(), song["id"]]
+    conn.execute(
+        f"UPDATE songs SET {sets}, updated_at = ? WHERE id = ?",
+        values,
+    )
+
+    return get_song(slug, conn)
+
+
+@router.post("/import")
+def force_import():
+    """Scan music/ + outputs/ and import anything new or updated."""
+    report = import_all(_cfg.DB_PATH, _cfg.MUSIC_DIR, _cfg.OUTPUTS_DIR)
+    return {
+        "songs": [
+            {
+                "slug": r.slug,
+                "scenes_imported": r.scenes_imported,
+                "keyframe_takes_imported": r.keyframe_takes_imported,
+                "clip_takes_imported": r.clip_takes_imported,
+                "warnings": r.warnings,
+            }
+            for r in report.songs
+        ],
+        "totals": {
+            "songs": report.total_songs,
+            "scenes": report.total_scenes,
+            "keyframe_takes": report.total_keyframe_takes,
+            "clip_takes": report.total_clip_takes,
+        },
+    }
