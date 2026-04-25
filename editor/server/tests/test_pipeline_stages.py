@@ -141,3 +141,51 @@ def test_missing_shots_json_returns_non_zero_without_raising(tmp_env):
     )
     assert not result.ok
     assert "shots.json missing" in result.stderr_tail
+
+
+def _run_transcribe_via_public_entrypoint(slug: str):
+    return run_gen_keyframes_for_stage(
+        song_slug=slug,
+        song_filter="charcoal",
+        song_abstraction=25,
+        song_quality_mode="draft",
+        source_run_id=1,
+        stage="transcribe",
+    )
+
+
+def test_transcribe_preflight_missing_wav(tmp_env):
+    """No audio file → fail fast with a wav-missing message, no subprocess."""
+    result = _run_transcribe_via_public_entrypoint("no-such-song")
+    assert not result.ok
+    assert result.returncode == 1
+    assert "no-such-song.wav" in result.stderr_tail
+    assert "expected" in result.stderr_tail
+    assert result.duration_s == 0.0
+
+
+def test_transcribe_preflight_missing_lyrics(tmp_env):
+    """Audio present but no .txt → fail fast with a lyrics-missing message."""
+    (tmp_env["music"] / "audio-only.wav").write_bytes(b"RIFF" + b"\x00" * 28)
+    result = _run_transcribe_via_public_entrypoint("audio-only")
+    assert not result.ok
+    assert result.returncode == 1
+    assert "audio-only.txt" in result.stderr_tail
+    assert "lyric" in result.stderr_tail
+
+
+def test_transcribe_preflight_empty_lyrics(tmp_env):
+    """Lyrics file exists but has zero recognisable lines (only comments and
+    section markers) → fail fast with the no-lyric-lines message."""
+    (tmp_env["music"] / "blank-lyrics.wav").write_bytes(b"RIFF" + b"\x00" * 28)
+    (tmp_env["music"] / "blank-lyrics.txt").write_text(
+        "# a comment line\n"
+        "[Verse 1]\n"
+        "\n"
+        "[Chorus]\n"
+    )
+    result = _run_transcribe_via_public_entrypoint("blank-lyrics")
+    assert not result.ok
+    assert result.returncode == 1
+    assert "blank-lyrics.txt" in result.stderr_tail
+    assert "no recognisable lyric lines" in result.stderr_tail
