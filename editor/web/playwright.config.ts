@@ -23,7 +23,9 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: "bun run dev",
+      // Use vite-only (not `bun run dev`) so the dev launcher's port-killing
+      // doesn't reap the backend that the webServer above just started.
+      command: "bun run dev:vite-only",
       url: "http://localhost:5173",
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
