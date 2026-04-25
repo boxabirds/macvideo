@@ -60,7 +60,15 @@ export default function PipelinePanel({
   const latestTranscribe = transcribeRuns.find(
     r => r.status === "done" || r.status === "failed" || r.status === "cancelled",
   );
-  const transcribeFailed = !activeTranscribe && latestTranscribe?.status === "failed";
+  // Optimistic dismissal: when the user clicks Try again, we hide the
+  // failed banner immediately (tracked by the failed run id) so they
+  // don't see the old error linger until the next SWR poll surfaces the
+  // freshly-pending run row.
+  const [dismissedFailedId, setDismissedFailedId] = useState<number | null>(null);
+  const transcribeFailed =
+    !activeTranscribe
+    && latestTranscribe?.status === "failed"
+    && latestTranscribe.id !== dismissedFailedId;
   const [confirm, setConfirm] = useState<null | { stageName: string; isRedo: boolean; label: string }>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -176,7 +184,10 @@ export default function PipelinePanel({
                   {latestTranscribe?.error ?? "Transcribe failed"}
                 </span>
                 <button
-                  onClick={() => void trigger("transcribe", true)}
+                  onClick={() => {
+                    if (latestTranscribe) setDismissedFailedId(latestTranscribe.id);
+                    void trigger("transcribe", true);
+                  }}
                   disabled={busy === "transcribe"}
                 >
                   Try again

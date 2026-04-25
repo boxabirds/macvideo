@@ -163,6 +163,54 @@ describe("PipelinePanel", () => {
     expect(stageCall!).toContain("redo=true");
   });
 
+  it("Try again optimistically dismisses the failed banner before the next poll", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ run_id: 99, status: "pending" }),
+    } as Response);
+    // @ts-expect-error
+    globalThis.fetch = fetchSpy;
+
+    render(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({
+          id: 7, status: "failed", error: "preflight failed", ended_at: 1,
+        })]}
+      />,
+    );
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Try again/i }));
+    await new Promise(r => setTimeout(r, 10));
+    // The same regenRuns prop is still passed (next SWR poll hasn't fired)
+    // but the banner must dismiss immediately so the user doesn't see the
+    // old error linger.
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("active transcribe run wins over a stale failed one (no banner during retry)", () => {
+    render(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({ transcription: "empty" })}
+        regenRuns={[
+          transcribeRun({ id: 9, status: "running", started_at: 1 }),
+          transcribeRun({ id: 7, status: "failed", error: "earlier failure", ended_at: 1, created_at: 0 }),
+        ]}
+      />,
+    );
+    // Spinner is visible…
+    const row = screen.getByText(/lyric alignment/).closest(".pipeline-stage")!;
+    expect(row).toHaveClass("running");
+    // …and the failed banner is NOT — even though a failed run exists.
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  // Skipped: progress_pct-based ETA test from task body case 1 is parked
+  // until regen_runs gets a progress_pct column (task 12.4 follow-up).
+  // The heuristic-fallback ETA is covered by the "spinner + ETA" test
+  // above — that exercises the only ETA path that currently exists.
+
   it("POSTs without confirm for a stage not yet done", async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 1, status: "pending" }),
