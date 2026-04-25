@@ -161,6 +161,7 @@ export type RegenRunSummary = {
   started_at: number | null;
   ended_at: number | null;
   error: string | null;
+  progress_pct: number | null;
   created_at: number;
 };
 

@@ -35,13 +35,15 @@ _RE_PASS_B = re.compile(r"^\[shot\s+(\d+)\]\s+Pass B")
 _RE_KEYFRAME_DONE = re.compile(r"^\[shot\s+(\d+)\]\s+keyframe")
 _RE_CLIP_DONE = re.compile(r"^\[shot\s+(\d+)\]\s+clip OK")
 _RE_CLIP_FAIL = re.compile(r"^\[shot\s+(\d+)\]\s+clip FAILED")
+_RE_ALIGN = re.compile(r"^\[align\]\s+(\d+)%")
 _RE_DONE = re.compile(r"^\[done\]")
 
 
 @dataclass
 class ProgressEvent:
-    kind: str  # 'pass_a_done' | 'pass_c_done' | 'pass_b' | 'keyframe_done' | 'clip_done' | 'clip_failed' | 'done' | 'line'
+    kind: str  # 'pass_a_done' | 'pass_c_done' | 'pass_b' | 'keyframe_done' | 'clip_done' | 'clip_failed' | 'progress' | 'done' | 'line'
     scene_index: Optional[int] = None
+    progress_pct: Optional[int] = None
     raw: str = ""
 
 
@@ -76,6 +78,9 @@ def parse_line(line: str) -> ProgressEvent:
     m = _RE_CLIP_FAIL.match(stripped)
     if m:
         return ProgressEvent(kind="clip_failed", scene_index=int(m.group(1)), raw=stripped)
+    m = _RE_ALIGN.match(stripped)
+    if m:
+        return ProgressEvent(kind="progress", progress_pct=int(m.group(1)), raw=stripped)
     if _RE_DONE.match(stripped):
         return ProgressEvent(kind="done", raw=stripped)
     return ProgressEvent(kind="line", raw=stripped)

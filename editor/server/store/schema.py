@@ -128,6 +128,7 @@ CREATE TABLE IF NOT EXISTS regen_runs (
     started_at          REAL,
     ended_at            REAL,
     error               TEXT,
+    progress_pct        INTEGER,
     created_at          REAL NOT NULL
 );
 
@@ -176,6 +177,11 @@ def init_db(path: Path) -> None:
         c.execute("PRAGMA foreign_keys = ON")
         c.execute("PRAGMA busy_timeout = 30000")
         c.executescript(_SCHEMA_SQL)
+        # Idempotent migration for older DBs that predate progress_pct.
+        # PRAGMA table_info returns one row per column; check before ALTER.
+        cols = {row[1] for row in c.execute("PRAGMA table_info(regen_runs)").fetchall()}
+        if "progress_pct" not in cols:
+            c.execute("ALTER TABLE regen_runs ADD COLUMN progress_pct INTEGER")
         c.commit()
 
 

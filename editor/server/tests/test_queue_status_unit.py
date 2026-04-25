@@ -29,7 +29,7 @@ def _fake_run() -> RegenRun:
         id=42, scope="stage_world_brief", song_id=1, scene_id=None,
         artefact_kind=None, status="pending", quality_mode=None,
         cost_estimate_usd=None, started_at=None, ended_at=None, error=None,
-        created_at=0.0,
+        progress_pct=None, created_at=0.0,
     )
 
 

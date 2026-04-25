@@ -188,6 +188,31 @@ def run_gen_keyframes_for_stage(
     )
 
 
+def _make_progress_writer(
+    *, db_path: Path, run_id: Optional[int],
+    downstream: Optional[Callable[[ProgressEvent], None]] = None,
+) -> Callable[[ProgressEvent], None]:
+    """Build a progress callback that persists `progress_pct` onto the
+    regen_runs row whenever a `kind='progress'` event arrives. Forwards
+    every event to the caller's downstream cb (if any) so existing
+    consumers still see them."""
+    def _cb(evt: ProgressEvent) -> None:
+        if downstream is not None:
+            try:
+                downstream(evt)
+            except Exception:
+                pass
+        if evt.kind == "progress" and evt.progress_pct is not None and run_id is not None:
+            from ..regen.runs import update_run_progress
+            try:
+                with connection(db_path) as conn:
+                    update_run_progress(conn, run_id, evt.progress_pct)
+            except Exception:
+                # Progress is advisory — never let a DB hiccup kill the run.
+                pass
+    return _cb
+
+
 def _load_lyric_cleaner() -> Callable[[str], list[str]]:
     """Import clean_lyrics_lines from make_shots.py at call time.
 
@@ -272,6 +297,13 @@ def _run_transcribe(
     # Cache lives next to the scripts dir: pocs/29-full-song/whisperx_cache/.
     whisperx_cache = poc_root.parent / "whisperx_cache" / f"{song_slug}.aligned.json"
 
+    # Wire a progress callback that writes [align] N% events back onto the
+    # regen_runs row so the editor can compute an honest ETA from
+    # elapsed-since-started_at and pct.
+    progress_writer = _make_progress_writer(
+        db_path=db_path, run_id=source_run_id, downstream=progress_cb,
+    )
+
     align_stdout = ""
     align_stderr = ""
     align_duration = 0.0
@@ -281,7 +313,7 @@ def _run_transcribe(
             "--out", str(whisperx_cache),
             "--lyrics", str(paths.lyrics_txt),
         ]
-        align_result = run_script(align_script, align_args, progress_cb=progress_cb)
+        align_result = run_script(align_script, align_args, progress_cb=progress_writer)
         align_stdout = align_result.stdout
         align_stderr = align_result.stderr
         align_duration = align_result.duration_s

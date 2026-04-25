@@ -35,6 +35,7 @@ class RegenRun:
     started_at: Optional[float]
     ended_at: Optional[float]
     error: Optional[str]
+    progress_pct: Optional[int]
     created_at: float
 
 
@@ -101,7 +102,19 @@ def update_run_status(
         )
 
 
+def update_run_progress(conn, run_id: int, pct: int) -> None:
+    """Write a progress percentage onto the run row. Called from the
+    subprocess progress callback when an [align] N% line is parsed.
+    Clamped to [0, 100]."""
+    pct = max(0, min(100, int(pct)))
+    conn.execute(
+        "UPDATE regen_runs SET progress_pct = ? WHERE id = ?",
+        (pct, run_id),
+    )
+
+
 def _row_to_run(row) -> RegenRun:
+    keys = row.keys() if hasattr(row, "keys") else []
     return RegenRun(
         id=row["id"],
         scope=row["scope"],
@@ -114,5 +127,6 @@ def _row_to_run(row) -> RegenRun:
         started_at=row["started_at"],
         ended_at=row["ended_at"],
         error=row["error"],
+        progress_pct=row["progress_pct"] if "progress_pct" in keys else None,
         created_at=row["created_at"],
     )

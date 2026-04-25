@@ -2,7 +2,10 @@
 song-level filter/abstraction chain (story 4), song-level stage runners
 (story 9), and final video render (story 10)."""
 
-from .runs import create_run, get_run, list_song_runs, update_run_status
+from .runs import (
+    create_run, get_run, list_song_runs,
+    update_run_progress, update_run_status,
+)
 from .events import RegenEventHub
 
 __all__ = [
@@ -10,5 +13,6 @@ __all__ = [
     "create_run",
     "get_run",
     "list_song_runs",
+    "update_run_progress",
     "update_run_status",
 ]

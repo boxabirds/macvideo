@@ -10,7 +10,7 @@ function transcribeRun(overrides: Partial<RegenRunSummary> = {}): RegenRunSummar
     id: 1, scope: "stage_transcribe", song_id: 1, scene_id: null,
     scene_index: null, artefact_kind: null, status: "running",
     quality_mode: null, cost_estimate_usd: null, started_at: 1, ended_at: null,
-    error: null, created_at: 1,
+    error: null, progress_pct: null, created_at: 1,
     ...overrides,
   };
 }
@@ -186,6 +186,24 @@ describe("PipelinePanel", () => {
     // but the banner must dismiss immediately so the user doesn't see the
     // old error linger.
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("transcribe ETA uses progress_pct + started_at when present", () => {
+    // pct=10, elapsed=3s → totalEstimated = 30s, remaining = 27s → round to 25s.
+    const fixedNowMs = 1_700_000_000_000;
+    vi.spyOn(Date, "now").mockReturnValue(fixedNowMs);
+    const startedAt = fixedNowMs / 1000 - 3;
+    render(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({
+          status: "running", started_at: startedAt, progress_pct: 10,
+        })]}
+      />,
+    );
+    const row = screen.getByText(/lyric alignment/).closest(".pipeline-stage")!;
+    expect(row.textContent).toContain("about 25 seconds left");
   });
 
   it("active transcribe run wins over a stale failed one (no banner during retry)", () => {

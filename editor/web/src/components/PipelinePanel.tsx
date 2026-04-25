@@ -7,19 +7,35 @@ import type { SongDetail, StageStatus } from "../types";
 import type { RegenRunSummary } from "../api";
 import { patchSong } from "../api";
 
-// Heuristic ETA for forced alignment in absence of real progress signal:
-// roughly half of the song duration, rounded to nearest 5s, ≥5s.
-// Story 12 follow-up: replace with real progress percent from the
-// [align] events surfaced via subprocess_runner once the regen_runs row
-// carries a progress_pct column.
+// ETA for forced alignment. Two sources:
+// (1) Live: regen_runs.progress_pct + started_at (set by the [align] N%
+//     event from whisperx_align). remaining = (elapsed/pct)*100 - elapsed.
+// (2) Heuristic fallback: 0.5 * song.duration_s, used until the first
+//     progress event lands.
+// Both rounded to nearest 5s, ≥5s.
 const ETA_FALLBACK_RATIO = 0.5;
 const ETA_DEFAULT_DURATION_S = 60;
 const ETA_ROUND_TO_S = 5;
+const PCT_TO_FRACTION = 100;
 
-function transcribeEtaSeconds(song: SongDetail): number {
+function roundToFiveSeconds(n: number): number {
+  return Math.max(ETA_ROUND_TO_S, Math.round(n / ETA_ROUND_TO_S) * ETA_ROUND_TO_S);
+}
+
+function transcribeEtaSeconds(
+  song: SongDetail,
+  activeRun?: { progress_pct: number | null; started_at: number | null } | null,
+  nowS: number = Date.now() / 1000,
+): number {
+  if (activeRun?.progress_pct != null && activeRun.progress_pct > 0
+      && activeRun.started_at != null) {
+    const elapsed = Math.max(0, nowS - activeRun.started_at);
+    const totalEstimated = (elapsed / activeRun.progress_pct) * PCT_TO_FRACTION;
+    const remaining = Math.max(0, totalEstimated - elapsed);
+    return roundToFiveSeconds(remaining);
+  }
   const dur = song.duration_s ?? ETA_DEFAULT_DURATION_S;
-  const raw = ETA_FALLBACK_RATIO * dur;
-  return Math.max(ETA_ROUND_TO_S, Math.round(raw / ETA_ROUND_TO_S) * ETA_ROUND_TO_S);
+  return roundToFiveSeconds(ETA_FALLBACK_RATIO * dur);
 }
 
 // Stage button keys → backend stage-name + done-state computation.
@@ -148,7 +164,7 @@ export default function PipelinePanel({
                   className="transcribe-eta"
                   style={{ marginLeft: 8, color: "var(--text-dim)", fontSize: 12 }}
                 >
-                  Aligning lyrics — about {transcribeEtaSeconds(song)} seconds left
+                  Aligning lyrics — about {transcribeEtaSeconds(song, activeTranscribe)} seconds left
                 </span>
               ) : null}
             </span>
