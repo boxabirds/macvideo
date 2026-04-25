@@ -170,6 +170,12 @@ export async function listActiveRegens(slug: string): Promise<{ runs: RegenRunSu
   ));
 }
 
+export async function listRecentRegens(slug: string): Promise<{ runs: RegenRunSummary[] }> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/regen`,
+  ));
+}
+
 export async function selectTake(
   slug: string, idx: number, takeId: number,
   artefactKind: "keyframe" | "clip",

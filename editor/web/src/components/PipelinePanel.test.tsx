@@ -3,6 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PipelinePanel from "./PipelinePanel";
 import type { SongDetail, StageStatus } from "../types";
+import type { RegenRunSummary } from "../api";
+
+function transcribeRun(overrides: Partial<RegenRunSummary> = {}): RegenRunSummary {
+  return {
+    id: 1, scope: "stage_transcribe", song_id: 1, scene_id: null,
+    scene_index: null, artefact_kind: null, status: "running",
+    quality_mode: null, cost_estimate_usd: null, started_at: 1, ended_at: null,
+    error: null, created_at: 1,
+    ...overrides,
+  };
+}
 
 function makeSong(partial: Partial<SongDetail> = {}): SongDetail {
   return {
@@ -92,6 +103,64 @@ describe("PipelinePanel", () => {
     expect(patchCall).toBeDefined();
     expect(JSON.parse((patchCall![1] as RequestInit).body as string))
       .toEqual({ world_brief: "edited" });
+  });
+
+  it("transcribe row shows spinner + ETA when an active transcribe run exists", () => {
+    const song = makeSong({ duration_s: 180 });  // 180s × 0.5 = 90s ETA
+    render(
+      <PipelinePanel
+        song={song}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({ status: "running" })]}
+      />,
+    );
+    const row = screen.getByText(/lyric alignment/).closest(".pipeline-stage")!;
+    expect(row).toHaveClass("running");
+    expect(row.textContent).toContain("about 90 seconds left");
+    // Run button is disabled (showing the ellipsis) so the user can't double-click.
+    const btn = row.querySelector("button")!;
+    expect(btn).toBeDisabled();
+  });
+
+  it("transcribe row shows failed banner + Try again when latest transcribe run failed", () => {
+    render(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({
+          status: "failed",
+          error: "expected music/no-mans-land.txt to exist",
+          ended_at: 100,
+        })]}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "expected music/no-mans-land.txt to exist",
+    );
+    expect(screen.getByRole("button", { name: /Try again/i })).toBeInTheDocument();
+  });
+
+  it("Try again button POSTs /stages/transcribe with redo=true", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ run_id: 2, status: "pending" }),
+    } as Response);
+    // @ts-expect-error
+    globalThis.fetch = fetchSpy;
+
+    render(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({ status: "failed", error: "boom", ended_at: 1 })]}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Try again/i }));
+    await new Promise(r => setTimeout(r, 10));
+    const stageCall = fetchSpy.mock.calls
+      .map(c => c[0] as string)
+      .find(u => u.includes("/stages/transcribe"));
+    expect(stageCall).toBeDefined();
+    expect(stageCall!).toContain("redo=true");
   });
 
   it("POSTs without confirm for a stage not yet done", async () => {

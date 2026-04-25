@@ -29,17 +29,22 @@ export default function SongEditor() {
   const { data: intents } = useSWR<{ values: string[] }>(
     "/api/camera-intents", fetcher,
   );
-  // Poll /regen?active_only=true so the UI can show in-flight keyframe/clip
-  // regens without wiring SSE. Low-volume endpoint, small rows.
-  const { data: activeRegensResponse } = useSWR<{ runs: RegenRunSummary[] }>(
-    slug ? `/api/songs/${slug}/regen?active_only=true` : null,
+  // Poll /regen so the UI can show in-flight keyframe/clip regens AND the
+  // most recent failed stage runs (used by PipelinePanel's transcribe row).
+  // Single poll feeds both Storyboard (active scenes) and PipelinePanel
+  // (transcribe state) so we don't add a second request.
+  const { data: regenRunsResponse } = useSWR<{ runs: RegenRunSummary[] }>(
+    slug ? `/api/songs/${slug}/regen` : null,
     fetcher,
     { refreshInterval: ACTIVE_REGEN_POLL_MS },
   );
 
+  const regenRuns = regenRunsResponse?.runs ?? [];
+
   const activeRegens = useMemo<ActiveRegensMap>(() => {
     const map: ActiveRegensMap = {};
-    for (const r of activeRegensResponse?.runs ?? []) {
+    for (const r of regenRuns) {
+      if (r.status !== "pending" && r.status !== "running") continue;
       if (r.scene_index == null || r.artefact_kind == null) continue;
       if (r.artefact_kind !== "keyframe" && r.artefact_kind !== "clip") continue;
       const set = map[r.scene_index] ?? new Set<ActiveArtefacts>();
@@ -47,7 +52,7 @@ export default function SongEditor() {
       map[r.scene_index] = set;
     }
     return map;
-  }, [activeRegensResponse]);
+  }, [regenRuns]);
 
   // Derive a "status" object for the pipeline panel from the song detail.
   const [currentIdx, setCurrentIdx] = useState<number | null>(null);
@@ -82,6 +87,7 @@ export default function SongEditor() {
       <PipelinePanel
         song={song}
         status={status}
+        regenRuns={regenRuns}
         onSongUpdate={s => mutate(s, { revalidate: false })}
       />
       <SplitPane

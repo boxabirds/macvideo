@@ -4,7 +4,23 @@
 // on the next SWR revalidation.
 import { useCallback, useState } from "react";
 import type { SongDetail, StageStatus } from "../types";
+import type { RegenRunSummary } from "../api";
 import { patchSong } from "../api";
+
+// Heuristic ETA for forced alignment in absence of real progress signal:
+// roughly half of the song duration, rounded to nearest 5s, ≥5s.
+// Story 12 follow-up: replace with real progress percent from the
+// [align] events surfaced via subprocess_runner once the regen_runs row
+// carries a progress_pct column.
+const ETA_FALLBACK_RATIO = 0.5;
+const ETA_DEFAULT_DURATION_S = 60;
+const ETA_ROUND_TO_S = 5;
+
+function transcribeEtaSeconds(song: SongDetail): number {
+  const dur = song.duration_s ?? ETA_DEFAULT_DURATION_S;
+  const raw = ETA_FALLBACK_RATIO * dur;
+  return Math.max(ETA_ROUND_TO_S, Math.round(raw / ETA_ROUND_TO_S) * ETA_ROUND_TO_S);
+}
 
 // Stage button keys → backend stage-name + done-state computation.
 const STAGES = [
@@ -28,12 +44,23 @@ async function runStage(slug: string, stageName: string, redo: boolean) {
 }
 
 export default function PipelinePanel({
-  song, status, onSongUpdate,
+  song, status, regenRuns, onSongUpdate,
 }: {
   song: SongDetail;
   status: StageStatus;
+  regenRuns?: RegenRunSummary[];
   onSongUpdate?: (s: SongDetail) => void;
 }) {
+  const transcribeRuns = (regenRuns ?? []).filter(r => r.scope === "stage_transcribe");
+  const activeTranscribe = transcribeRuns.find(
+    r => r.status === "pending" || r.status === "running",
+  );
+  // Most recent terminal transcribe run (sorted desc by created_at on the
+  // backend already; take first non-active).
+  const latestTranscribe = transcribeRuns.find(
+    r => r.status === "done" || r.status === "failed" || r.status === "cancelled",
+  );
+  const transcribeFailed = !activeTranscribe && latestTranscribe?.status === "failed";
   const [confirm, setConfirm] = useState<null | { stageName: string; isRedo: boolean; label: string }>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,19 +124,65 @@ export default function PipelinePanel({
         } else {
           state = (status as any)[stage.key] ?? "empty";
         }
+        // Transcribe row gets running / failed states from the regen-runs poll
+        // so the user sees the background subprocess instead of an inert row.
+        if (stage.key === "transcription" && activeTranscribe) state = "running";
+        else if (stage.key === "transcription" && transcribeFailed) state = "failed";
         const isRedo = state === "done";
+        const isTranscribeRunning = stage.key === "transcription" && state === "running";
+        const isTranscribeFailed = stage.key === "transcription" && state === "failed";
         return (
           <div key={stage.key} className={`pipeline-stage ${state}`}>
-            <span className="label">{stage.label}{summary}</span>
+            <span className="label">
+              {stage.label}{summary}
+              {isTranscribeRunning ? (
+                <span
+                  className="transcribe-eta"
+                  style={{ marginLeft: 8, color: "var(--text-dim)", fontSize: 12 }}
+                >
+                  Aligning lyrics — about {transcribeEtaSeconds(song)} seconds left
+                </span>
+              ) : null}
+            </span>
             <button
               onClick={() => onClick(stage.stageName, stage.label, isRedo)}
-              disabled={busy === stage.stageName}
+              disabled={busy === stage.stageName || isTranscribeRunning}
               title={isRedo
                 ? `Re-run ${stage.label} (marks downstream stages stale)`
                 : `Run ${stage.label}`}
             >
-              {busy === stage.stageName ? "…" : (isRedo ? "↻" : "▶")}
+              {busy === stage.stageName || isTranscribeRunning
+                ? "…"
+                : (isRedo ? "↻" : "▶")}
             </button>
+            {isTranscribeFailed ? (
+              <div
+                className="transcribe-failed"
+                role="alert"
+                style={{
+                  flexBasis: "100%",
+                  marginTop: 4,
+                  padding: "6px 8px",
+                  background: "rgba(224, 96, 96, 0.08)",
+                  borderLeft: "3px solid #e06060",
+                  color: "#e06060",
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span style={{ flex: 1 }}>
+                  {latestTranscribe?.error ?? "Transcribe failed"}
+                </span>
+                <button
+                  onClick={() => void trigger("transcribe", true)}
+                  disabled={busy === "transcribe"}
+                >
+                  Try again
+                </button>
+              </div>
+            ) : null}
           </div>
         );
       })}
