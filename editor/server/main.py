@@ -15,6 +15,7 @@ from .api import (
     scenes,
     songs,
     stages as stages_api,
+    test_only as test_only_api,
 )
 from .importer import import_all
 from .regen.queue import configure_queues
@@ -52,6 +53,8 @@ def create_app() -> FastAPI:
     app.include_router(regen_api.events_router)  # /events/regen
     app.include_router(stages_api.router, prefix="/api")
     app.include_router(assets.router)
+    if test_only_api.is_enabled():
+        app.include_router(test_only_api.router, prefix="/api")
 
     @app.get("/healthz")
     def healthz():
