@@ -216,7 +216,7 @@ def build_shots(
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--song", required=True, choices=["busy-invisible", "chronophobia", "my-little-blackbird"])
+    ap.add_argument("--song", required=True, help="song slug")
     ap.add_argument("--whisperx", required=True, help="aligned.json path")
     ap.add_argument("--lyrics", required=True, help="lyrics .txt path")
     ap.add_argument("--out", required=True, help="shots.json output path")

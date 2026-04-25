@@ -127,6 +127,7 @@ def run_gen_keyframes_for_stage(
             song_slug=song_slug, paths=paths, source_run_id=source_run_id,
             progress_cb=progress_cb, db_path=Path(db_path),
             song_quality_mode=song_quality_mode,
+            music_root=Path(music_root), outputs_root=Path(outputs_root),
         )
 
     # shots.json must exist before gen_keyframes can run.
@@ -192,36 +193,96 @@ def _run_transcribe(
     progress_cb: Optional[Callable[[ProgressEvent], None]],
     db_path: Path,
     song_quality_mode: str,
+    music_root: Path,
+    outputs_root: Path,
 ) -> StageResult:
-    """Produce shots.json. Uses pocs/29-full-song/scripts/make_shots.py.
+    """Produce shots.json. Two subprocesses:
+       1. whisperx_align.py — runs WhisperX forced alignment IF the cached
+          aligned.json doesn't already exist for this slug.
+       2. make_shots.py — derives shots from the alignment + lyric file.
+    Then re-imports the song so the newly-produced scenes land in the DB.
 
-    If shots.json already exists and the lyrics/wav haven't changed, make_shots
-    is a no-op — safe to re-run. If WhisperX cache exists in
-    pocs/29-full-song/whisperx_cache/ make_shots uses it; otherwise it runs
-    the full alignment (slow, ~30s per minute of audio).
+    Test harnesses can swap either script via env vars:
+      EDITOR_FAKE_WHISPERX_ALIGN, EDITOR_FAKE_MAKE_SHOTS.
     """
-    script = poc_scripts_root() / "make_shots.py"
-    if not script.exists():
+    poc_root = poc_scripts_root()
+    align_script = Path(
+        os.environ.get("EDITOR_FAKE_WHISPERX_ALIGN", str(poc_root / "whisperx_align.py")),
+    )
+    shots_script = Path(
+        os.environ.get("EDITOR_FAKE_MAKE_SHOTS", str(poc_root / "make_shots.py")),
+    )
+    if not align_script.exists():
         return StageResult(
             ok=False, returncode=126, new_keyframes=0, new_prompts=0,
             stdout_tail="",
-            stderr_tail=f"make_shots.py not found at {script}",
+            stderr_tail=f"whisperx_align.py not found at {align_script}",
             duration_s=0.0,
         )
-    args = [
+    if not shots_script.exists():
+        return StageResult(
+            ok=False, returncode=126, new_keyframes=0, new_prompts=0,
+            stdout_tail="",
+            stderr_tail=f"make_shots.py not found at {shots_script}",
+            duration_s=0.0,
+        )
+
+    # Cache lives next to the scripts dir: pocs/29-full-song/whisperx_cache/.
+    whisperx_cache = poc_root.parent / "whisperx_cache" / f"{song_slug}.aligned.json"
+
+    align_stdout = ""
+    align_stderr = ""
+    align_duration = 0.0
+    if not whisperx_cache.exists():
+        align_args = [
+            "--audio", str(paths.music_wav),
+            "--out", str(whisperx_cache),
+            "--lyrics", str(paths.lyrics_txt),
+        ]
+        align_result = run_script(align_script, align_args, progress_cb=progress_cb)
+        align_stdout = align_result.stdout
+        align_stderr = align_result.stderr
+        align_duration = align_result.duration_s
+        if not align_result.ok:
+            return StageResult(
+                ok=False, returncode=align_result.returncode,
+                new_keyframes=0, new_prompts=0,
+                stdout_tail=_tail(align_stdout),
+                stderr_tail=_tail(align_stderr) or f"whisperx_align failed (code {align_result.returncode})",
+                duration_s=align_duration,
+            )
+
+    # shots.json output dir must exist (run_dir is mkdir'd by the caller, but
+    # be defensive here for direct-test invocations).
+    paths.run_dir.mkdir(parents=True, exist_ok=True)
+    shots_args = [
         "--song", song_slug,
-        "--audio", str(paths.music_wav),
+        "--whisperx", str(whisperx_cache),
         "--lyrics", str(paths.lyrics_txt),
-        "--out-dir", str(paths.run_dir),
+        "--out", str(paths.shots_json),
     ]
-    result = run_script(script, args, progress_cb=progress_cb)
-    # No new takes on transcribe — only shots.json is produced.
+    shots_result = run_script(shots_script, shots_args, progress_cb=progress_cb)
+    if not shots_result.ok:
+        return StageResult(
+            ok=False, returncode=shots_result.returncode,
+            new_keyframes=0, new_prompts=0,
+            stdout_tail=_tail(align_stdout + shots_result.stdout),
+            stderr_tail=_tail(shots_result.stderr) or "make_shots failed",
+            duration_s=align_duration + shots_result.duration_s,
+        )
+
+    # Re-import the song so the newly-produced shots land in the DB as scene
+    # rows. _import_one_song is the same path lifespan startup uses, so this
+    # stays consistent with the rest of the importer's behaviour.
+    from ..importer import _import_one_song
+    _import_one_song(db_path, music_root, outputs_root, paths.music_wav)
+
     return StageResult(
-        ok=result.ok,
-        returncode=result.returncode,
+        ok=True,
+        returncode=shots_result.returncode,
         new_keyframes=0,
         new_prompts=0,
-        stdout_tail=_tail(result.stdout),
-        stderr_tail=_tail(result.stderr),
-        duration_s=result.duration_s,
+        stdout_tail=_tail(align_stdout + shots_result.stdout),
+        stderr_tail=_tail(align_stderr + shots_result.stderr),
+        duration_s=align_duration + shots_result.duration_s,
     )
