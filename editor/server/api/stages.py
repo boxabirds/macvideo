@@ -142,7 +142,7 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
         # at run time, not at module import.
         import asyncio
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
+        return await loop.run_in_executor(
             None,
             lambda: run_gen_keyframes_for_stage(
                 song_slug=slug_captured,
@@ -225,7 +225,7 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
             async def transcribe_handler(r):  # noqa: ANN001
                 import asyncio
                 loop = asyncio.get_event_loop()
-                await loop.run_in_executor(
+                return await loop.run_in_executor(
                     None,
                     lambda: run_gen_keyframes_for_stage(
                         song_slug=slug_captured,
@@ -260,7 +260,7 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
                 async def chain_handler(r):  # noqa: ANN001
                     import asyncio
                     loop = asyncio.get_event_loop()
-                    await loop.run_in_executor(
+                    return await loop.run_in_executor(
                         None,
                         lambda: run_gen_keyframes_for_stage(
                             song_slug=slug_captured,

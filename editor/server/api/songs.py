@@ -323,7 +323,7 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
 
         async def handler(r):  # noqa: ANN001
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
+            return await loop.run_in_executor(
                 None,
                 lambda: run_gen_keyframes_for_stage(
                     song_slug=slug_captured,
