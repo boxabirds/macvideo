@@ -21,6 +21,7 @@ verify the orchestration layer without Gemini calls.
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import shutil
 import time
@@ -187,6 +188,40 @@ def run_gen_keyframes_for_stage(
     )
 
 
+def _load_lyric_cleaner() -> Callable[[str], list[str]]:
+    """Import clean_lyrics_lines from make_shots.py at call time.
+
+    Single source of truth for "what counts as a recognisable lyric line".
+    Loaded via importlib so we don't have to mutate sys.path globally.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "_make_shots_for_preflight", poc_scripts_root() / "make_shots.py",
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.clean_lyrics_lines
+
+
+def _preflight_transcribe(slug: str, paths: SongPaths) -> Optional[str]:
+    """Return a human-readable reason why transcribe cannot run, or None.
+
+    Surfaces the failure to the user before any subprocess is spawned, so
+    the editor's transcribe row can display a clear message instead of a
+    generic non-zero exit from WhisperX.
+    """
+    if not paths.music_wav.exists():
+        return f"expected music/{slug}.wav to exist"
+    if not paths.lyrics_txt.exists():
+        return (
+            f"expected music/{slug}.txt to exist — add a lyric file, "
+            "one line per lyric"
+        )
+    cleaned = _load_lyric_cleaner()(paths.lyrics_txt.read_text())
+    if not cleaned:
+        return f"music/{slug}.txt has no recognisable lyric lines"
+    return None
+
+
 def _run_transcribe(
     *, song_slug: str, paths: SongPaths,
     source_run_id: Optional[int],
@@ -205,6 +240,13 @@ def _run_transcribe(
     Test harnesses can swap either script via env vars:
       EDITOR_FAKE_WHISPERX_ALIGN, EDITOR_FAKE_MAKE_SHOTS.
     """
+    reason = _preflight_transcribe(song_slug, paths)
+    if reason is not None:
+        return StageResult(
+            ok=False, returncode=1, new_keyframes=0, new_prompts=0,
+            stdout_tail="", stderr_tail=reason, duration_s=0.0,
+        )
+
     poc_root = poc_scripts_root()
     align_script = Path(
         os.environ.get("EDITOR_FAKE_WHISPERX_ALIGN", str(poc_root / "whisperx_align.py")),
