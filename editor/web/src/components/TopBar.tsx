@@ -126,13 +126,22 @@ function ConfirmationModal({
   };
   const [label, from] = labels[kind];
   const isCosmetic = kind === "quality_mode";
+  // Fresh-setup: nothing has been picked or generated yet. Picking filter or
+  // abstraction here is initial pipeline kick-off, not destructive replacement,
+  // so the standard modal's "regenerate / N keyframes / N clips marked stale"
+  // copy reads as nonsense.
+  const isFresh = song.filter == null
+    && song.abstraction == null
+    && song.world_brief == null
+    && song.scenes.length === 0;
+  const isFreshSetup = isFresh && (kind === "filter" || kind === "abstraction");
 
   // For filter/abstraction changes, fetch the authoritative estimate from
   // /preview-change so the numbers match what the backend will actually do.
   const [preview, setPreview] = useState<ChainPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   useEffect(() => {
-    if (isCosmetic) return;
+    if (isCosmetic || isFreshSetup) return;
     let cancelled = false;
     previewChange(song.slug, {
       [kind]: kind === "abstraction" ? Number(newValue) : String(newValue),
@@ -140,7 +149,32 @@ function ConfirmationModal({
       .then(p => { if (!cancelled) setPreview(p); })
       .catch(e => { if (!cancelled) setPreviewError(String(e)); });
     return () => { cancelled = true; };
-  }, [isCosmetic, song.slug, kind, newValue]);
+  }, [isCosmetic, isFreshSetup, song.slug, kind, newValue]);
+
+  if (isFreshSetup) {
+    return (
+      <div className="dialog-backdrop" role="dialog" aria-modal="true">
+        <div className="dialog">
+          <h2>Set {label}</h2>
+          <div className="body">
+            <p>
+              Setting {label} to <b>{String(newValue)}</b> will start the pipeline —
+              world description, then storyboard, then scene prompts. You can
+              regenerate or edit any of these later.
+            </p>
+            <dl>
+              <dt>Estimated cost</dt>
+              <dd>~2 Gemini calls · ~$0.01</dd>
+            </dl>
+          </div>
+          <div className="actions">
+            <button onClick={onCancel}>Cancel</button>
+            <button className="primary" onClick={onConfirm}>Set {label}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const cost = isCosmetic
     ? "No Gemini calls"

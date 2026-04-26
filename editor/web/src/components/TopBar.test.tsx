@@ -102,6 +102,42 @@ describe("TopBar", () => {
     expect(urls.some(u => u.includes("/preview-change"))).toBe(false);
   });
 
+  it("fresh-song filter pick shows 'Set filter' setup modal — no destructive copy, no preview-change fetch", async () => {
+    const fetchSpy = vi.fn();
+    // @ts-expect-error
+    globalThis.fetch = fetchSpy;
+    const fresh = makeSong({
+      filter: null, abstraction: null,
+      world_brief: null, sequence_arc: null, scenes: [],
+    });
+    render(<MemoryRouter><TopBar song={fresh} onSongUpdate={() => {}} onBack={() => {}} /></MemoryRouter>);
+    await userEvent.selectOptions(screen.getAllByRole("combobox")[0] as HTMLSelectElement, "charcoal");
+    expect(screen.getByRole("heading", { name: /set filter/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /confirm filter change/i })).not.toBeInTheDocument();
+    // Vacuous "0 …" lines from the destructive modal must NOT appear.
+    expect(screen.queryByText(/will be marked stale/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Estimated time/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/keyframes/i)).not.toBeInTheDocument();
+    // Confirm button reads "Set filter", not "Apply change".
+    expect(screen.getByRole("button", { name: /set filter/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /apply change/i })).not.toBeInTheDocument();
+    // No backend call wasted on a fresh-setup estimate.
+    await new Promise(r => setTimeout(r, 30));
+    const urls = fetchSpy.mock.calls.map(c => c[0] as string);
+    expect(urls.some(u => u.includes("/preview-change"))).toBe(false);
+  });
+
+  it("fresh-song abstraction pick shows 'Set abstraction' setup modal", async () => {
+    const fresh = makeSong({
+      filter: null, abstraction: null,
+      world_brief: null, sequence_arc: null, scenes: [],
+    });
+    render(<MemoryRouter><TopBar song={fresh} onSongUpdate={() => {}} onBack={() => {}} /></MemoryRouter>);
+    await userEvent.selectOptions(screen.getAllByRole("combobox")[1] as HTMLSelectElement, "75");
+    expect(screen.getByRole("heading", { name: /set abstraction/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /confirm abstraction change/i })).not.toBeInTheDocument();
+  });
+
   it("disables confirm when preview-change reports a conflict", async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200,
