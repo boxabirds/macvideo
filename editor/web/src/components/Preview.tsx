@@ -1,7 +1,8 @@
 // Story 2 — Preview pane. Audio element is single source of truth for
-// playhead; viewer re-syncs on audio events. Timeline strip of keyframe
-// thumbnails drives seek.
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+// playhead. The useAudioPlayback hook (story 13) owns audio events; Preview
+// only consumes its outputs and never writes audio.currentTime in response
+// to a state change.
+import { memo, useCallback, useEffect, useRef } from "react";
 import type { Scene, SongDetail } from "../types";
 import { assetUrl } from "../format";
 
@@ -10,21 +11,9 @@ import { assetUrl } from "../format";
 // consistently.
 const TIMELINE_SCROLL_OVERRIDE_MS = 3000;
 
-function findSceneAt(scenes: Scene[], t: number): Scene | null {
-  if (scenes.length === 0) return null;
-  for (const s of scenes) {
-    if (t >= s.start_s && t < s.end_s) return s;
-  }
-  // Nearest shot by time — never fall back to the last shot of the song
-  // (that was the preview.html bug).
-  let best = scenes[0]!;
-  let bestDist = Infinity;
-  for (const s of scenes) {
-    const d = Math.min(Math.abs(t - s.start_s), Math.abs(t - s.end_s));
-    if (d < bestDist) { bestDist = d; best = s; }
-  }
-  return best;
-}
+// Threshold for video resync (story 2 invariant): only nudge the video
+// element if it has drifted more than this many seconds from the audio.
+const VIDEO_SYNC_DRIFT_S = 0.35;
 
 const Thumbnail = memo(function Thumbnail({
   scene, current, onClick, thumbRef,
@@ -46,73 +35,86 @@ const Thumbnail = memo(function Thumbnail({
   );
 });
 
+type PreviewProps = {
+  song: SongDetail;
+  audioRef: React.RefObject<HTMLAudioElement | null>;
+  playingSceneIdx: number | null;
+  onSeekToScene: (idx: number) => void;
+};
+
 export default function Preview({
-  song, currentIdx, onSceneChange,
-}: { song: SongDetail; currentIdx: number | null; onSceneChange?: (idx: number) => void }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
+  song, audioRef, playingSceneIdx, onSeekToScene,
+}: PreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const thumbRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastTimelineUserScrollAt = useRef<number>(0);
-  const [playhead, setPlayhead] = useState(0);
-  const [viewerScene, setViewerScene] = useState<Scene | null>(
-    song.scenes.length ? song.scenes[0]! : null,
-  );
 
-  const audioSrc = useMemo(() => assetUrl(song.audio_path), [song.audio_path]);
+  const audioSrc = assetUrl(song.audio_path);
 
-  // Audio-event-driven re-sync of viewer state.
+  // viewerScene is derived from props. No state. The hook decides which
+  // scene is "playing"; Preview just renders it.
+  const viewerScene =
+    (playingSceneIdx != null
+      ? song.scenes.find(s => s.index === playingSceneIdx)
+      : undefined) ?? song.scenes[0] ?? null;
+
+  // Video sync: when a clip is selected, drive the <video> element from the
+  // audio's currentTime via requestAnimationFrame while audio is playing.
+  // This keeps video aligned without subscribing the React tree to
+  // timeupdate events.
   useEffect(() => {
     const a = audioRef.current;
-    if (!a) return;
-    const onTime = () => {
-      const t = a.currentTime;
-      setPlayhead(t);
-      const s = findSceneAt(song.scenes, t);
-      if (s && s.index !== viewerScene?.index) {
-        setViewerScene(s);
-        onSceneChange?.(s.index);
+    const v = videoRef.current;
+    if (!a || !v || !viewerScene?.selected_clip_path) return;
+    let rafId: number | null = null;
+    let running = false;
+    const tick = () => {
+      const audioEl = audioRef.current;
+      const videoEl = videoRef.current;
+      if (!audioEl || !videoEl) { running = false; return; }
+      const offset = Math.max(0, audioEl.currentTime - viewerScene.start_s);
+      if (videoEl.readyState >= 1 && Math.abs(videoEl.currentTime - offset) > VIDEO_SYNC_DRIFT_S) {
+        videoEl.currentTime = Math.max(
+          0,
+          Math.min(offset, (videoEl.duration || viewerScene.target_duration_s) - 0.01),
+        );
       }
+      if (!audioEl.paused && videoEl.paused) videoEl.play().catch(() => {});
+      if (audioEl.paused && !videoEl.paused) videoEl.pause();
+      if (running) rafId = requestAnimationFrame(tick);
     };
-    const onSeeked = () => onTime();
-    a.addEventListener("timeupdate", onTime);
-    a.addEventListener("seeked", onSeeked);
-    a.addEventListener("play", onTime);
-    a.addEventListener("pause", onTime);
+    const onPlay = () => {
+      if (running) return;
+      running = true;
+      rafId = requestAnimationFrame(tick);
+    };
+    const onPause = () => {
+      running = false;
+      if (rafId != null) cancelAnimationFrame(rafId);
+      rafId = null;
+      // One last sync pass so video lands cleanly on pause.
+      tick();
+    };
+    a.addEventListener("play", onPlay);
+    a.addEventListener("pause", onPause);
+    a.addEventListener("seeked", tick);
+    // If audio is already playing when the effect mounts (e.g. clip just got
+    // selected mid-song), kick the loop off immediately.
+    if (!a.paused) onPlay();
+    else tick();
     return () => {
-      a.removeEventListener("timeupdate", onTime);
-      a.removeEventListener("seeked", onSeeked);
-      a.removeEventListener("play", onTime);
-      a.removeEventListener("pause", onTime);
+      a.removeEventListener("play", onPlay);
+      a.removeEventListener("pause", onPause);
+      a.removeEventListener("seeked", tick);
+      running = false;
+      if (rafId != null) cancelAnimationFrame(rafId);
     };
-  }, [song.scenes, viewerScene?.index, onSceneChange]);
+  }, [audioRef, viewerScene?.selected_clip_path, viewerScene?.start_s, viewerScene?.target_duration_s]);
 
-  // Jump to a scene when the user clicks in the LHS editor.
-  useEffect(() => {
-    if (currentIdx == null || !audioRef.current) return;
-    const s = song.scenes.find(x => x.index === currentIdx);
-    if (s && Math.abs(audioRef.current.currentTime - s.start_s) > 0.2) {
-      audioRef.current.currentTime = s.start_s;
-    }
-  }, [currentIdx, song.scenes]);
-
-  // Sync video element to the scene + playhead offset.
-  useEffect(() => {
-    if (!viewerScene || !videoRef.current) return;
-    if (viewerScene.selected_clip_path) {
-      const offset = Math.max(0, playhead - viewerScene.start_s);
-      const v = videoRef.current;
-      if (v.readyState >= 1 && Math.abs(v.currentTime - offset) > 0.35) {
-        v.currentTime = Math.max(0, Math.min(offset, (v.duration || viewerScene.target_duration_s) - 0.01));
-      }
-      if (!audioRef.current?.paused && v.paused) v.play().catch(() => {});
-      if (audioRef.current?.paused && !v.paused) v.pause();
-    }
-  }, [viewerScene, playhead]);
-
-  const onSeekToScene = useCallback((s: Scene) => {
-    if (audioRef.current) audioRef.current.currentTime = s.start_s;
-  }, []);
+  const handleThumbnailClick = useCallback((s: Scene) => {
+    onSeekToScene(s.index);
+  }, [onSeekToScene]);
 
   // Track user scroll gestures on the timeline so the auto-follow effect
   // doesn't fight them. Same pattern as Storyboard's scroll-follow.
@@ -191,7 +193,7 @@ export default function Preview({
             key={scene.index}
             scene={scene}
             current={scene.index === viewerScene?.index}
-            onClick={() => onSeekToScene(scene)}
+            onClick={() => handleThumbnailClick(scene)}
             thumbRef={el => {
               if (el) thumbRefs.current.set(scene.index, el);
               else thumbRefs.current.delete(scene.index);

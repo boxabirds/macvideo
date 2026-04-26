@@ -111,8 +111,8 @@ function chipStateFor(
 type Props = {
   song: SongDetail;
   cameraIntents: string[];
-  currentIdx: number | null;
-  onSelect: (idx: number) => void;
+  playingSceneIdx: number | null;
+  onSeekToScene: (idx: number) => void;
   onPatch: (idx: number, updated: Scene) => void;
   // Optional map of scene_index → set of artefacts currently regenerating.
   // Drives the "in-progress" state on status chips. Absent during unit
@@ -470,7 +470,7 @@ function RegenActions({
 }
 
 export default function Storyboard({
-  song, cameraIntents, currentIdx, onSelect, onPatch, activeRegens,
+  song, cameraIntents, playingSceneIdx, onSeekToScene, onPatch, activeRegens,
 }: Props) {
   // Collect refs to scene rows so the parent can scroll the current scene
   // into view when the preview advances it.
@@ -542,12 +542,12 @@ export default function Storyboard({
 
   // Scroll the current scene into view unless the user has scrolled recently.
   useEffect(() => {
-    if (currentIdx == null) return;
+    if (playingSceneIdx == null) return;
     const now = Date.now();
     if (now - lastUserScrollAt.current < SCROLL_OVERRIDE_MS) return;
-    const row = rowRefs.current.get(currentIdx);
+    const row = rowRefs.current.get(playingSceneIdx);
     if (row) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [currentIdx]);
+  }, [playingSceneIdx]);
 
   const emptyActive = useRef<Set<ActiveArtefacts>>(new Set());
 
@@ -559,8 +559,8 @@ export default function Storyboard({
           slug={song.slug}
           scene={scene}
           cameraIntents={cameraIntents}
-          current={scene.index === currentIdx}
-          onClick={() => onSelect(scene.index)}
+          current={scene.index === playingSceneIdx}
+          onClick={() => onSeekToScene(scene.index)}
           onPatch={updated => onPatch(scene.index, updated)}
           rowRef={el => {
             if (el) rowRefs.current.set(scene.index, el);

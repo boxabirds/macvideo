@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Preview from "./Preview";
 import type { Scene, SongDetail } from "../types";
@@ -36,64 +37,101 @@ function makeSong(scenes: Scene[]): SongDetail {
   };
 }
 
+// Test harness: Preview now requires a parent-supplied audioRef. Real
+// SongEditor gets it from useAudioPlayback; tests just create a local ref.
+function PreviewHarness({
+  song, playingSceneIdx, onSeekToScene = () => {},
+}: {
+  song: SongDetail;
+  playingSceneIdx: number | null;
+  onSeekToScene?: (idx: number) => void;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  return (
+    <Preview
+      song={song}
+      audioRef={audioRef}
+      playingSceneIdx={playingSceneIdx}
+      onSeekToScene={onSeekToScene}
+    />
+  );
+}
+
 afterEach(() => vi.restoreAllMocks());
 
 describe("Preview", () => {
   it("renders a keyframe still when no clip exists", () => {
-    const { container } = render(<Preview song={makeSong([makeScene(1), makeScene(2)])} currentIdx={null} />);
+    const { container } = render(
+      <PreviewHarness song={makeSong([makeScene(1), makeScene(2)])} playingSceneIdx={null} />,
+    );
     const imgs = container.querySelectorAll("img");
     expect(imgs.length).toBeGreaterThan(0);
   });
 
   it("renders a clip video when a clip is selected", () => {
     const scenes = [makeScene(1, { selected_clip_path: "/x/pocs/29-full-song/outputs/tiny/clips/clip_001.mp4" })];
-    const { container } = render(<Preview song={makeSong(scenes)} currentIdx={1} />);
+    const { container } = render(
+      <PreviewHarness song={makeSong(scenes)} playingSceneIdx={1} />,
+    );
     expect(container.querySelector("video")).toBeTruthy();
   });
 
   it("renders a thumbnail per scene in the timeline", () => {
     const scenes = [makeScene(1), makeScene(2), makeScene(3)];
-    const { container } = render(<Preview song={makeSong(scenes)} currentIdx={null} />);
+    const { container } = render(
+      <PreviewHarness song={makeSong(scenes)} playingSceneIdx={null} />,
+    );
     const thumbs = container.querySelectorAll(".thumb");
     expect(thumbs.length).toBe(3);
   });
 
   it("renders a neutral placeholder when asset is missing", () => {
     const s = makeScene(1, { missing_assets: ["keyframe"], selected_keyframe_path: null });
-    render(<Preview song={makeSong([s])} currentIdx={1} />);
+    render(<PreviewHarness song={makeSong([s])} playingSceneIdx={1} />);
     expect(screen.getByText(/no asset|no scene/i)).toBeInTheDocument();
   });
 
-  it("advances the viewer via audio timeupdate events (audio is the playhead)", async () => {
+  it("renders the scene named by playingSceneIdx in the viewer caption (story 13)", () => {
     const scenes = [makeScene(1), makeScene(2), makeScene(3)];
-    const { container } = render(<Preview song={makeSong(scenes)} currentIdx={null} />);
-    const audio = container.querySelector("audio")!;
-    // jsdom fires events but doesn't advance currentTime on its own.
-    Object.defineProperty(audio, "currentTime", { value: 2.5, writable: true });
-    await act(async () => {
-      audio.dispatchEvent(new Event("timeupdate"));
-    });
-    // Caption updates to the scene at t=2.5 (scene #3 starts at index 3 i.e. 3s;
-    // at t=2.5 we're in scene #2 range which the findSceneAt helper returns).
+    const { container } = render(
+      <PreviewHarness song={makeSong(scenes)} playingSceneIdx={3} />,
+    );
     const caption = container.querySelector(".caption");
-    expect(caption?.textContent).toMatch(/#2|#3/);
+    expect(caption?.textContent).toMatch(/#3/);
   });
 
-  it("seeks audio when a timeline thumbnail is clicked", () => {
-    const scenes = [makeScene(1), makeScene(2)];
-    const { container } = render(<Preview song={makeSong(scenes)} currentIdx={null} />);
-    const audio = container.querySelector("audio")!;
-    // Spy on currentTime setter
-    let setTo: number | null = null;
-    Object.defineProperty(audio, "currentTime", {
+  it("changing playingSceneIdx updates the highlighted thumbnail without writing to audio (story 13)", async () => {
+    const scenes = [makeScene(1), makeScene(2), makeScene(3)];
+    let writeCount = 0;
+    // Spy on currentTime setter on every <audio> rendered into the document.
+    Object.defineProperty(HTMLAudioElement.prototype, "currentTime", {
       get() { return 0; },
-      set(v) { setTo = v; },
+      set() { writeCount++; },
       configurable: true,
     });
+    const { container, rerender } = render(
+      <PreviewHarness song={makeSong(scenes)} playingSceneIdx={1} />,
+    );
+    expect(container.querySelector(".thumb.current")?.textContent).toContain("#1");
+    await act(async () => {
+      rerender(<PreviewHarness song={makeSong(scenes)} playingSceneIdx={2} />);
+    });
+    expect(container.querySelector(".thumb.current")?.textContent).toContain("#2");
+    // The bug: a useEffect keyed off currentIdx wrote audio.currentTime when
+    // the prop changed. Fixed: no effect writes audio in response to a
+    // playingSceneIdx change.
+    expect(writeCount).toBe(0);
+  });
+
+  it("clicking a timeline thumbnail invokes onSeekToScene (not a direct audio write) (story 13)", () => {
+    const scenes = [makeScene(1), makeScene(2)];
+    const onSeekToScene = vi.fn();
+    const { container } = render(
+      <PreviewHarness song={makeSong(scenes)} playingSceneIdx={null} onSeekToScene={onSeekToScene} />,
+    );
     const thumbs = container.querySelectorAll(".thumb");
     (thumbs[1] as HTMLElement).click();
-    // Scene 2 starts at start_s=2
-    expect(setTo).toBe(2);
+    expect(onSeekToScene).toHaveBeenCalledWith(2);
   });
 
   it("exposes a fullscreen toggle and calls requestFullscreen on click", async () => {
@@ -102,7 +140,7 @@ describe("Preview", () => {
     Element.prototype.requestFullscreen = requestSpy;
     Object.defineProperty(document, "fullscreenElement", { value: null, configurable: true });
 
-    render(<Preview song={makeSong([makeScene(1)])} currentIdx={1} />);
+    render(<PreviewHarness song={makeSong([makeScene(1)])} playingSceneIdx={1} />);
     const button = screen.getByRole("button", { name: /full-screen/i });
     button.click();
     expect(requestSpy).toHaveBeenCalled();

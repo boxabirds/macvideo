@@ -1,7 +1,7 @@
 // The storyboard editor for one song. Composes preview (story 2), storyboard
 // (story 3), pipeline panel (story 9), top bar (stories 4, 8, 10), and split
 // pane (story 6).
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import useSWR from "swr";
 import { fetcher } from "../api";
@@ -12,6 +12,7 @@ import SplitPane from "../components/SplitPane";
 import Storyboard from "../components/Storyboard";
 import Preview from "../components/Preview";
 import PipelinePanel from "../components/PipelinePanel";
+import { useAudioPlayback } from "../hooks/useAudioPlayback";
 
 // Poll interval for active regens. Short enough that the UI spinner feels
 // responsive without hammering the backend for a rarely-changing query.
@@ -26,6 +27,24 @@ export default function SongEditor() {
   const { data: song, error, mutate } = useSWR<SongDetail>(
     slug ? `/api/songs/${slug}` : null, fetcher,
   );
+
+  if (error) return <div className="error-card">Could not load song: {String(error)}</div>;
+  if (!song) return <div className="empty-state">Loading…</div>;
+
+  return <SongEditorInner song={song} mutate={mutate} onBack={() => navigate("/")} />;
+}
+
+// Inner component receives a guaranteed-loaded song. This lets useAudioPlayback
+// (which subscribes to the audio element via ref) mount only once Preview's
+// <audio> element exists, so the subscription effect attaches on first commit
+// rather than skipping with a null ref.
+function SongEditorInner({
+  song, mutate, onBack,
+}: {
+  song: SongDetail;
+  mutate: (next: SongDetail, opts?: { revalidate?: boolean }) => void;
+  onBack: () => void;
+}) {
   const { data: intents } = useSWR<{ values: string[] }>(
     "/api/camera-intents", fetcher,
   );
@@ -34,7 +53,7 @@ export default function SongEditor() {
   // Single poll feeds both Storyboard (active scenes) and PipelinePanel
   // (transcribe state) so we don't add a second request.
   const { data: regenRunsResponse } = useSWR<{ runs: RegenRunSummary[] }>(
-    slug ? `/api/songs/${slug}/regen` : null,
+    `/api/songs/${song.slug}/regen`,
     fetcher,
     { refreshInterval: ACTIVE_REGEN_POLL_MS },
   );
@@ -54,17 +73,17 @@ export default function SongEditor() {
     return map;
   }, [regenRuns]);
 
-  // Derive a "status" object for the pipeline panel from the song detail.
-  const [currentIdx, setCurrentIdx] = useState<number | null>(null);
+  // Single source of truth for "what scene is playing" — the audio element.
+  // useAudioPlayback owns the audio events and exposes playingSceneIdx +
+  // seekToScene. Storyboard click → seekToScene; no separate currentIdx state.
+  const { audioRef, playingSceneIdx, seekToScene } = useAudioPlayback({
+    scenes: song.scenes,
+  });
 
   const onScenePatched = useCallback((idx: number, updated: Scene) => {
-    if (!song) return;
     const nextScenes = song.scenes.map(s => s.index === idx ? updated : s);
     mutate({ ...song, scenes: nextScenes }, { revalidate: false });
   }, [song, mutate]);
-
-  if (error) return <div className="error-card">Could not load song: {String(error)}</div>;
-  if (!song) return <div className="empty-state">Loading…</div>;
 
   const status = {
     transcription: song.scenes.length > 0 ? "done" as const : "empty" as const,
@@ -82,7 +101,7 @@ export default function SongEditor() {
       <TopBar
         song={song}
         onSongUpdate={s => mutate(s, { revalidate: false })}
-        onBack={() => navigate("/")}
+        onBack={onBack}
       />
       <PipelinePanel
         song={song}
@@ -95,8 +114,8 @@ export default function SongEditor() {
           <Storyboard
             song={song}
             cameraIntents={intents?.values ?? []}
-            currentIdx={currentIdx}
-            onSelect={setCurrentIdx}
+            playingSceneIdx={playingSceneIdx}
+            onSeekToScene={seekToScene}
             onPatch={onScenePatched}
             activeRegens={activeRegens}
           />
@@ -104,8 +123,9 @@ export default function SongEditor() {
         right={
           <Preview
             song={song}
-            currentIdx={currentIdx}
-            onSceneChange={setCurrentIdx}
+            audioRef={audioRef}
+            playingSceneIdx={playingSceneIdx}
+            onSeekToScene={seekToScene}
           />
         }
       />

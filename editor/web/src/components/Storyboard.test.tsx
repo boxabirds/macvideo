@@ -63,7 +63,7 @@ describe("Storyboard", () => {
   it("renders one scene row per scene", () => {
     const song = makeSong([makeScene({ index: 1 }), makeScene({ index: 2 })]);
     render(<Storyboard song={song} cameraIntents={["static hold", "slow push in"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     expect(screen.getByText("line 1")).toBeInTheDocument();
     expect(screen.getByText("line 2")).toBeInTheDocument();
   });
@@ -72,7 +72,7 @@ describe("Storyboard", () => {
     const song = makeSong([makeScene({ index: 1 })]);
     const { container } = render(
       <Storyboard song={song} cameraIntents={["static hold"]}
-        currentIdx={null} onSelect={() => {}} onPatch={() => {}} />,
+        playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />,
     );
     expect(container.querySelector(".scene-row.collapsed")).toBeInTheDocument();
     // Body hidden → no beat textarea in the DOM.
@@ -83,7 +83,7 @@ describe("Storyboard", () => {
     const song = makeSong([makeScene({ index: 1 })]);
     const { container } = render(
       <Storyboard song={song} cameraIntents={["static hold"]}
-        currentIdx={null} onSelect={() => {}} onPatch={() => {}} />,
+        playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />,
     );
     const expando = container.querySelector<HTMLButtonElement>(".expando")!;
     await userEvent.click(expando);
@@ -95,7 +95,7 @@ describe("Storyboard", () => {
     const song = makeSong([makeScene({ index: 1, start_s: 0.0, end_s: 3.3 })]);
     const { container } = render(
       <Storyboard song={song} cameraIntents={["static hold"]}
-        currentIdx={null} onSelect={() => {}} onPatch={() => {}} />,
+        playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />,
     );
     expect(container.querySelector(".scene-time")?.textContent).toBe(
       "[0.0s – 3.3s]",
@@ -114,7 +114,7 @@ describe("Storyboard", () => {
 
     const { container } = render(
       <Storyboard song={song} cameraIntents={["static hold"]}
-        currentIdx={null} onSelect={() => {}} onPatch={onPatch} />,
+        playingSceneIdx={null} onSeekToScene={() => {}} onPatch={onPatch} />,
     );
     const titleSpan = container.querySelector<HTMLElement>(".scene-title-text")!;
     await userEvent.click(titleSpan);
@@ -143,7 +143,7 @@ describe("Storyboard", () => {
     globalThis.fetch = fetchSpy;
 
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={onPatch} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={onPatch} />);
     await expandAll(container);
 
     const beatField = screen.getByDisplayValue("old");
@@ -162,7 +162,7 @@ describe("Storyboard", () => {
       makeScene({ index: 1, prompt_is_user_authored: true }),
     ]);
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     await expandAll(container);
     expect(screen.getByText(/hand-authored/i)).toBeInTheDocument();
   });
@@ -174,7 +174,7 @@ describe("Storyboard", () => {
       }),
     ]);
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     const kfChip = container.querySelector(".chip.keyframe");
     expect(kfChip).toHaveClass("done");
   });
@@ -187,7 +187,7 @@ describe("Storyboard", () => {
       }),
     ]);
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     const kfChip = container.querySelector(".chip.keyframe");
     expect(kfChip).toHaveClass("pending");
   });
@@ -200,7 +200,7 @@ describe("Storyboard", () => {
       }),
     ]);
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     const kfChip = container.querySelector(".chip.keyframe");
     expect(kfChip).toHaveClass("error");
   });
@@ -212,7 +212,7 @@ describe("Storyboard", () => {
     const activeRegens = { 1: new Set<"keyframe" | "clip">(["keyframe"]) };
     const { container } = render(
       <Storyboard song={song} cameraIntents={["static hold"]}
-        currentIdx={null} onSelect={() => {}} onPatch={() => {}}
+        playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}}
         activeRegens={activeRegens} />,
     );
     const kfChip = container.querySelector(".chip.keyframe");
@@ -225,7 +225,7 @@ describe("Storyboard", () => {
     stubFetchEcho();
     const song = makeSong([makeScene({ index: 1, beat: "old" })]);
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     await expandAll(container);
     const beatField = screen.getByDisplayValue("old");
     await userEvent.type(beatField, "X");
@@ -243,7 +243,7 @@ describe("Storyboard", () => {
     globalThis.fetch = fetchSpy;
 
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     await expandAll(container);
     const beatField = screen.getByDisplayValue("old");
     await userEvent.tripleClick(beatField);
@@ -260,7 +260,7 @@ describe("Storyboard", () => {
     const song = makeSong([makeScene({ index: 1, beat: "stable" })]);
     const fetchSpy = stubFetchEcho();
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     await expandAll(container);
     const beatField = screen.getByDisplayValue("stable");
     beatField.focus();
@@ -277,7 +277,7 @@ describe("Storyboard", () => {
     globalThis.fetch = fetchSpy;
 
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     await expandAll(container);
     const beatField = screen.getByDisplayValue("old");
     await userEvent.tripleClick(beatField);
@@ -290,6 +290,18 @@ describe("Storyboard", () => {
     expect(errBadge?.getAttribute("title")).toMatch(/offline/i);
   });
 
+  it("scene-row click invokes onSeekToScene with the scene's index (story 13)", async () => {
+    const song = makeSong([makeScene({ index: 1 }), makeScene({ index: 2 })]);
+    const onSeekToScene = vi.fn();
+    const { container } = render(
+      <Storyboard song={song} cameraIntents={["static hold"]}
+        playingSceneIdx={null} onSeekToScene={onSeekToScene} onPatch={() => {}} />,
+    );
+    const headers = container.querySelectorAll<HTMLElement>(".scene-header");
+    await userEvent.click(headers[1]!);
+    expect(onSeekToScene).toHaveBeenCalledWith(2);
+  });
+
   it("scrolls the currently-selected scene into view", () => {
     const song = makeSong([makeScene({ index: 1 }), makeScene({ index: 2 })]);
     const scrollSpy = vi.fn();
@@ -297,9 +309,9 @@ describe("Storyboard", () => {
     Element.prototype.scrollIntoView = scrollSpy;
 
     const { rerender } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     rerender(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={2} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={2} onSeekToScene={() => {}} onPatch={() => {}} />);
     expect(scrollSpy).toHaveBeenCalled();
   });
 
@@ -307,7 +319,7 @@ describe("Storyboard", () => {
     stubFetchEcho();
     const song = makeSong([makeScene({ index: 1 })]);
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     await expandAll(container);
     const btn = screen.getByTitle("regenerate keyframe");
     await userEvent.click(btn);
@@ -324,7 +336,7 @@ describe("Storyboard", () => {
     globalThis.fetch = fetchSpy;
     const song = makeSong([makeScene({ index: 1 })]);
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     await expandAll(container);
     await userEvent.click(screen.getByTitle("regenerate keyframe"));
     await userEvent.click(screen.getByRole("button", { name: /^Regenerate$/i }));
@@ -350,7 +362,7 @@ describe("Storyboard", () => {
     });
     const song = makeSong([makeScene({ index: 1 })]);
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
-      currentIdx={null} onSelect={() => {}} onPatch={() => {}} />);
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
     await expandAll(container);
     await userEvent.click(screen.getByTitle("show takes for this scene"));
     await new Promise(r => setTimeout(r, 10));
