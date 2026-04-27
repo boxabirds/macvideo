@@ -10,7 +10,7 @@ function transcribeRun(overrides: Partial<RegenRunSummary> = {}): RegenRunSummar
     id: 1, scope: "stage_transcribe", song_id: 1, scene_id: null,
     scene_index: null, artefact_kind: null, status: "running",
     quality_mode: null, cost_estimate_usd: null, started_at: 1, ended_at: null,
-    error: null, progress_pct: null, created_at: 1,
+    error: null, progress_pct: null, phase: null, created_at: 1,
     ...overrides,
   };
 }
@@ -319,6 +319,177 @@ describe("PipelinePanel", () => {
     ).toBeInTheDocument();
     // Take-history copy: mentions "creates a new take" not "replace the existing".
     expect(document.body.textContent).toMatch(/creates a new take/i);
+  });
+
+  // ---- Story 14 — audio-transcribe surfaces ----
+
+  it("Story 14: Transcribe-from-audio button appears when transcription is pending and no scenes", () => {
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: /Transcribe from audio/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("Story 14: Transcribe-from-audio button hidden when an audio-transcribe run is in flight", () => {
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({ scope: "stage_audio_transcribe", status: "running" })]}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: /Transcribe from audio/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("Story 14: clicking Transcribe-from-audio opens the first-run confirm modal", async () => {
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+      />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /Transcribe from audio/i }),
+    );
+    expect(screen.getByRole("heading", { name: /Transcribe from audio/i })).toBeInTheDocument();
+    expect(document.body.textContent).toMatch(/separates the vocals/i);
+    expect(screen.getByRole("button", { name: /^Start$/ })).toBeInTheDocument();
+  });
+
+  it("Story 14: Start fires POST /audio-transcribe with force=false", async () => {
+    const fetchSpy = vi.fn(async (url: string) => {
+      if (typeof url === "string" && url.includes("/audio-transcribe")) {
+        return {
+          ok: true, status: 200, json: async () => ({ run_id: 5, status: "pending" }),
+        } as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({ finished: [] }) } as Response;
+    });
+    // @ts-expect-error
+    globalThis.fetch = fetchSpy;
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Transcribe from audio/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^Start$/ }));
+    await new Promise(r => setTimeout(r, 10));
+    const url = fetchSpy.mock.calls.map(c => c[0] as string)
+      .find(u => u.includes("/audio-transcribe"));
+    expect(url).toBeDefined();
+    expect(url!).toContain("force=false");
+  });
+
+  it("Story 14: 409 overwrite_required flips the modal to overwrite copy + force=true on confirm", async () => {
+    let audioTranscribeCalls = 0;
+    const fetchSpy = vi.fn(async (url: string) => {
+      if (typeof url === "string" && url.includes("/audio-transcribe")) {
+        audioTranscribeCalls += 1;
+        if (audioTranscribeCalls === 1) {
+          return {
+            ok: false, status: 409,
+            // FastAPI envelopes HTTPException(detail=...) under {"detail": ...}.
+            json: async () => ({ detail: { code: "overwrite_required" } }),
+          } as Response;
+        }
+        return {
+          ok: true, status: 200,
+          json: async () => ({ run_id: 5, status: "pending" }),
+        } as Response;
+      }
+      // /finished poll on mount + any other request → empty success.
+      return {
+        ok: true, status: 200, json: async () => ({ finished: [] }),
+      } as Response;
+    });
+    // @ts-expect-error
+    globalThis.fetch = fetchSpy;
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Transcribe from audio/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^Start$/ }));
+    await new Promise(r => setTimeout(r, 10));
+    expect(document.body.textContent).toMatch(/already exists/i);
+    await userEvent.click(screen.getByRole("button", { name: /^Overwrite$/ }));
+    await new Promise(r => setTimeout(r, 10));
+    const calls = fetchSpy.mock.calls.map(c => c[0] as string);
+    expect(calls.some(u => u.includes("/audio-transcribe") && u.includes("force=true"))).toBe(true);
+  });
+
+  it("Story 14: phase label 'Separating vocals…' renders for stage_audio_transcribe running run", () => {
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({
+          scope: "stage_audio_transcribe", status: "running",
+          phase: "separating-vocals",
+        })]}
+      />,
+    );
+    expect(document.body.textContent).toMatch(/Separating vocals…/);
+  });
+
+  it("Story 14: phase label 'Transcribing…' renders during the WhisperX phase", () => {
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({
+          scope: "stage_audio_transcribe", status: "running",
+          phase: "transcribing",
+        })]}
+      />,
+    );
+    expect(document.body.textContent).toMatch(/^.*Transcribing….*$/);
+  });
+
+  it("Story 14: phase=null falls back to Story 12 ETA copy", () => {
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [], duration_s: 60 })}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({ scope: "stage_transcribe", status: "running" })]}
+      />,
+    );
+    expect(document.body.textContent).toMatch(/about \d+ seconds left/);
+  });
+
+  it("Story 14: failed audio-transcribe Try-again calls audioTranscribe with force=true", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ run_id: 7, status: "pending" }),
+    } as Response);
+    // @ts-expect-error
+    globalThis.fetch = fetchSpy;
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({
+          scope: "stage_audio_transcribe", status: "failed",
+          error: "demucs blew up", ended_at: 1,
+        })]}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Try again/i }));
+    await new Promise(r => setTimeout(r, 10));
+    const url = fetchSpy.mock.calls.map(c => c[0] as string)
+      .find(u => u.includes("/audio-transcribe"));
+    expect(url).toBeDefined();
+    expect(url!).toContain("force=true");
   });
 
   it("POSTs without confirm for a stage not yet done", async () => {

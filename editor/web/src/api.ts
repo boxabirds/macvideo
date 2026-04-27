@@ -162,6 +162,7 @@ export type RegenRunSummary = {
   ended_at: number | null;
   error: string | null;
   progress_pct: number | null;
+  phase: string | null;
   created_at: number;
 };
 
@@ -174,6 +175,15 @@ export async function listActiveRegens(slug: string): Promise<{ runs: RegenRunSu
 export async function listRecentRegens(slug: string): Promise<{ runs: RegenRunSummary[] }> {
   return handle(await fetch(
     `/api/songs/${encodeURIComponent(slug)}/regen`,
+  ));
+}
+
+export async function audioTranscribe(
+  slug: string, opts: { force: boolean },
+): Promise<{ run_id: number; status: string }> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/audio-transcribe?force=${opts.force}`,
+    { method: "POST" },
   ));
 }
 

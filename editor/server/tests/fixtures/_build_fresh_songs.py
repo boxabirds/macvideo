@@ -21,7 +21,9 @@ WL_DIR = HERE / "fresh-song-with-lyrics"
 NL_DIR = HERE / "fresh-song-no-lyrics"
 
 FRESH_SAMPLE_RATE = 22050
-FRESH_DURATION_S = 0.5
+# Story 14 raised the audio_too_short floor to 1.0s, so the fresh-song
+# fixtures need to clear that bar to exercise the happy path.
+FRESH_DURATION_S = 1.5
 
 
 def _minimal_wav(path: Path, seconds: float = FRESH_DURATION_S,

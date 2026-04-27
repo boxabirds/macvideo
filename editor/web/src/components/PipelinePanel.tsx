@@ -6,7 +6,14 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SongDetail, StageStatus } from "../types";
 import type { RegenRunSummary } from "../api";
-import { patchSong } from "../api";
+import { audioTranscribe, ApiError, patchSong } from "../api";
+
+// Story 14: phase strings emitted by the audio-transcribe orchestrator.
+const PHASE_LABEL: Record<string, string> = {
+  "separating-vocals": "Separating vocals…",
+  "transcribing":      "Transcribing…",
+  "aligning":          "Aligning timings…",
+};
 
 const ETA_FALLBACK_RATIO = 0.5;
 const ETA_DEFAULT_DURATION_S = 60;
@@ -153,7 +160,13 @@ export default function PipelinePanel({
   regenRuns?: RegenRunSummary[];
   onSongUpdate?: (s: SongDetail) => void;
 }) {
-  const transcribeRuns = (regenRuns ?? []).filter(r => r.scope === "stage_transcribe");
+  // Story 14 generalises the transcribe-row state-tracking to cover BOTH
+  // stage_transcribe (existing forced-alignment path) and stage_audio_transcribe
+  // (new audio-transcribe path) so the lyric-alignment segment shows a unified
+  // running/failed state regardless of which path the user picked.
+  const transcribeRuns = (regenRuns ?? []).filter(
+    r => r.scope === "stage_transcribe" || r.scope === "stage_audio_transcribe",
+  );
   const activeTranscribe = transcribeRuns.find(
     r => r.status === "pending" || r.status === "running",
   );
@@ -172,6 +185,9 @@ export default function PipelinePanel({
   const [worldBriefModal, setWorldBriefModal] = useState(false);
   const [pendingRegen, setPendingRegen] = useState<null | { scope: StageScope; label: string; stageName: string }>(null);
   const [tooltipKey, setTooltipKey] = useState<StageKey | null>(null);
+  // Story 14: audio-transcribe modal state. Lives at panel scope so the
+  // confirm + overwrite branches share state.
+  const [pendingAudioTranscribe, setPendingAudioTranscribe] = useState(false);
 
   // Lifted from RenderFinalAction so the breadcrumb's final-video segment can
   // derive its done-state from finished.length.
@@ -226,7 +242,14 @@ export default function PipelinePanel({
 
   const segmentStatuses: Record<StageKey, SegmentStatus> = STAGES.reduce((acc, stage) => {
     const { doneState } = deriveDoneState(stage, song, status, finished.length);
-    const stageRuns = (regenRuns ?? []).filter(r => r.scope === stage.scope);
+    // Story 14: the transcription segment matches BOTH transcribe scopes so a
+    // running stage_audio_transcribe run flips it to amber the same as
+    // stage_transcribe.
+    const matchesScope = (r: RegenRunSummary) =>
+      stage.key === "transcription"
+        ? (r.scope === "stage_transcribe" || r.scope === "stage_audio_transcribe")
+        : r.scope === stage.scope;
+    const stageRuns = (regenRuns ?? []).filter(matchesScope);
     const activeRun = stageRuns.find(r => r.status === "pending" || r.status === "running");
     const latestTerm = stageRuns.find(r => r.status === "done" || r.status === "failed" || r.status === "cancelled");
     const failedRun =
@@ -335,9 +358,17 @@ export default function PipelinePanel({
                   {stage.label}{summary}
                 </span>
                 {segStatus === "running" && stage.key === "transcription" ? (
-                  <span className="stage-running-detail transcribe-eta">
-                    Aligning lyrics — about {transcribeEtaSeconds(song, activeTranscribe)} seconds left
-                  </span>
+                  // Story 14: phase-aware label for stage_audio_transcribe;
+                  // null/unknown phase falls back to Story 12's ETA label.
+                  activeTranscribe?.phase && PHASE_LABEL[activeTranscribe.phase] ? (
+                    <span className="stage-running-detail transcribe-phase">
+                      {PHASE_LABEL[activeTranscribe.phase]}
+                    </span>
+                  ) : (
+                    <span className="stage-running-detail transcribe-eta">
+                      Aligning lyrics — about {transcribeEtaSeconds(song, activeTranscribe)} seconds left
+                    </span>
+                  )
                 ) : segStatus === "running" ? (
                   <span className="stage-running-detail">running…</span>
                 ) : null}
@@ -345,6 +376,21 @@ export default function PipelinePanel({
                   {STATUS_LABEL_BACKUP[segStatus]}
                 </span>
               </button>
+              {/* Story 14: when the lyric-alignment segment is pending and
+                  no scenes exist yet, expose the audio-transcribe alternative
+                  alongside the existing forced-alignment trigger. */}
+              {stage.key === "transcription"
+                && segStatus === "pending"
+                && song.scenes.length === 0 ? (
+                <button
+                  type="button"
+                  className="transcribe-from-audio-btn"
+                  onClick={() => setPendingAudioTranscribe(true)}
+                  title="Transcribe lyrics from the song's audio"
+                >
+                  Transcribe from audio
+                </button>
+              ) : null}
               {tooltipKey === stage.key && segStatus === "blocked" ? (
                 <div className="pipeline-tooltip" role="tooltip">
                   Complete {tooltipPrereqs.join(", ")} first.
@@ -373,7 +419,15 @@ export default function PipelinePanel({
                   <button
                     onClick={() => {
                       if (latestTranscribe) setDismissedFailedId(latestTranscribe.id);
-                      void trigger("transcribe", true);
+                      // Story 14: retry the SAME scope as the failed run.
+                      // stage_audio_transcribe must call audioTranscribe with
+                      // force=true (a partial run may have written
+                      // intermediates we want to overwrite).
+                      if (latestTranscribe?.scope === "stage_audio_transcribe") {
+                        void audioTranscribe(song.slug, { force: true });
+                      } else {
+                        void trigger("transcribe", true);
+                      }
                     }}
                     disabled={busy === "transcribe"}
                   >
@@ -447,6 +501,13 @@ export default function PipelinePanel({
         />
       ) : null}
 
+      {pendingAudioTranscribe ? (
+        <ConfirmAudioTranscribeModal
+          slug={song.slug}
+          onClose={() => setPendingAudioTranscribe(false)}
+        />
+      ) : null}
+
       {worldBriefModal ? (
         <WorldBriefModal
           song={song}
@@ -482,6 +543,77 @@ export default function PipelinePanel({
     </div>
   );
 }
+
+function ConfirmAudioTranscribeModal({
+  slug, onClose,
+}: {
+  slug: string;
+  onClose: () => void;
+}) {
+  const [overwrite, setOverwrite] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
+
+  const start = useCallback(async (force: boolean) => {
+    setBusy(true);
+    setErrMsg(null);
+    try {
+      await audioTranscribe(slug, { force });
+      onClose();
+    } catch (e) {
+      // Detect the overwrite_required path so the modal can flip to the
+      // overwrite-confirm copy without bouncing back to the empty state.
+      // FastAPI wraps HTTPException(detail=X) as `{detail: X}` in the body
+      // so the code lives at e.detail.detail.code; some test paths inline
+      // the payload at e.detail.code, so probe both.
+      const probe = (e instanceof ApiError && e.detail) as { detail?: { code?: string }; code?: string } | false;
+      const code = probe ? (probe.detail?.code ?? probe.code) : undefined;
+      if (e instanceof ApiError && e.status === 409 && code === "overwrite_required") {
+        setOverwrite(true);
+      } else {
+        setErrMsg(String(e));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }, [slug, onClose]);
+
+  return (
+    <div className="dialog-backdrop" role="dialog" aria-modal="true">
+      <div className="dialog">
+        <h2>Transcribe from audio</h2>
+        <div className="body">
+          {overwrite ? (
+            <p>
+              A lyrics file already exists for this song. Transcribing again
+              will overwrite it.
+            </p>
+          ) : (
+            <p>
+              Transcribing from audio separates the vocals from the music
+              and runs speech-to-text. Takes several minutes; first run
+              downloads several gigabytes of model files to your machine.
+            </p>
+          )}
+          {errMsg ? (
+            <p style={{ color: "#e06060", fontSize: 12 }}>{errMsg}</p>
+          ) : null}
+        </div>
+        <div className="actions">
+          <button onClick={onClose} disabled={busy}>Cancel</button>
+          <button
+            className="primary"
+            onClick={() => start(overwrite)}
+            disabled={busy}
+          >
+            {busy ? "Starting…" : overwrite ? "Overwrite" : "Start"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function RegenConfirmationModal({
   historyModel, label, onCancel, onConfirm,

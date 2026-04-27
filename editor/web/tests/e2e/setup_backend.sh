@@ -39,6 +39,11 @@ export EDITOR_OUTPUTS_DIR="${E2E_ROOT}/outputs"
 export EDITOR_FAKE_GEN_KEYFRAMES="${REPO_ROOT}/editor/server/tests/fake_scripts/fake_gen_keyframes.py"
 export EDITOR_FAKE_RENDER_CLIPS="${REPO_ROOT}/editor/server/tests/fake_scripts/fake_render_clips.py"
 export EDITOR_FAKE_WHISPERX_ALIGN="${REPO_ROOT}/editor/server/tests/fake_scripts/fake_whisperx_align.py"
+# Story 14: fakes for the audio-transcribe upstream phases so the e2e flow
+# completes deterministically without downloading multi-GB Demucs/WhisperX
+# models.
+export EDITOR_FAKE_DEMUCS="${REPO_ROOT}/editor/server/tests/fake_scripts/fake_demucs.py"
+export EDITOR_FAKE_WHISPERX_TRANSCRIBE="${REPO_ROOT}/editor/server/tests/fake_scripts/fake_whisperx_transcribe.py"
 # Mount the test-only filesystem helper used by retry_from_failed.
 export EDITOR_TEST_ENDPOINTS=1
 

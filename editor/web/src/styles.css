@@ -579,6 +579,20 @@ button { font: inherit; cursor: pointer; }
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
+/* Story 14 — secondary 'Transcribe from audio' button alongside the
+   pending lyric-alignment segment. */
+.transcribe-from-audio-btn {
+  background: #1c2c3a;
+  color: var(--accent-light);
+  border: 1px solid var(--accent);
+  padding: 4px 9px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  margin-left: 6px;
+}
+.transcribe-from-audio-btn:hover { background: #233a4d; }
+
 /* ---------- dialog --------------------------------------------------------*/
 
 .dialog-backdrop {

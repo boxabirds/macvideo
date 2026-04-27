@@ -94,7 +94,9 @@ test.describe("Pipeline breadcrumb (Story 17)", () => {
     await gotoEditor(page, FRESH);
     const segment = page.locator('[data-stage="transcription"]');
     await expect(segment).toHaveAttribute("data-status", "pending");
-    await segment.locator("button").click();
+    // Click the main stage-segment button (not the new Transcribe-from-audio
+    // button added by Story 14, which lives in the same segment).
+    await segment.locator("button.stage-segment-btn").click();
     // Either the running-detail label appears mid-flight, or the run completes
     // so fast that data-status flips straight to "done". Both prove the
     // running-detail surface exists in the rendered tree.
