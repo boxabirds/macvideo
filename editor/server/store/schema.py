@@ -113,7 +113,8 @@ CREATE TABLE IF NOT EXISTS regen_runs (
     scope               TEXT NOT NULL
                             CHECK (scope IN ('scene_keyframe', 'scene_clip',
                                              'song_filter', 'song_abstraction',
-                                             'stage_transcribe', 'stage_world_brief',
+                                             'stage_transcribe', 'stage_audio_transcribe',
+                                             'stage_world_brief',
                                              'stage_storyboard', 'stage_image_prompts',
                                              'stage_keyframes', 'final_video')),
     song_id             INTEGER NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
@@ -129,6 +130,7 @@ CREATE TABLE IF NOT EXISTS regen_runs (
     ended_at            REAL,
     error               TEXT,
     progress_pct        INTEGER,
+    phase               TEXT,
     created_at          REAL NOT NULL
 );
 
@@ -177,11 +179,34 @@ def init_db(path: Path) -> None:
         c.execute("PRAGMA foreign_keys = ON")
         c.execute("PRAGMA busy_timeout = 30000")
         c.executescript(_SCHEMA_SQL)
-        # Idempotent migration for older DBs that predate progress_pct.
-        # PRAGMA table_info returns one row per column; check before ALTER.
+        # Idempotent migrations for older DBs.
         cols = {row[1] for row in c.execute("PRAGMA table_info(regen_runs)").fetchall()}
         if "progress_pct" not in cols:
             c.execute("ALTER TABLE regen_runs ADD COLUMN progress_pct INTEGER")
+        if "phase" not in cols:
+            c.execute("ALTER TABLE regen_runs ADD COLUMN phase TEXT")
+        # Story 14 migration: rebuild regen_runs if its CHECK constraint
+        # predates the stage_audio_transcribe scope. SQLite can't ALTER a
+        # CHECK in place, so we detect the old form via sqlite_master and
+        # rebuild the table on first startup with the new schema.
+        old_def = c.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='regen_runs'",
+        ).fetchone()
+        if old_def and "stage_audio_transcribe" not in old_def[0]:
+            c.execute("ALTER TABLE regen_runs RENAME TO _regen_runs_old")
+            c.executescript(_SCHEMA_SQL)
+            c.execute("""
+                INSERT INTO regen_runs
+                  (id, scope, song_id, scene_id, artefact_kind, status,
+                   quality_mode, cost_estimate_usd, started_at, ended_at,
+                   error, progress_pct, phase, created_at)
+                SELECT
+                   id, scope, song_id, scene_id, artefact_kind, status,
+                   quality_mode, cost_estimate_usd, started_at, ended_at,
+                   error, progress_pct, NULL AS phase, created_at
+                FROM _regen_runs_old
+            """)
+            c.execute("DROP TABLE _regen_runs_old")
         c.commit()
 
 

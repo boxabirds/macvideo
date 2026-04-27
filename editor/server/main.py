@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import config as _cfg
 from .api import (
     assets,
+    audio_transcribe as audio_transcribe_api,
     preview_change as preview_change_api,
     regen as regen_api,
     scenes,
@@ -52,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(regen_api.router, prefix="/api")
     app.include_router(regen_api.events_router)  # /events/regen
     app.include_router(stages_api.router, prefix="/api")
+    app.include_router(audio_transcribe_api.router, prefix="/api")
     app.include_router(assets.router)
     if test_only_api.is_enabled():
         app.include_router(test_only_api.router, prefix="/api")

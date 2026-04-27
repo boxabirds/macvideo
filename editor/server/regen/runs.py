@@ -16,7 +16,8 @@ from ..store.schema import RegenStatus
 RegenScope = Literal[
     "scene_keyframe", "scene_clip",
     "song_filter", "song_abstraction",
-    "stage_transcribe", "stage_world_brief", "stage_storyboard",
+    "stage_transcribe", "stage_audio_transcribe",
+    "stage_world_brief", "stage_storyboard",
     "stage_image_prompts", "stage_keyframes",
     "final_video",
 ]
@@ -37,6 +38,7 @@ class RegenRun:
     error: Optional[str]
     progress_pct: Optional[int]
     created_at: float
+    phase: Optional[str] = None
 
 
 def create_run(
@@ -113,6 +115,18 @@ def update_run_progress(conn, run_id: int, pct: int) -> None:
     )
 
 
+def update_run_phase(conn, run_id: int, phase: Optional[str]) -> None:
+    """Write the current phase label onto the run row (Story 14). Used by
+    the audio-transcribe orchestrator to surface which sub-phase is active
+    so the editor can render 'Separating vocals…' / 'Transcribing…' /
+    'Aligning timings…' instead of a single label.
+    """
+    conn.execute(
+        "UPDATE regen_runs SET phase = ? WHERE id = ?",
+        (phase, run_id),
+    )
+
+
 def _row_to_run(row) -> RegenRun:
     keys = row.keys() if hasattr(row, "keys") else []
     return RegenRun(
@@ -128,5 +142,6 @@ def _row_to_run(row) -> RegenRun:
         ended_at=row["ended_at"],
         error=row["error"],
         progress_pct=row["progress_pct"] if "progress_pct" in keys else None,
+        phase=row["phase"] if "phase" in keys else None,
         created_at=row["created_at"],
     )
