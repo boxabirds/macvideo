@@ -1,18 +1,13 @@
-// Story 9 — pipeline stage buttons. Each button POSTs to
-// /api/songs/:slug/stages/:stage which enqueues a real gen_keyframes.py
-// subprocess (or the fake under tests). The user sees DB-derived progress
-// on the next SWR revalidation.
-import { useCallback, useState } from "react";
+// Pipeline panel: horizontal breadcrumb of stages with traffic-light status.
+// Story 9 introduced the per-stage trigger mechanism; story 17 replaces the
+// row-of-pills layout with a breadcrumb and adds prereq-gating + a uniform
+// regen-confirmation modal. Story 12 added transcribe progress + retry; that
+// behaviour is preserved inside the new StageSegment.
+import { useCallback, useEffect, useState } from "react";
 import type { SongDetail, StageStatus } from "../types";
 import type { RegenRunSummary } from "../api";
 import { patchSong } from "../api";
 
-// ETA for forced alignment. Two sources:
-// (1) Live: regen_runs.progress_pct + started_at (set by the [align] N%
-//     event from whisperx_align). remaining = (elapsed/pct)*100 - elapsed.
-// (2) Heuristic fallback: 0.5 * song.duration_s, used until the first
-//     progress event lands.
-// Both rounded to nearest 5s, ≥5s.
 const ETA_FALLBACK_RATIO = 0.5;
 const ETA_DEFAULT_DURATION_S = 60;
 const ETA_ROUND_TO_S = 5;
@@ -38,14 +33,101 @@ function transcribeEtaSeconds(
   return roundToFiveSeconds(ETA_FALLBACK_RATIO * dur);
 }
 
-// Stage button keys → backend stage-name + done-state computation.
-const STAGES = [
-  { key: "transcription", label: "lyric alignment",     stageName: "transcribe" },
-  { key: "world_brief",   label: "world description",   stageName: "world-brief" },
-  { key: "storyboard",    label: "storyboard",          stageName: "storyboard" },
-  { key: "image_prompts", label: "image prompts",       stageName: "image-prompts" },
-  { key: "keyframes",     label: "keyframes",           stageName: "keyframes" },
+type StageKey =
+  | "transcription" | "world_brief" | "storyboard"
+  | "image_prompts" | "keyframes" | "final_video";
+
+type StageScope =
+  | "stage_transcribe" | "stage_world_description" | "stage_storyboard"
+  | "stage_image_prompts" | "stage_keyframes" | "stage_clips"
+  | "stage_render_final";
+
+type StageDef = {
+  key: StageKey;
+  label: string;
+  stageName: string;
+  scope: StageScope;
+  historyModel: "replace" | "take";
+};
+
+type SegmentStatus = "done" | "running" | "failed" | "pending" | "blocked";
+
+const STAGES: readonly StageDef[] = [
+  { key: "transcription",  label: "lyric alignment",   stageName: "transcribe",    scope: "stage_transcribe",         historyModel: "replace" },
+  { key: "world_brief",    label: "world description", stageName: "world-brief",   scope: "stage_world_description",  historyModel: "replace" },
+  { key: "storyboard",     label: "storyboard",        stageName: "storyboard",    scope: "stage_storyboard",         historyModel: "replace" },
+  { key: "image_prompts",  label: "image prompts",     stageName: "image-prompts", scope: "stage_image_prompts",      historyModel: "replace" },
+  { key: "keyframes",      label: "keyframes",         stageName: "keyframes",     scope: "stage_keyframes",          historyModel: "take" },
+  { key: "final_video",    label: "final video",       stageName: "render-final",  scope: "stage_render_final",       historyModel: "replace" },
 ] as const;
+
+// Each stage runs only after its prereqs are done. Linear chain today; the
+// map gives the breadcrumb its prereq-blocked tooltip text.
+const STAGE_PREREQS: Record<StageKey, StageKey[]> = {
+  transcription: [],
+  world_brief:   ["transcription"],
+  storyboard:    ["world_brief"],
+  image_prompts: ["storyboard"],
+  keyframes:     ["image_prompts"],
+  final_video:   ["keyframes"],
+};
+
+type StageDoneState = "done" | "progress" | "empty";
+
+function deriveDoneState(
+  stage: StageDef, song: SongDetail, status: StageStatus, finishedCount: number,
+): { doneState: StageDoneState; summary: string } {
+  if (stage.key === "keyframes") {
+    const done = status.keyframes_done;
+    const total = status.keyframes_total;
+    return {
+      doneState: done === total && total > 0 ? "done" : done > 0 ? "progress" : "empty",
+      summary: ` (${done}/${total})`,
+    };
+  }
+  if (stage.key === "image_prompts") {
+    const total = song.scenes.length;
+    const withPrompt = song.scenes.filter(s => s.image_prompt).length;
+    return {
+      doneState: withPrompt === total && total > 0 ? "done" : withPrompt > 0 ? "progress" : "empty",
+      summary: ` (${withPrompt}/${total})`,
+    };
+  }
+  if (stage.key === "final_video") {
+    return {
+      doneState: finishedCount > 0 ? "done" : "empty",
+      summary: "",
+    };
+  }
+  return {
+    doneState: ((status as Record<string, string>)[stage.key] as StageDoneState) ?? "empty",
+    summary: "",
+  };
+}
+
+function deriveSegmentStatus(args: {
+  stage: StageDef;
+  doneState: StageDoneState;
+  activeRun: RegenRunSummary | undefined;
+  failedRun: RegenRunSummary | undefined;
+  prereqsDone: boolean;
+}): SegmentStatus {
+  const { doneState, activeRun, failedRun, prereqsDone } = args;
+  if (activeRun) return "running";
+  if (failedRun) return "failed";
+  if (doneState === "done") return "done";
+  if (doneState === "progress") return prereqsDone ? "pending" : "blocked";
+  return prereqsDone ? "pending" : "blocked";
+}
+
+const STATUS_LABEL_BACKUP: Record<SegmentStatus, string> = {
+  done: "done", running: "running", failed: "failed",
+  pending: "ready", blocked: "blocked",
+};
+
+const STATUS_GLYPH: Record<SegmentStatus, string> = {
+  done: "✓", running: "●", failed: "✕", pending: "○", blocked: "⌧",
+};
 
 async function runStage(slug: string, stageName: string, redo: boolean) {
   const r = await fetch(
@@ -59,6 +141,10 @@ async function runStage(slug: string, stageName: string, redo: boolean) {
   return r.json();
 }
 
+type FinishedVideo = {
+  file_path: string; created_at: number; quality_mode: string; scene_count: number;
+};
+
 export default function PipelinePanel({
   song, status, regenRuns, onSongUpdate,
 }: {
@@ -71,51 +157,39 @@ export default function PipelinePanel({
   const activeTranscribe = transcribeRuns.find(
     r => r.status === "pending" || r.status === "running",
   );
-  // Most recent terminal transcribe run (sorted desc by created_at on the
-  // backend already; take first non-active).
   const latestTranscribe = transcribeRuns.find(
     r => r.status === "done" || r.status === "failed" || r.status === "cancelled",
   );
-  // Optimistic dismissal: when the user clicks Try again, we hide the
-  // failed banner immediately (tracked by the failed run id) so they
-  // don't see the old error linger until the next SWR poll surfaces the
-  // freshly-pending run row.
   const [dismissedFailedId, setDismissedFailedId] = useState<number | null>(null);
   const transcribeFailed =
     !activeTranscribe
     && latestTranscribe?.status === "failed"
     && latestTranscribe.id !== dismissedFailedId;
-  const [confirm, setConfirm] = useState<null | { stageName: string; isRedo: boolean; label: string }>(null);
+
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // PRD: 'filter and abstraction pickers appear as a one-time dialog the
-  // first time the world description is generated'. If either is unset we
-  // open the picker before dispatching the world-brief run.
   const [filterPicker, setFilterPicker] = useState<null | { pendingStageName: string; isRedo: boolean }>(null);
-  // World-brief editing / regen modal: opens when a done world_brief row is
-  // clicked. Edits go through PATCH /api/songs/:slug; regen kicks the usual
-  // stage chain with redo=true.
   const [worldBriefModal, setWorldBriefModal] = useState(false);
+  const [pendingRegen, setPendingRegen] = useState<null | { scope: StageScope; label: string; stageName: string }>(null);
+  const [tooltipKey, setTooltipKey] = useState<StageKey | null>(null);
 
-  const onClick = useCallback((stageName: string, label: string, isRedo: boolean) => {
-    const needsFilterPicker =
-      stageName === "world-brief" && (song.filter == null || song.abstraction == null);
-    if (needsFilterPicker) {
-      setFilterPicker({ pendingStageName: stageName, isRedo });
-      return;
-    }
-    // World-brief when already done opens the edit-or-regen modal rather
-    // than the generic re-run confirmation.
-    if (stageName === "world-brief" && isRedo && song.world_brief) {
-      setWorldBriefModal(true);
-      return;
-    }
-    if (isRedo) {
-      setConfirm({ stageName, isRedo: true, label });
-    } else {
-      void trigger(stageName, false);
-    }
-  }, [song.filter, song.abstraction, song.world_brief]);
+  // Lifted from RenderFinalAction so the breadcrumb's final-video segment can
+  // derive its done-state from finished.length.
+  const [finished, setFinished] = useState<FinishedVideo[]>([]);
+  const [renderConfirm, setRenderConfirm] = useState(false);
+  const [renderBusy, setRenderBusy] = useState(false);
+  const [renderError, setRenderError] = useState<string | null>(null);
+
+  const loadFinished = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/songs/${encodeURIComponent(song.slug)}/finished`);
+      if (r.ok) {
+        const data = await r.json();
+        setFinished(data.finished ?? []);
+      }
+    } catch { /* non-fatal */ }
+  }, [song.slug]);
+  useEffect(() => { void loadFinished(); }, [loadFinished]);
 
   const trigger = useCallback(async (stageName: string, isRedo: boolean) => {
     setBusy(stageName);
@@ -126,105 +200,222 @@ export default function PipelinePanel({
       setError(String(e));
     } finally {
       setBusy(null);
-      setConfirm(null);
     }
   }, [song.slug]);
 
+  const runRenderFinal = useCallback(async () => {
+    setRenderBusy(true);
+    setRenderError(null);
+    try {
+      const r = await fetch(
+        `/api/songs/${encodeURIComponent(song.slug)}/render-final`,
+        { method: "POST" },
+      );
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(`${r.status} ${JSON.stringify(body)}`);
+      }
+    } catch (e) {
+      setRenderError(String(e));
+    } finally {
+      setRenderBusy(false);
+      setRenderConfirm(false);
+      await loadFinished();
+    }
+  }, [song.slug, loadFinished]);
+
+  const segmentStatuses: Record<StageKey, SegmentStatus> = STAGES.reduce((acc, stage) => {
+    const { doneState } = deriveDoneState(stage, song, status, finished.length);
+    const stageRuns = (regenRuns ?? []).filter(r => r.scope === stage.scope);
+    const activeRun = stageRuns.find(r => r.status === "pending" || r.status === "running");
+    const latestTerm = stageRuns.find(r => r.status === "done" || r.status === "failed" || r.status === "cancelled");
+    const failedRun =
+      stage.key === "transcription"
+        ? (transcribeFailed ? latestTranscribe : undefined)
+        : (latestTerm?.status === "failed" ? latestTerm : undefined);
+    const prereqsDone = STAGE_PREREQS[stage.key].every(
+      pk => acc[pk] === "done",
+    );
+    acc[stage.key] = deriveSegmentStatus({
+      stage, doneState, activeRun, failedRun, prereqsDone,
+    });
+    return acc;
+  }, {} as Record<StageKey, SegmentStatus>);
+
+  const onSegmentClick = useCallback((stage: StageDef) => {
+    const segStatus = segmentStatuses[stage.key];
+
+    if (segStatus === "running") return;
+
+    if (segStatus === "blocked") {
+      setTooltipKey(prev => (prev === stage.key ? null : stage.key));
+      return;
+    }
+
+    if (segStatus === "failed") {
+      // Null-state retry — no committed output to replace, no confirmation.
+      if (stage.key === "transcription" && latestTranscribe) {
+        setDismissedFailedId(latestTranscribe.id);
+      }
+      void trigger(stage.stageName, true);
+      return;
+    }
+
+    if (segStatus === "pending") {
+      // World-brief on first run still needs filter/abstraction picked.
+      if (stage.stageName === "world-brief"
+          && (song.filter == null || song.abstraction == null)) {
+        setFilterPicker({ pendingStageName: stage.stageName, isRedo: false });
+        return;
+      }
+      if (stage.key === "final_video") {
+        setRenderConfirm(true);
+        return;
+      }
+      void trigger(stage.stageName, false);
+      return;
+    }
+
+    // segStatus === "done"
+    if (stage.key === "world_brief") {
+      // World-brief has its own edit-or-regen modal (which itself confirms
+      // before regenerating). Story 17 leaves that flow intact.
+      setWorldBriefModal(true);
+      return;
+    }
+    if (stage.key === "final_video") {
+      // Final-video has its own render-confirm modal.
+      setRenderConfirm(true);
+      return;
+    }
+    setPendingRegen({ scope: stage.scope, label: stage.label, stageName: stage.stageName });
+  }, [segmentStatuses, latestTranscribe, song.filter, song.abstraction, trigger]);
+
   return (
     <div className="pipeline-panel" aria-label="Pipeline stages">
-      {STAGES.map(stage => {
-        let state: string;
-        let summary = "";
-        if (stage.key === "keyframes") {
-          const done = status.keyframes_done;
-          const total = status.keyframes_total;
-          state = done === total && total > 0 ? "done" : done > 0 ? "progress" : "empty";
-          summary = ` (${done}/${total})`;
-        } else if (stage.key === "image_prompts") {
-          const total = song.scenes.length;
-          const withPrompt = song.scenes.filter(s => s.image_prompt).length;
-          state = withPrompt === total && total > 0 ? "done" : withPrompt > 0 ? "progress" : "empty";
-          summary = ` (${withPrompt}/${total})`;
-        } else {
-          state = (status as any)[stage.key] ?? "empty";
-        }
-        // Transcribe row gets running / failed states from the regen-runs poll
-        // so the user sees the background subprocess instead of an inert row.
-        if (stage.key === "transcription" && activeTranscribe) state = "running";
-        else if (stage.key === "transcription" && transcribeFailed) state = "failed";
-        const isRedo = state === "done";
-        const isTranscribeRunning = stage.key === "transcription" && state === "running";
-        const isTranscribeFailed = stage.key === "transcription" && state === "failed";
-        return (
-          <div key={stage.key} className={`pipeline-stage ${state}`}>
-            <span className="label">
-              {stage.label}{summary}
-              {isTranscribeRunning ? (
-                <span
-                  className="transcribe-eta"
-                  style={{ marginLeft: 8, color: "var(--text-dim)", fontSize: 12 }}
-                >
-                  Aligning lyrics — about {transcribeEtaSeconds(song, activeTranscribe)} seconds left
-                </span>
-              ) : null}
-            </span>
-            <button
-              onClick={() => onClick(stage.stageName, stage.label, isRedo)}
-              disabled={busy === stage.stageName || isTranscribeRunning}
-              title={isRedo
-                ? `Re-run ${stage.label} (marks downstream stages stale)`
-                : `Run ${stage.label}`}
+      <div className="pipeline-breadcrumb">
+        {STAGES.map((stage, i) => {
+          const segStatus = segmentStatuses[stage.key];
+          const { summary } = deriveDoneState(stage, song, status, finished.length);
+          const isTranscribeRunning = stage.key === "transcription" && segStatus === "running";
+          const isTranscribeFailed = stage.key === "transcription" && segStatus === "failed";
+          // .pipeline-stage class kept for back-compat with story-9 tests; the
+          // doneState class (.done / .progress / .empty) is also kept so older
+          // assertions don't regress. The new stage-indicator is the visual
+          // truth for traffic-light status.
+          const { doneState } = deriveDoneState(stage, song, status, finished.length);
+          const tooltipPrereqs = STAGE_PREREQS[stage.key]
+            .filter(pk => segmentStatuses[pk] !== "done")
+            .map(pk => STAGES.find(s => s.key === pk)?.label ?? pk);
+          return (
+            <div key={stage.key}
+              className={`pipeline-stage ${doneState} ${segStatus}`}
+              data-stage={stage.key}
+              data-status={segStatus}
             >
-              {busy === stage.stageName || isTranscribeRunning
-                ? "…"
-                : (isRedo ? "↻" : "▶")}
-            </button>
-            {isTranscribeFailed ? (
-              <div
-                className="transcribe-failed"
-                role="alert"
-                style={{
-                  flexBasis: "100%",
-                  marginTop: 4,
-                  padding: "6px 8px",
-                  background: "rgba(224, 96, 96, 0.08)",
-                  borderLeft: "3px solid #e06060",
-                  color: "#e06060",
-                  fontSize: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
+              <button
+                type="button"
+                className={`stage-segment-btn`}
+                onClick={() => onSegmentClick(stage)}
+                disabled={busy === stage.stageName || segStatus === "running"}
+                title={segStatus === "blocked"
+                  ? `Complete ${tooltipPrereqs.join(", ")} first`
+                  : segStatus === "done" ? `Regenerate ${stage.label}`
+                  : segStatus === "failed" ? `Retry ${stage.label}`
+                  : `Run ${stage.label}`}
               >
-                <span style={{ flex: 1 }}>
-                  {latestTranscribe?.error ?? "Transcribe failed"}
-                </span>
-                <button
-                  onClick={() => {
-                    if (latestTranscribe) setDismissedFailedId(latestTranscribe.id);
-                    void trigger("transcribe", true);
-                  }}
-                  disabled={busy === "transcribe"}
+                <span className={`stage-indicator stage-indicator--${segStatus}`}
+                  aria-label={STATUS_LABEL_BACKUP[segStatus]}
                 >
-                  Try again
-                </button>
-              </div>
-            ) : null}
-          </div>
-        );
-      })}
+                  <span className="stage-indicator-glyph" aria-hidden="true">
+                    {STATUS_GLYPH[segStatus]}
+                  </span>
+                </span>
+                <span className="label">
+                  {stage.label}{summary}
+                </span>
+                {segStatus === "running" && stage.key === "transcription" ? (
+                  <span className="stage-running-detail transcribe-eta">
+                    Aligning lyrics — about {transcribeEtaSeconds(song, activeTranscribe)} seconds left
+                  </span>
+                ) : segStatus === "running" ? (
+                  <span className="stage-running-detail">running…</span>
+                ) : null}
+                <span className="stage-status-label" aria-hidden="true">
+                  {STATUS_LABEL_BACKUP[segStatus]}
+                </span>
+              </button>
+              {tooltipKey === stage.key && segStatus === "blocked" ? (
+                <div className="pipeline-tooltip" role="tooltip">
+                  Complete {tooltipPrereqs.join(", ")} first.
+                </div>
+              ) : null}
+              {isTranscribeFailed ? (
+                <div
+                  className="transcribe-failed"
+                  role="alert"
+                  style={{
+                    flexBasis: "100%",
+                    marginTop: 4,
+                    padding: "6px 8px",
+                    background: "rgba(224, 96, 96, 0.08)",
+                    borderLeft: "3px solid #e06060",
+                    color: "#e06060",
+                    fontSize: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ flex: 1 }}>
+                    {latestTranscribe?.error ?? "Transcribe failed"}
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (latestTranscribe) setDismissedFailedId(latestTranscribe.id);
+                      void trigger("transcribe", true);
+                    }}
+                    disabled={busy === "transcribe"}
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : null}
+              {/* Suppress unused-warning */}
+              {isTranscribeRunning ? null : null}
+              {i < STAGES.length - 1 ? (
+                <span className="pipeline-chevron" aria-hidden="true">›</span>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
       {error ? <span className="pipeline-error" style={{ color: "#e06060" }}>{error}</span> : null}
+      {renderError ? <span className="pipeline-error" style={{ color: "#e06060" }}>{renderError}</span> : null}
 
       <RunAllOutstanding slug={song.slug} />
 
-      <RenderFinalAction song={song} status={status} />
+      {finished.length > 0 ? (
+        <div className="finished-list">
+          <b>Finished videos:</b>
+          <ul>
+            {finished.map((f, i) => (
+              <li key={i}>
+                <a href={`/assets/outputs/${f.file_path.split("/outputs/")[1] ?? f.file_path}`} target="_blank" rel="noreferrer">
+                  {f.quality_mode} · {f.scene_count} scenes · {new Date(f.created_at * 1000).toLocaleString()}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {filterPicker ? (
         <FilterAbstractionPicker
           song={song}
           onCancel={() => setFilterPicker(null)}
           onConfirmed={async (filter, abstraction) => {
-            // Persist picks, then dispatch the originally-requested stage.
             try {
               await fetch(
                 `/api/songs/${encodeURIComponent(song.slug)}`,
@@ -234,9 +425,7 @@ export default function PipelinePanel({
                   body: JSON.stringify({ filter, abstraction }),
                 },
               );
-            } catch {
-              // Not fatal for the dialog — stage run will fail loudly.
-            }
+            } catch { /* non-fatal */ }
             const pendingStage = filterPicker.pendingStageName;
             const pendingRedo = filterPicker.isRedo;
             setFilterPicker(null);
@@ -245,24 +434,17 @@ export default function PipelinePanel({
         />
       ) : null}
 
-      {confirm ? (
-        <div className="dialog-backdrop" role="dialog" aria-modal="true">
-          <div className="dialog">
-            <h2>Re-run {confirm.label}?</h2>
-            <p>
-              This will delete the cached output for <b>{confirm.label}</b> and
-              every downstream stage, then re-run the pipeline. Any user-edited
-              image prompts will be preserved.
-            </p>
-            <div className="actions">
-              <button onClick={() => setConfirm(null)}>Cancel</button>
-              <button className="primary"
-                onClick={() => void trigger(confirm.stageName, true)}>
-                Re-run
-              </button>
-            </div>
-          </div>
-        </div>
+      {pendingRegen ? (
+        <RegenConfirmationModal
+          historyModel={STAGES.find(s => s.scope === pendingRegen.scope)?.historyModel ?? "replace"}
+          label={pendingRegen.label}
+          onCancel={() => setPendingRegen(null)}
+          onConfirm={() => {
+            const target = pendingRegen;
+            setPendingRegen(null);
+            void trigger(target.stageName, true);
+          }}
+        />
       ) : null}
 
       {worldBriefModal ? (
@@ -276,6 +458,54 @@ export default function PipelinePanel({
           }}
         />
       ) : null}
+
+      {renderConfirm ? (
+        <div className="dialog-backdrop" role="dialog" aria-modal="true">
+          <div className="dialog">
+            <h2>Render final video?</h2>
+            <p>
+              Renders any missing or stale clips at <b>{song.quality_mode}</b> mode,
+              then stitches with the original audio into a single mp4.
+              {song.quality_mode === "final"
+                ? " ~110s per clip at 1080p/30fps."
+                : " ~35s per clip at 512p/24fps."}
+            </p>
+            <div className="actions">
+              <button onClick={() => setRenderConfirm(false)}>Cancel</button>
+              <button className="primary" onClick={runRenderFinal} disabled={renderBusy}>
+                {renderBusy ? "Rendering…" : "Render"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function RegenConfirmationModal({
+  historyModel, label, onCancel, onConfirm,
+}: {
+  historyModel: "replace" | "take";
+  label: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const body = historyModel === "take"
+    ? `Regenerating creates a new take alongside the existing one. The current selection stays unchanged.`
+    : `Regenerating will replace the existing ${label}.`;
+  return (
+    <div className="dialog-backdrop" role="dialog" aria-modal="true">
+      <div className="dialog">
+        <h2>Regenerate {label}?</h2>
+        <div className="body">
+          <p>{body}</p>
+        </div>
+        <div className="actions">
+          <button onClick={onCancel}>Cancel</button>
+          <button className="primary" onClick={onConfirm}>Regenerate</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -363,7 +593,6 @@ function WorldBriefModal({
   );
 }
 
-
 function FilterAbstractionPicker({
   song, onCancel, onConfirmed,
 }: {
@@ -445,96 +674,6 @@ function RunAllOutstanding({ slug }: { slug: string }) {
             ? `; blocked at ${result.blocked_at.stage}: ${result.blocked_at.reason}`
             : ""}
         </span>
-      ) : null}
-    </div>
-  );
-}
-
-function RenderFinalAction({ song, status }: { song: SongDetail; status: StageStatus }) {
-  const [confirm, setConfirm] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [finished, setFinished] = useState<Array<{ file_path: string; created_at: number; quality_mode: string; scene_count: number }>>([]);
-  const readyToRender = status.keyframes_done === status.keyframes_total && status.keyframes_total > 0;
-
-  const loadFinished = useCallback(async () => {
-    try {
-      const r = await fetch(`/api/songs/${encodeURIComponent(song.slug)}/finished`);
-      if (r.ok) {
-        const data = await r.json();
-        setFinished(data.finished ?? []);
-      }
-    } catch { /* non-fatal */ }
-  }, [song.slug]);
-
-  // Refresh finished list on mount.
-  useState(() => { void loadFinished(); return 0; });
-
-  const run = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await fetch(
-        `/api/songs/${encodeURIComponent(song.slug)}/render-final`,
-        { method: "POST" },
-      );
-      if (!r.ok) {
-        const body = await r.json().catch(() => ({}));
-        throw new Error(`${r.status} ${JSON.stringify(body)}`);
-      }
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setBusy(false);
-      setConfirm(false);
-      await loadFinished();
-    }
-  }, [song.slug, loadFinished]);
-
-  return (
-    <div className="render-final">
-      <button
-        className="primary"
-        disabled={!readyToRender || busy}
-        onClick={() => setConfirm(true)}
-        title={readyToRender ? "Render final video" : "All keyframes must exist first"}
-      >
-        {busy ? "Rendering…" : "Render final video"}
-      </button>
-      {error ? <span style={{ color: "#e06060", marginLeft: 8 }}>{error}</span> : null}
-
-      {finished.length > 0 ? (
-        <div className="finished-list">
-          <b>Finished videos:</b>
-          <ul>
-            {finished.map((f, i) => (
-              <li key={i}>
-                <a href={`/assets/outputs/${f.file_path.split("/outputs/")[1] ?? f.file_path}`} target="_blank" rel="noreferrer">
-                  {f.quality_mode} · {f.scene_count} scenes · {new Date(f.created_at * 1000).toLocaleString()}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {confirm ? (
-        <div className="dialog-backdrop" role="dialog" aria-modal="true">
-          <div className="dialog">
-            <h2>Render final video?</h2>
-            <p>
-              Renders any missing or stale clips at <b>{song.quality_mode}</b> mode,
-              then stitches with the original audio into a single mp4.
-              {song.quality_mode === "final"
-                ? " ~110s per clip at 1080p/30fps."
-                : " ~35s per clip at 512p/24fps."}
-            </p>
-            <div className="actions">
-              <button onClick={() => setConfirm(false)}>Cancel</button>
-              <button className="primary" onClick={run}>Render</button>
-            </div>
-          </div>
-        </div>
       ) : null}
     </div>
   );

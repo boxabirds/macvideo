@@ -33,13 +33,18 @@ function status(overrides: Partial<StageStatus> = {}): StageStatus {
 }
 
 describe("PipelinePanel", () => {
-  it("renders 5 stages and shows 'done' for completed ones", () => {
-    render(<PipelinePanel song={makeSong()} status={status()} />);
+  it("renders 6 breadcrumb segments and shows 'done' for completed ones", () => {
+    const { container } = render(<PipelinePanel song={makeSong()} status={status()} />);
     expect(screen.getByText(/lyric alignment/)).toBeInTheDocument();
     expect(screen.getByText(/world description/)).toBeInTheDocument();
     expect(screen.getByText(/storyboard/)).toBeInTheDocument();
     expect(screen.getByText(/image prompts/)).toBeInTheDocument();
     expect(screen.getByText(/keyframes \(2\/2\)/)).toBeInTheDocument();
+    expect(screen.getByText(/final video/)).toBeInTheDocument();
+    // Breadcrumb wraps everything — exactly 6 segments.
+    expect(container.querySelectorAll(".pipeline-stage")).toHaveLength(6);
+    // 5 chevrons between 6 segments.
+    expect(container.querySelectorAll(".pipeline-chevron")).toHaveLength(5);
   });
 
   it("shows progress class when keyframes partial", () => {
@@ -59,8 +64,7 @@ describe("PipelinePanel", () => {
     globalThis.fetch = fetchSpy;
 
     render(<PipelinePanel song={makeSong()} status={status()} />);
-    const worldBriefRow = screen.getByText(/world description/).parentElement!;
-    const runBtn = worldBriefRow.querySelector("button")!;
+    const runBtn = screen.getByText(/world description/).closest("button")!;
     await userEvent.click(runBtn);
     // First modal: editable world description.
     expect(screen.getByRole("heading", { name: /World description for/ })).toBeInTheDocument();
@@ -88,8 +92,7 @@ describe("PipelinePanel", () => {
     globalThis.fetch = fetchSpy;
 
     render(<PipelinePanel song={makeSong()} status={status()} onSongUpdate={() => {}} />);
-    const worldBriefRow = screen.getByText(/world description/).parentElement!;
-    await userEvent.click(worldBriefRow.querySelector("button")!);
+    await userEvent.click(screen.getByText(/world description/).closest("button")!);
     const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
     await userEvent.tripleClick(textarea);
     await userEvent.keyboard("edited");
@@ -229,6 +232,95 @@ describe("PipelinePanel", () => {
   // The heuristic-fallback ETA is covered by the "spinner + ETA" test
   // above — that exercises the only ETA path that currently exists.
 
+  it("each segment carries data-status reflecting its traffic-light state", () => {
+    const { container } = render(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({
+          transcription: "done", world_brief: "done", storyboard: "empty",
+          keyframes_done: 0, keyframes_total: 2,
+        })}
+      />,
+    );
+    const get = (key: string) =>
+      container.querySelector(`[data-stage="${key}"]`)!.getAttribute("data-status");
+    expect(get("transcription")).toBe("done");
+    expect(get("world_brief")).toBe("done");
+    expect(get("storyboard")).toBe("pending");
+    // image_prompts/keyframes/final_video are blocked because storyboard isn't done.
+    expect(get("image_prompts")).toBe("blocked");
+    expect(get("keyframes")).toBe("blocked");
+    expect(get("final_video")).toBe("blocked");
+  });
+
+  it("traffic-light glyph + label backups render alongside the colour for accessibility", () => {
+    const { container } = render(
+      <PipelinePanel song={makeSong()} status={status()} />,
+    );
+    // Done stages carry the ✓ glyph and the 'done' status label.
+    const transcribe = container.querySelector('[data-stage="transcription"]')!;
+    expect(transcribe.querySelector(".stage-indicator--done")).not.toBeNull();
+    expect(transcribe.querySelector(".stage-indicator-glyph")?.textContent).toBe("✓");
+    expect(transcribe.querySelector(".stage-status-label")?.textContent).toBe("done");
+  });
+
+  it("clicking a blocked segment opens a tooltip naming the prereq", async () => {
+    const { container } = render(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({
+          transcription: "empty", world_brief: "empty", storyboard: "empty",
+          keyframes_done: 0, keyframes_total: 2,
+        })}
+      />,
+    );
+    // Storyboard is blocked because world_brief is empty (and transcription
+    // is empty, but with empty scenes too).
+    const storyboardBtn = container.querySelector(
+      '[data-stage="storyboard"] button',
+    ) as HTMLButtonElement;
+    await userEvent.click(storyboardBtn);
+    const tooltip = container.querySelector(".pipeline-tooltip");
+    expect(tooltip).not.toBeNull();
+    expect(tooltip!.textContent).toMatch(/world description/i);
+  });
+
+  it("clicking a done image-prompts segment opens a regen-confirmation modal", async () => {
+    render(
+      <PipelinePanel
+        song={makeSong({
+          scenes: [
+            { index: 0, start_s: 0, end_s: 1, lyric: "a", beat: "b", image_prompt: "p" },
+          ] as SongDetail["scenes"],
+        })}
+        status={status()}
+      />,
+    );
+    const imgPromptsBtn = screen.getByText(/image prompts/).closest("button")!;
+    await userEvent.click(imgPromptsBtn);
+    expect(
+      screen.getByRole("heading", { name: /Regenerate image prompts\?/i }),
+    ).toBeInTheDocument();
+    // Replace-history copy: mentions "replace the existing".
+    expect(document.body.textContent).toMatch(/replace the existing image prompts/i);
+  });
+
+  it("clicking a done keyframes segment surfaces the take-history copy", async () => {
+    render(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({ keyframes_done: 2, keyframes_total: 2 })}
+      />,
+    );
+    const kfBtn = screen.getByText(/keyframes/).closest("button")!;
+    await userEvent.click(kfBtn);
+    expect(
+      screen.getByRole("heading", { name: /Regenerate keyframes\?/i }),
+    ).toBeInTheDocument();
+    // Take-history copy: mentions "creates a new take" not "replace the existing".
+    expect(document.body.textContent).toMatch(/creates a new take/i);
+  });
+
   it("POSTs without confirm for a stage not yet done", async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 1, status: "pending" }),
@@ -240,8 +332,7 @@ describe("PipelinePanel", () => {
       transcription: "done", world_brief: "empty", storyboard: "empty",
       keyframes_done: 0, keyframes_total: 2,
     })} />);
-    const row = screen.getByText(/world description/).parentElement!;
-    await userEvent.click(row.querySelector("button")!);
+    await userEvent.click(screen.getByText(/world description/).closest("button")!);
     await new Promise(r => setTimeout(r, 10));
     expect(fetchSpy).toHaveBeenCalled();
     const urls = fetchSpy.mock.calls.map(c => c[0] as string);

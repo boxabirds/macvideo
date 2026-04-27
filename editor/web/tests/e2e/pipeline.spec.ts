@@ -12,18 +12,18 @@ async function gotoEditor(page: import("@playwright/test").Page) {
 }
 
 test.describe("PipelinePanel stages", () => {
-  test("clicking a done stage opens a re-run dialog", async ({ page }) => {
+  test("clicking a done stage opens a regen-confirmation dialog", async ({ page }) => {
     await gotoEditor(page);
     // world-brief when done opens the edit-or-regen modal, not the generic
-    // re-run confirm. The nested regen confirmation contains the "big deal"
-    // heading; the generic Re-run heading still applies to other stages
+    // regen confirm. The nested regen confirmation contains the "big deal"
+    // heading; the generic Regenerate heading applies to other stages
     // (e.g. storyboard). We target storyboard here to exercise the generic
-    // confirm path.
-    const storyboardRow = page.locator(".pipeline-stage").filter({ hasText: /^storyboard/ });
+    // confirm path. (Story 17 renamed Re-run → Regenerate.)
+    const storyboardRow = page.locator('[data-stage="storyboard"]');
     await expect(storyboardRow).toBeVisible();
     await storyboardRow.locator("button").click();
     await expect(page.getByRole("dialog")).toBeVisible();
-    await expect(page.getByRole("heading", { name: /Re-run/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Regenerate storyboard/i })).toBeVisible();
     // Cancel so we don't actually fire the chain.
     await page.getByRole("button", { name: /Cancel/i }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();

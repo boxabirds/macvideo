@@ -469,38 +469,115 @@ button { font: inherit; cursor: pointer; }
   pointer-events: none;
 }
 
-/* ---------- pipeline panel (story 9) -------------------------------------*/
+/* ---------- pipeline panel (story 9, breadcrumb in story 17) -------------*/
 
 .pipeline-panel {
   display: flex;
+  flex-direction: column;
   gap: 8px;
   padding: 8px 16px;
   background: #131313;
   border-bottom: 1px solid var(--border);
+}
+.pipeline-breadcrumb {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: 0;
+  font-size: 12px;
 }
 .pipeline-stage {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  padding: 5px 8px;
-  background: #1c1c1c;
-  border-radius: 4px;
-  border: 1px solid var(--border);
+  position: relative;
+  flex-wrap: wrap;
 }
 .pipeline-stage .label { color: var(--text); }
 .pipeline-stage.done .label { color: #d4f5dd; }
-.pipeline-stage button {
-  background: #262626;
+
+.stage-segment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #1c1c1c;
   color: var(--text);
   border: 1px solid var(--border);
-  padding: 2px 7px;
-  border-radius: 3px;
-  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
 }
-.pipeline-stage button:disabled { opacity: 0.35; cursor: not-allowed; }
+.stage-segment-btn:disabled {
+  cursor: default;
+}
+.stage-segment-btn:hover:not(:disabled) {
+  background: #232323;
+}
+
+.pipeline-chevron {
+  color: var(--text-dim);
+  font-size: 16px;
+  margin: 0 6px;
+  user-select: none;
+}
+
+/* Traffic-light indicator: colour PLUS glyph + status-label backups so it
+   stays distinguishable for color-blind users. */
+.stage-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.stage-indicator-glyph { line-height: 1; }
+.stage-indicator--done    { background: var(--good);     color: #d4f5dd; }
+.stage-indicator--running { background: var(--progress); color: #fff; animation: stage-pulse 1.2s ease-in-out infinite; }
+.stage-indicator--failed  { background: var(--error);    color: #fcc; }
+.stage-indicator--pending { background: #2a2a2a;         color: var(--text-dim); }
+.stage-indicator--blocked { background: #1a1a1a;         color: #555; }
+
+@keyframes stage-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+.stage-status-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+}
+.pipeline-stage.done   .stage-status-label { color: var(--good); }
+.pipeline-stage.running .stage-status-label { color: var(--progress); }
+.pipeline-stage.failed .stage-status-label { color: var(--error); }
+
+.stage-running-detail {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-left: 4px;
+}
+
+.pipeline-tooltip {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #222;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
 
 /* ---------- dialog --------------------------------------------------------*/
 
