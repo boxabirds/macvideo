@@ -50,6 +50,23 @@ router = APIRouter()
 events_router = APIRouter()
 
 
+_OBSOLETE_AUDIO_TRANSCRIBE_USAGE = (
+    "pocs/30-whisper-timestamped/scripts/transcribe_whisperx_noprompt.py"
+)
+_OBSOLETE_AUDIO_TRANSCRIBE_MESSAGE = (
+    "Audio transcription failed in an older build. "
+    "Try again to run the current product transcription pipeline."
+)
+
+
+def _user_visible_run_error(error: str | None) -> str | None:
+    if not error:
+        return error
+    if _OBSOLETE_AUDIO_TRANSCRIBE_USAGE in error:
+        return _OBSOLETE_AUDIO_TRANSCRIBE_MESSAGE
+    return error
+
+
 class TakeTriggerBody(BaseModel):
     artefact_kind: Literal["keyframe", "clip"]
     trigger: Literal["regen", "cli-observed"] = "regen"
@@ -180,6 +197,7 @@ def list_runs(slug: str, active_only: bool = Query(default=False), conn=Depends(
     out = []
     for r in runs:
         d = dict(r.__dict__)
+        d["error"] = _user_visible_run_error(d.get("error"))
         d["scene_index"] = (
             scene_id_to_index.get(r.scene_id) if r.scene_id is not None else None
         )

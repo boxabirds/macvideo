@@ -165,6 +165,25 @@ describe("PipelinePanel", () => {
     expect(screen.getByRole("button", { name: /Try again/i })).toBeInTheDocument();
   });
 
+  it("does not render obsolete POC usage stderr as the current transcribe failure", () => {
+    render(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({
+          status: "failed",
+          error: "Audio transcription failed in an older build. Try again to run the current product transcription pipeline.",
+          ended_at: 100,
+        })]}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toContain(
+      "current product transcription pipeline",
+    );
+    expect(document.body.textContent).not.toContain("pocs/30-whisper-timestamped");
+    expect(document.body.textContent).not.toContain("transcribe_whisperx_noprompt.py");
+  });
+
   it("Try again button POSTs /stages/transcribe with redo=true", async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 2, status: "pending" }),
