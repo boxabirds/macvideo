@@ -22,6 +22,11 @@ kill_port() {
 kill_port 8000
 kill_port 5173
 
+# E2E harnesses set these to fast fake subprocesses. Local dev must exercise
+# the real production pipeline unless the backend is launched explicitly by hand.
+unset EDITOR_FAKE_DEMUCS
+unset EDITOR_FAKE_WHISPERX_TRANSCRIBE
+
 cleanup() {
   if [[ -n "${BACKEND_PID:-}" ]] && kill -0 "${BACKEND_PID}" 2>/dev/null; then
     echo "[dev] stopping backend (pid ${BACKEND_PID})"
