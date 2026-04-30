@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 from .. import config as _cfg
 from ..importer import import_all
 from ..pipeline.stages import run_gen_keyframes_for_stage
+from ..pipeline.transitions import FilterChangeTransition
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import create_run, get_run
 from ..store.schema import QualityMode
@@ -242,8 +243,7 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
     if not patch_fields:
         return get_song(slug, conn)
 
-    # Refuse filter / abstraction / quality_mode changes while a regen run
-    # for the song is pending or running — matches the story 4 and 8 design.
+    # Check for conflicts first (filter/abstraction/quality_mode changes all blocked).
     if any(k in patch_fields for k in ("filter", "abstraction", "quality_mode")):
         active = conn.execute("""
             SELECT id FROM regen_runs
@@ -257,19 +257,19 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
                 detail=f"regeneration run {active['id']} is in progress for this song",
             )
 
-    sets = ", ".join(f"{k} = ?" for k in patch_fields.keys())
-    values = list(patch_fields.values()) + [time.time(), song["id"]]
-    conn.execute(
-        f"UPDATE songs SET {sets}, updated_at = ? WHERE id = ?",
-        values,
-    )
+    # Apply non-chain-triggering updates (quality_mode or world_brief).
+    non_chain_fields = {k: v for k, v in patch_fields.items() if k not in ("filter", "abstraction")}
+    if non_chain_fields:
+        sets = ", ".join(f"{k} = ?" for k in non_chain_fields.keys())
+        values = list(non_chain_fields.values()) + [time.time(), song["id"]]
+        conn.execute(
+            f"UPDATE songs SET {sets}, updated_at = ? WHERE id = ?",
+            values,
+        )
 
-    # Story 4: a filter or abstraction change triggers the full regen chain
-    # (Pass A → Pass C → all Pass B → all keyframes) and marks every existing
-    # clip take stale (kept as history — see filter.chain-execute design).
-    chain_triggering = any(k in patch_fields for k in ("filter", "abstraction"))
-    if chain_triggering:
-        # Mark every scene with a clip_stale flag so the user sees affected clips.
+    # Mark clips stale if quality_mode changed (but not if filter/abstraction changes,
+    # which do their own clip-stale marking).
+    if "quality_mode" in patch_fields and "filter" not in patch_fields and "abstraction" not in patch_fields:
         rows = conn.execute(
             "SELECT id, dirty_flags FROM scenes WHERE song_id = ? "
             "AND selected_clip_take_id IS NOT NULL",
@@ -283,43 +283,62 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
                 (json.dumps(sorted(flags)), time.time(), r["id"]),
             )
 
-        # Also invalidate the cached world_brief/storyboard so the next
-        # chain run regenerates them (matching the PRD: filter change →
-        # replace world brief, replace storyboard).
+    # Chain-triggering logic for filter/abstraction changes.
+    chain_triggering = "filter" in patch_fields or "abstraction" in patch_fields
+    if chain_triggering:
+        if "filter" in patch_fields:
+            new_filter = patch_fields["filter"]
+            transition = FilterChangeTransition(conn, slug, new_filter)
+            kind = transition.kind()
+
+            if kind == "noop":
+                # Setting filter to its current value: no-op.
+                return get_song(slug, conn)
+
+            # Apply the filter change.
+            conn.execute(
+                "UPDATE songs SET filter = ?, updated_at = ? WHERE id = ?",
+                (new_filter, time.time(), song["id"]),
+            )
+            scope = "song_filter"
+            enqueued_filter = new_filter
+            enqueued_abstraction = song["abstraction"] or 25
+        else:
+            # Abstraction change.
+            new_abstraction = patch_fields["abstraction"]
+            conn.execute(
+                "UPDATE songs SET abstraction = ?, updated_at = ? WHERE id = ?",
+                (new_abstraction, time.time(), song["id"]),
+            )
+            scope = "song_abstraction"
+            enqueued_filter = song["filter"] or "charcoal"
+            enqueued_abstraction = new_abstraction
+
+        # Mark clips stale and null out world_brief/storyboard.
+        rows = conn.execute(
+            "SELECT id, dirty_flags FROM scenes WHERE song_id = ? "
+            "AND selected_clip_take_id IS NOT NULL",
+            (song["id"],),
+        ).fetchall()
+        for r in rows:
+            flags = set(parse_dirty_flags(r["dirty_flags"]))
+            flags.add("clip_stale")
+            conn.execute(
+                "UPDATE scenes SET dirty_flags = ?, updated_at = ? WHERE id = ?",
+                (json.dumps(sorted(flags)), time.time(), r["id"]),
+            )
+
         conn.execute(
             "UPDATE songs SET world_brief = NULL, sequence_arc = NULL, updated_at = ? "
             "WHERE id = ?", (time.time(), song["id"]),
         )
 
-        # Story 8: a quality_mode change marks every existing clip take
-        # stale (matches mode.toggle's design). But a mode change is NOT
-        # a chain trigger.
-    if "quality_mode" in patch_fields and not chain_triggering:
-        rows = conn.execute(
-            "SELECT id, dirty_flags FROM scenes WHERE song_id = ? "
-            "AND selected_clip_take_id IS NOT NULL",
-            (song["id"],),
-        ).fetchall()
-        for r in rows:
-            flags = set(parse_dirty_flags(r["dirty_flags"]))
-            flags.add("clip_stale")
-            conn.execute(
-                "UPDATE scenes SET dirty_flags = ?, updated_at = ? WHERE id = ?",
-                (json.dumps(sorted(flags)), time.time(), r["id"]),
-            )
-
-    if chain_triggering:
-        # Enqueue the chain: runs gen_keyframes.py end-to-end against the
-        # song's run_dir. Cached character_brief/storyboard/image_prompts/keyframes
-        # were wiped above, so the subprocess regenerates all of them.
-        scope = "song_filter" if "filter" in patch_fields else "song_abstraction"
+        # Enqueue the chain job.
         run_id = create_run(conn, scope=scope, song_id=song["id"])
         run = get_run(conn, run_id)
         assert run is not None
         slug_captured = slug
-        new_filter = patch_fields.get("filter", song["filter"]) or "charcoal"
-        new_abstraction = patch_fields.get("abstraction", song["abstraction"]) or 25
-        new_quality_mode = patch_fields.get("quality_mode", song["quality_mode"]) or "draft"
+        quality_mode = patch_fields.get("quality_mode", song["quality_mode"]) or "draft"
 
         async def handler(r):  # noqa: ANN001
             loop = asyncio.get_event_loop()
@@ -327,9 +346,9 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
                 None,
                 lambda: run_gen_keyframes_for_stage(
                     song_slug=slug_captured,
-                    song_filter=new_filter,
-                    song_abstraction=new_abstraction,
-                    song_quality_mode=new_quality_mode,
+                    song_filter=enqueued_filter,
+                    song_abstraction=enqueued_abstraction,
+                    song_quality_mode=quality_mode,
                     source_run_id=r.id,
                     stage="keyframes",
                     redo=True,
