@@ -127,15 +127,11 @@ describe("TopBar", () => {
     expect(urls.some(u => u.includes("/preview-change"))).toBe(false);
   });
 
-  it("fresh-song abstraction pick shows 'Set abstraction' setup modal", async () => {
-    const fresh = makeSong({
-      filter: null, abstraction: null,
-      world_brief: null, sequence_arc: null, scenes: [],
-    });
-    render(<MemoryRouter><TopBar song={fresh} onSongUpdate={() => {}} onBack={() => {}} /></MemoryRouter>);
+  it("abstraction change shows 'Confirm abstraction change' modal", async () => {
+    const song = makeSong();
+    render(<MemoryRouter><TopBar song={song} onSongUpdate={() => {}} onBack={() => {}} /></MemoryRouter>);
     await userEvent.selectOptions(screen.getAllByRole("combobox")[1] as HTMLSelectElement, "75");
-    expect(screen.getByRole("heading", { name: /set abstraction/i })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: /confirm abstraction change/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /confirm abstraction change/i })).toBeInTheDocument();
   });
 
   it("disables confirm when preview-change reports a conflict", async () => {

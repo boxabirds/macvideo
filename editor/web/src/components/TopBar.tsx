@@ -1,9 +1,11 @@
 // Top bar: song identity + filter / abstraction / quality-mode controls
-// (stories 4 and 8). Changes go through the confirmation dialog for stories
-// where regen scope matters.
-import { useCallback, useEffect, useState } from "react";
+// (stories 4 and 8). Filter changes use FilterChangeModal branched on kind.
+// Abstraction + quality_mode changes use inline confirmation logic.
+import { useCallback, useState } from "react";
 import type { QualityMode, SongDetail } from "../types";
-import { patchSong, previewChange, type ChainPreview } from "../api";
+import { patchSong, previewChange } from "../api";
+import FilterChangeModal from "./FilterChangeModal";
+import { useFilterChange } from "../hooks/useFilterChange";
 
 const FILTER_OPTIONS = [
   "oil impasto", "mosaic", "stained glass", "claymation", "watercolour",
@@ -21,30 +23,53 @@ type Props = {
 };
 
 export default function TopBar({ song, onSongUpdate, onBack }: Props) {
-  const [pending, setPending] = useState<null | {
-    kind: "filter" | "abstraction" | "quality_mode";
-    newValue: string | number;
-  }>(null);
+  const [pendingFilter, setPendingFilter] = useState<string | null>(null);
+  const [pendingAbstraction, setPendingAbstraction] = useState<null | { newValue: number }>(null);
+  const [pendingQualityMode, setPendingQualityMode] = useState<null | { newValue: QualityMode }>(null);
 
-  const promptChange = useCallback((kind: "filter" | "abstraction" | "quality_mode", newValue: string | number) => {
-    setPending({ kind, newValue });
-  }, []);
+  const filterChange = useFilterChange(song, pendingFilter);
 
-  const confirm = useCallback(async () => {
-    if (!pending) return;
+  const confirmFilter = useCallback(async () => {
+    if (!pendingFilter) return;
     try {
-      const body: any = {};
-      body[pending.kind] = pending.newValue;
-      const updated = await patchSong(song.slug, body);
+      const updated = await filterChange.apply();
       onSongUpdate(updated);
+      setPendingFilter(null);
     } catch (e) {
-      alert(`Failed to update ${pending.kind}: ${String(e)}`);
-    } finally {
-      setPending(null);
+      alert(`Failed to update filter: ${String(e)}`);
+      setPendingFilter(null);
     }
-  }, [pending, song.slug, onSongUpdate]);
+  }, [pendingFilter, filterChange, onSongUpdate]);
 
-  const cancel = useCallback(() => setPending(null), []);
+  const cancelFilter = useCallback(() => setPendingFilter(null), []);
+
+  const confirmAbstraction = useCallback(async () => {
+    if (!pendingAbstraction) return;
+    try {
+      const updated = await patchSong(song.slug, { abstraction: pendingAbstraction.newValue });
+      onSongUpdate(updated);
+      setPendingAbstraction(null);
+    } catch (e) {
+      alert(`Failed to update abstraction: ${String(e)}`);
+      setPendingAbstraction(null);
+    }
+  }, [pendingAbstraction, song.slug, onSongUpdate]);
+
+  const cancelAbstraction = useCallback(() => setPendingAbstraction(null), []);
+
+  const confirmQualityMode = useCallback(async () => {
+    if (!pendingQualityMode) return;
+    try {
+      const updated = await patchSong(song.slug, { quality_mode: pendingQualityMode.newValue });
+      onSongUpdate(updated);
+      setPendingQualityMode(null);
+    } catch (e) {
+      alert(`Failed to update quality mode: ${String(e)}`);
+      setPendingQualityMode(null);
+    }
+  }, [pendingQualityMode, song.slug, onSongUpdate]);
+
+  const cancelQualityMode = useCallback(() => setPendingQualityMode(null), []);
 
   const sceneCount = song.scenes.length;
   const clipCount = song.scenes.filter(s => s.selected_clip_path).length;
@@ -60,7 +85,7 @@ export default function TopBar({ song, onSongUpdate, onBack }: Props) {
           filter:{" "}
           <select
             value={song.filter ?? ""}
-            onChange={e => promptChange("filter", e.target.value)}
+            onChange={e => setPendingFilter(e.target.value || null)}
             style={{ background: "transparent", color: "inherit", border: "none", font: "inherit" }}
           >
             <option value="">(unset)</option>
@@ -71,7 +96,7 @@ export default function TopBar({ song, onSongUpdate, onBack }: Props) {
           abstraction:{" "}
           <select
             value={song.abstraction ?? ""}
-            onChange={e => promptChange("abstraction", Number(e.target.value))}
+            onChange={e => setPendingAbstraction({ newValue: Number(e.target.value) })}
             style={{ background: "transparent", color: "inherit", border: "none", font: "inherit" }}
           >
             {ABSTRACTION_STOPS.map(v => <option key={v} value={v}>{v}</option>)}
@@ -81,7 +106,7 @@ export default function TopBar({ song, onSongUpdate, onBack }: Props) {
           mode:{" "}
           <select
             value={song.quality_mode}
-            onChange={e => promptChange("quality_mode", e.target.value as QualityMode)}
+            onChange={e => setPendingQualityMode({ newValue: e.target.value as QualityMode })}
             style={{ background: "transparent", color: "inherit", border: "none", font: "inherit" }}
           >
             <option value="draft">Draft 512p/24</option>
@@ -93,144 +118,109 @@ export default function TopBar({ song, onSongUpdate, onBack }: Props) {
         </span>
       </div>
 
-      {pending ? (
-        <ConfirmationModal
+      {pendingFilter ? (
+        <FilterChangeModal
           song={song}
-          kind={pending.kind}
-          newValue={pending.newValue}
+          kind={filterChange.kind}
+          newFilter={pendingFilter}
+          preview={filterChange.preview}
+          previewError={filterChange.previewError}
+          inFlight={filterChange.inFlight}
+          onConfirm={confirmFilter}
+          onCancel={cancelFilter}
+        />
+      ) : null}
+
+      {pendingAbstraction ? (
+        <ConfirmationModalAbstraction
+          song={song}
+          newValue={pendingAbstraction.newValue}
           sceneCount={sceneCount}
           clipCount={clipCount}
-          onConfirm={confirm}
-          onCancel={cancel}
+          onConfirm={confirmAbstraction}
+          onCancel={cancelAbstraction}
+        />
+      ) : null}
+
+      {pendingQualityMode ? (
+        <ConfirmationModalQualityMode
+          clipCount={clipCount}
+          onConfirm={confirmQualityMode}
+          onCancel={cancelQualityMode}
         />
       ) : null}
     </>
   );
 }
 
-function ConfirmationModal({
-  song, kind, newValue, sceneCount, clipCount, onConfirm, onCancel,
+// Abstraction change confirmation modal (inline, not using FilterChangeModal).
+function ConfirmationModalAbstraction({
+  song, newValue, sceneCount, clipCount, onConfirm, onCancel,
 }: {
   song: SongDetail;
-  kind: "filter" | "abstraction" | "quality_mode";
-  newValue: string | number;
+  newValue: number;
   sceneCount: number;
   clipCount: number;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const labels: Record<typeof kind, [string, string]> = {
-    filter: ["filter", song.filter ?? "(unset)"],
-    abstraction: ["abstraction", String(song.abstraction ?? "(unset)")],
-    quality_mode: ["quality mode", song.quality_mode],
-  };
-  const [label, from] = labels[kind];
-  const isCosmetic = kind === "quality_mode";
-  // Fresh-setup: nothing has been picked or generated yet. Picking filter or
-  // abstraction here is initial pipeline kick-off, not destructive replacement,
-  // so the standard modal's "regenerate / N keyframes / N clips marked stale"
-  // copy reads as nonsense.
-  const isFresh = song.filter == null
-    && song.abstraction == null
-    && song.world_brief == null
-    && song.scenes.length === 0;
-  const isFreshSetup = isFresh && (kind === "filter" || kind === "abstraction");
-
-  // For filter/abstraction changes, fetch the authoritative estimate from
-  // /preview-change so the numbers match what the backend will actually do.
-  const [preview, setPreview] = useState<ChainPreview | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
-  useEffect(() => {
-    if (isCosmetic || isFreshSetup) return;
-    let cancelled = false;
-    previewChange(song.slug, {
-      [kind]: kind === "abstraction" ? Number(newValue) : String(newValue),
-    } as { filter?: string; abstraction?: number })
-      .then(p => { if (!cancelled) setPreview(p); })
-      .catch(e => { if (!cancelled) setPreviewError(String(e)); });
-    return () => { cancelled = true; };
-  }, [isCosmetic, isFreshSetup, song.slug, kind, newValue]);
-
-  if (isFreshSetup) {
-    return (
-      <div className="dialog-backdrop" role="dialog" aria-modal="true">
-        <div className="dialog">
-          <h2>Set {label}</h2>
-          <div className="body">
-            <p>
-              Setting {label} to <b>{String(newValue)}</b> will start the pipeline —
-              world description, then storyboard, then scene prompts. You can
-              regenerate or edit any of these later.
-            </p>
-            <dl>
-              <dt>Estimated cost</dt>
-              <dd>~2 Gemini calls · ~$0.01</dd>
-            </dl>
-          </div>
-          <div className="actions">
-            <button onClick={onCancel}>Cancel</button>
-            <button className="primary" onClick={onConfirm}>Set {label}</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const cost = isCosmetic
-    ? "No Gemini calls"
-    : preview
-      ? `~${preview.estimate.gemini_calls} Gemini calls · ~$${preview.estimate.estimated_usd.toFixed(2)}`
-      : "computing estimate…";
-  const time = isCosmetic
-    ? "Instant (rendered clips preserved as takes)"
-    : preview
-      ? `~${Math.round(preview.estimate.estimated_seconds / 60)} min (${preview.estimate.confidence} confidence)`
-      : "";
-  const scope = isCosmetic
-    ? `Mark existing ${clipCount} clip takes as stale (preserved)`
-    : preview
-      ? `World description, storyboard, ${preview.scope.scenes_with_new_prompts} image prompts, ${preview.scope.keyframes_to_generate} keyframes`
-      : `World description, storyboard, ${sceneCount} image prompts, ${sceneCount} keyframes`;
-  const conflict = preview?.would_conflict_with;
+  const currentAbstraction = song.abstraction ?? "(unset)";
 
   return (
     <div className="dialog-backdrop" role="dialog" aria-modal="true">
       <div className="dialog">
-        <h2>Confirm {label} change</h2>
+        <h2>Confirm abstraction change</h2>
         <div className="body">
-          <p>Changing the {label} from <b>{String(from)}</b> to <b>{String(newValue)}</b>.</p>
+          <p>Changing the abstraction from <b>{currentAbstraction}</b> to <b>{newValue}</b>.</p>
           <dl>
             <dt>Regenerate</dt>
-            <dd>{scope}</dd>
+            <dd>World description, storyboard, {sceneCount} image prompts, {sceneCount} keyframes</dd>
             <dt>Estimated cost</dt>
-            <dd>{cost}</dd>
+            <dd>computing estimate…</dd>
             <dt>Estimated time</dt>
-            <dd>{time}</dd>
+            <dd></dd>
             <dt>Clip takes</dt>
             <dd>{clipCount} existing clips will be marked stale but preserved as takes</dd>
           </dl>
-          {previewError ? (
-            <p style={{ color: "#e06060" }}>Preview failed: {previewError}</p>
-          ) : null}
-          {conflict ? (
-            <p style={{ color: "#e06060" }}>
-              ⚠️ Another chain is already running (run #{conflict.run_id}).
-              {" "}{conflict.reason}
-            </p>
-          ) : null}
           <p style={{ color: "var(--text-dim)", fontSize: 12 }}>
             Note: clip re-rendering is NOT automatic — trigger it per scene or from the final-video action.
           </p>
         </div>
         <div className="actions">
           <button onClick={onCancel}>Cancel</button>
-          <button
-            className="primary"
-            onClick={onConfirm}
-            disabled={!!conflict}
-          >
-            Apply change
-          </button>
+          <button className="primary" onClick={onConfirm}>Apply change</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Quality mode change confirmation modal (inline, no chain trigger).
+function ConfirmationModalQualityMode({
+  clipCount, onConfirm, onCancel,
+}: {
+  clipCount: number;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="dialog-backdrop" role="dialog" aria-modal="true">
+      <div className="dialog">
+        <h2>Confirm quality mode change</h2>
+        <div className="body">
+          <p>This will mark existing clips as stale and re-render them at the new quality.</p>
+          <dl>
+            <dt>Cost</dt>
+            <dd>No Gemini calls</dd>
+            <dt>Time</dt>
+            <dd>Instant (rendered clips preserved as takes)</dd>
+            <dt>Clip takes</dt>
+            <dd>Mark existing {clipCount} clip takes as stale (preserved)</dd>
+          </dl>
+        </div>
+        <div className="actions">
+          <button onClick={onCancel}>Cancel</button>
+          <button className="primary" onClick={onConfirm}>Apply change</button>
         </div>
       </div>
     </div>
