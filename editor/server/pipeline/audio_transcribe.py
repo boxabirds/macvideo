@@ -108,30 +108,19 @@ def _resolve_demucs_script() -> Path:
 
 
 def _resolve_whisperx_script() -> Path:
-    """Test path: EDITOR_FAKE_WHISPERX_TRANSCRIBE. Production: the POC 30
-    transcribe script.
+    """Test path: EDITOR_FAKE_WHISPERX_TRANSCRIBE. Production: the product
+    WhisperX wrapper owned by editor/server/pipeline/scripts.
     """
     fake = os.environ.get("EDITOR_FAKE_WHISPERX_TRANSCRIBE")
     if fake:
         return Path(fake)
     here = Path(__file__).resolve()
-    repo_root = here.parents[3]
-    return (repo_root / "pocs" / "30-whisper-timestamped"
-            / "scripts" / "transcribe_whisperx_noprompt.py")
+    return here.parent / "scripts" / "whisperx_transcribe.py"
 
 
 def _resolve_whisperx_invocation(vocals_path: Path, output_json: Path) -> tuple[Path, list[str]]:
-    """Return the WhisperX script and args for the active environment.
-
-    The fake test script has a flag-based CLI, while the production POC 30
-    script has always used positional args:
-
-        transcribe_whisperx_noprompt.py <vocals_in> <json_out>
-    """
-    fake = os.environ.get("EDITOR_FAKE_WHISPERX_TRANSCRIBE")
-    if fake:
-        return Path(fake), ["--audio", str(vocals_path), "--out", str(output_json)]
-    return _resolve_whisperx_script(), [str(vocals_path), str(output_json)]
+    """Return the product WhisperX script and stable flag-based CLI args."""
+    return _resolve_whisperx_script(), ["--audio", str(vocals_path), "--out", str(output_json)]
 
 
 # ---------- public API ------------------------------------------------------
