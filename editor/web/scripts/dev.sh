@@ -7,20 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WEB_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${WEB_DIR}/../.." && pwd)"
 
-kill_port() {
-  local port=$1
-  local pids
-  pids=$(lsof -ti ":${port}" 2>/dev/null || true)
-  if [[ -n "${pids}" ]]; then
-    echo "[dev] freeing port ${port} (killing ${pids})"
-    # shellcheck disable=SC2086
-    kill -9 ${pids} 2>/dev/null || true
-    sleep 0.2
-  fi
-}
-
-kill_port 8000
-kill_port 5173
+"${SCRIPT_DIR}/teardown_servers.sh" 8000 5173
 
 # E2E harnesses set these to fast fake subprocesses. Local dev must exercise
 # the real production pipeline unless the backend is launched explicitly by hand.

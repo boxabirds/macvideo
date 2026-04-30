@@ -15,12 +15,13 @@ contract for every handler return shape:
 
 from __future__ import annotations
 
+import threading
 import time
 from pathlib import Path
 
 from editor.server.pipeline.stages import StageResult
 from editor.server.regen.queue import RegenJob, _RegenQueue
-from editor.server.regen.runs import RegenRun, create_run, get_run
+from editor.server.regen.runs import RegenRun, create_run, get_run, update_run_status
 from editor.server.store import connection
 
 
@@ -138,6 +139,132 @@ def test_handler_raising_exception_marks_failed(tmp_env):
     assert final["status"] == "failed"
     assert "boom" in final["error"]
     queue.shutdown(wait=True)
+
+
+def test_external_cancel_is_not_overwritten_by_late_stage_result_failure(tmp_env):
+    """Cancel endpoint writes status=cancelled while the worker is still inside
+    the subprocess. When the killed subprocess returns later, the queue must not
+    overwrite that terminal state with failed/raw stderr output.
+    """
+    from editor.server.store.schema import init_db
+    init_db(tmp_env["db"])
+    run = _make_run(tmp_env["db"])
+    queue = _new_queue(tmp_env["db"])
+    entered = threading.Event()
+    release = threading.Event()
+
+    async def handler(_r):
+        entered.set()
+        assert release.wait(timeout=3.0)
+        return StageResult(
+            ok=False, returncode=-15, new_keyframes=0, new_prompts=0,
+            stdout_tail="", stderr_tail="raw subprocess progress spam",
+            duration_s=0.0,
+        )
+
+    queue.submit(RegenJob(run=run, handler=handler))
+    assert entered.wait(timeout=3.0)
+
+    with connection(tmp_env["db"]) as c:
+        update_run_status(c, run.id, "cancelled")
+
+    release.set()
+    final = _drain(queue, run.id, tmp_env["db"])
+    queue.shutdown(wait=True)
+
+    assert final["status"] == "cancelled"
+    assert final["error"] is None
+
+
+def test_pending_cancel_is_not_overwritten_when_worker_starts(tmp_env):
+    """If the cancel endpoint marks a queued-but-not-yet-running job cancelled,
+    the worker must not later revive it as running/done.
+    """
+    from editor.server.store.schema import init_db
+    init_db(tmp_env["db"])
+    run = _make_run(tmp_env["db"])
+    queue = _new_queue(tmp_env["db"])
+    called = threading.Event()
+
+    async def handler(_r):
+        called.set()
+        return StageResult(
+            ok=True, returncode=0, new_keyframes=0, new_prompts=0,
+            stdout_tail="", stderr_tail="", duration_s=0.0,
+        )
+
+    with connection(tmp_env["db"]) as c:
+        update_run_status(c, run.id, "cancelled")
+
+    queue.submit(RegenJob(run=run, handler=handler))
+    time.sleep(0.2)
+    queue.shutdown(wait=True)
+
+    with connection(tmp_env["db"]) as c:
+        row = c.execute(
+            "SELECT status, error FROM regen_runs WHERE id = ?", (run.id,),
+        ).fetchone()
+
+    assert called.is_set() is False
+    assert row["status"] == "cancelled"
+    assert row["error"] is None
+
+
+def test_external_cancel_is_not_overwritten_by_late_success(tmp_env):
+    from editor.server.store.schema import init_db
+    init_db(tmp_env["db"])
+    run = _make_run(tmp_env["db"])
+    queue = _new_queue(tmp_env["db"])
+    entered = threading.Event()
+    release = threading.Event()
+
+    async def handler(_r):
+        entered.set()
+        assert release.wait(timeout=3.0)
+        return StageResult(
+            ok=True, returncode=0, new_keyframes=0, new_prompts=0,
+            stdout_tail="", stderr_tail="", duration_s=0.0,
+        )
+
+    queue.submit(RegenJob(run=run, handler=handler))
+    assert entered.wait(timeout=3.0)
+
+    with connection(tmp_env["db"]) as c:
+        update_run_status(c, run.id, "cancelled")
+
+    release.set()
+    final = _drain(queue, run.id, tmp_env["db"])
+    queue.shutdown(wait=True)
+
+    assert final["status"] == "cancelled"
+    assert final["error"] is None
+
+
+def test_external_cancel_is_not_overwritten_by_late_exception(tmp_env):
+    from editor.server.store.schema import init_db
+    init_db(tmp_env["db"])
+    run = _make_run(tmp_env["db"])
+    queue = _new_queue(tmp_env["db"])
+    entered = threading.Event()
+    release = threading.Event()
+
+    async def handler(_r):
+        entered.set()
+        assert release.wait(timeout=3.0)
+        raise RuntimeError("late worker exception")
+
+    queue.submit(RegenJob(run=run, handler=handler))
+    assert entered.wait(timeout=3.0)
+
+    with connection(tmp_env["db"]) as c:
+        update_run_status(c, run.id, "cancelled")
+
+    release.set()
+    final = _drain(queue, run.id, tmp_env["db"])
+    queue.shutdown(wait=True)
+
+    assert final["status"] == "cancelled"
+    assert final["error"] is None
 
 
 def test_handler_returning_none_marks_done(tmp_env):

@@ -120,6 +120,20 @@ def _resolve_whisperx_script() -> Path:
             / "scripts" / "transcribe_whisperx_noprompt.py")
 
 
+def _resolve_whisperx_invocation(vocals_path: Path, output_json: Path) -> tuple[Path, list[str]]:
+    """Return the WhisperX script and args for the active environment.
+
+    The fake test script has a flag-based CLI, while the production POC 30
+    script has always used positional args:
+
+        transcribe_whisperx_noprompt.py <vocals_in> <json_out>
+    """
+    fake = os.environ.get("EDITOR_FAKE_WHISPERX_TRANSCRIBE")
+    if fake:
+        return Path(fake), ["--audio", str(vocals_path), "--out", str(output_json)]
+    return _resolve_whisperx_script(), [str(vocals_path), str(output_json)]
+
+
 # ---------- public API ------------------------------------------------------
 
 def run_audio_transcribe(
@@ -207,8 +221,11 @@ def run_audio_transcribe(
         )
 
     # ---------- phase 2: WhisperX transcription (JSON with segments) --------
-    wx_script = _resolve_whisperx_script()
+    tmp_dir = Path(tempfile.mkdtemp(prefix="audio-transcribe-", dir=str(paths.run_dir)))
+    tmp_json = tmp_dir / f"{slug}.segments.json"
+    wx_script, wx_args = _resolve_whisperx_invocation(vocals_path, tmp_json)
     if not wx_script.exists():
+        shutil.rmtree(tmp_dir, ignore_errors=True)
         return AudioTranscribeResult(
             ok=False, returncode=126,
             stderr_tail=f"whisperx transcribe script not found at {wx_script}",
@@ -217,12 +234,10 @@ def run_audio_transcribe(
             failing_phase=PHASE_TRANSCRIBING,
         )
     cb(PHASE_TRANSCRIBING, 0.0)
-    tmp_dir = Path(tempfile.mkdtemp(prefix="audio-transcribe-", dir=str(paths.run_dir)))
-    tmp_json = tmp_dir / f"{slug}.segments.json"
     p2_start = time.time()
     wx_result = _run_phase(
         script=wx_script,
-        args=["--audio", str(vocals_path), "--out", str(tmp_json)],
+        args=wx_args,
         run_id=run_id,
         cancel_event=cancel_event,
     )

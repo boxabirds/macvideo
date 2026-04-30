@@ -247,6 +247,28 @@ describe("PipelinePanel", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("latest cancelled transcribe run suppresses older failed banner", () => {
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+        regenRuns={[
+          transcribeRun({
+            id: 8, status: "cancelled", error: null, ended_at: 2, created_at: 2,
+            scope: "stage_audio_transcribe",
+          }),
+          transcribeRun({
+            id: 7, status: "failed", error: "old demucs failure", ended_at: 1,
+            created_at: 1, scope: "stage_audio_transcribe",
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.queryByText(/old demucs failure/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Transcribe from audio/i })).toBeInTheDocument();
+  });
+
   // Skipped: progress_pct-based ETA test from task body case 1 is parked
   // until regen_runs gets a progress_pct column (task 12.4 follow-up).
   // The heuristic-fallback ETA is covered by the "spinner + ETA" test

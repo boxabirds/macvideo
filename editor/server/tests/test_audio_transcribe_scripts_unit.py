@@ -11,6 +11,7 @@ import pytest
 
 from editor.server.pipeline.audio_transcribe import (
     _resolve_demucs_script,
+    _resolve_whisperx_invocation,
     _resolve_whisperx_script,
 )
 
@@ -65,6 +66,29 @@ def test_demucs_package_is_available_to_production_wrapper():
         check=False,
     )
     assert result.returncode == 0
+
+
+def test_production_whisperx_invocation_uses_positional_poc30_contract(tmp_path):
+    vocals = tmp_path / "vocals.wav"
+    out = tmp_path / "segments.json"
+
+    script, args = _resolve_whisperx_invocation(vocals, out)
+
+    assert script == _resolve_whisperx_script()
+    assert args == [str(vocals), str(out)]
+
+
+def test_fake_whisperx_invocation_uses_flag_contract(tmp_path, monkeypatch):
+    fake = tmp_path / "fake_whisperx.py"
+    fake.write_text("#!/usr/bin/env python\n")
+    monkeypatch.setenv("EDITOR_FAKE_WHISPERX_TRANSCRIBE", str(fake))
+    vocals = tmp_path / "vocals.wav"
+    out = tmp_path / "segments.json"
+
+    script, args = _resolve_whisperx_invocation(vocals, out)
+
+    assert script == fake
+    assert args == ["--audio", str(vocals), "--out", str(out)]
 
 
 def test_demucs_wrapper_copies_documented_output_layout(tmp_path, monkeypatch):

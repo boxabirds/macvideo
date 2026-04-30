@@ -59,8 +59,21 @@ class _RegenQueue:
     def configure(self, db_path: Path) -> None:
         self._db_path = db_path
 
+    def _run_was_cancelled(self, run_id: int) -> bool:
+        if not self._db_path:
+            return False
+        with connection(self._db_path) as conn:
+            if conn is None:
+                return False
+            row = conn.execute(
+                "SELECT status FROM regen_runs WHERE id = ?", (run_id,),
+            ).fetchone()
+        return bool(row and row["status"] == "cancelled")
+
     def _execute(self, job: RegenJob) -> None:
         run = job.run
+        if self._run_was_cancelled(run.id):
+            return
         if self._db_path:
             with connection(self._db_path) as conn:
                 update_run_status(conn, run.id, "running")
@@ -75,6 +88,8 @@ class _RegenQueue:
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             err = str(e) or type(e).__name__
+            if self._run_was_cancelled(run.id):
+                return
             if self._db_path:
                 with connection(self._db_path) as conn:
                     update_run_status(conn, run.id, "failed", error=err)
@@ -95,6 +110,8 @@ class _RegenQueue:
                 or result.stdout_tail
                 or f"subprocess exited with code {result.returncode}"
             )
+            if self._run_was_cancelled(run.id):
+                return
             if self._db_path:
                 with connection(self._db_path) as conn:
                     update_run_status(conn, run.id, "failed", error=err)
@@ -105,6 +122,8 @@ class _RegenQueue:
             ))
             return
 
+        if self._run_was_cancelled(run.id):
+            return
         if self._db_path:
             with connection(self._db_path) as conn:
                 update_run_status(conn, run.id, "done")
