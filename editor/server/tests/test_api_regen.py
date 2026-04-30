@@ -157,7 +157,7 @@ def test_list_regen_runs(client_for, tmp_env, fixture_song_one):
     assert lst[0]["song_id"] is not None
 
 
-def test_list_regen_runs_sanitizes_obsolete_poc_audio_transcribe_error(
+def test_list_regen_runs_neutralizes_obsolete_poc_audio_transcribe_error(
     client_for, tmp_env, fixture_song_one,
 ):
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
@@ -185,10 +185,7 @@ def test_list_regen_runs_sanitizes_obsolete_poc_audio_transcribe_error(
         )
 
     runs = client_for.get("/api/songs/tiny-song/regen").json()["runs"]
-    assert runs[0]["status"] == "failed"
-    assert runs[0]["error"] == (
-        "Audio transcription failed in an older build. "
-        "Try again to run the current product transcription pipeline."
-    )
-    assert "pocs/30-whisper-timestamped" not in runs[0]["error"]
-    assert "transcribe_whisperx_noprompt.py" not in runs[0]["error"]
+    assert runs[0]["status"] == "cancelled"
+    assert runs[0]["error"] is None
+    assert "pocs/30-whisper-timestamped" not in str(runs[0])
+    assert "transcribe_whisperx_noprompt.py" not in str(runs[0])
