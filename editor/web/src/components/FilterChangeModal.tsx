@@ -22,6 +22,11 @@ type FilterChangeModalProps = {
 export default function FilterChangeModal({
   song, kind, newFilter, preview, previewError, inFlight, onConfirm, onCancel,
 }: FilterChangeModalProps) {
+  // Noop: no change needed, no modal.
+  if (kind === "noop") {
+    return null;
+  }
+
   const currentFilter = song.filter ?? "(unset)";
   const clipCount = song.scenes.filter((s) => s.selected_clip_path).length;
   const sceneCount = song.scenes.length;

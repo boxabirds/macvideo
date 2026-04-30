@@ -1,7 +1,7 @@
 // Top bar: song identity + filter / abstraction / quality-mode controls
 // (stories 4 and 8). Filter changes use FilterChangeModal branched on kind.
 // Abstraction + quality_mode changes use inline confirmation logic.
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { QualityMode, SongDetail } from "../types";
 import { patchSong, previewChange } from "../api";
 import FilterChangeModal from "./FilterChangeModal";
@@ -28,6 +28,13 @@ export default function TopBar({ song, onSongUpdate, onBack }: Props) {
   const [pendingQualityMode, setPendingQualityMode] = useState<null | { newValue: QualityMode }>(null);
 
   const filterChange = useFilterChange(song, pendingFilter);
+
+  // Noop changes require no confirmation—dismiss immediately.
+  useEffect(() => {
+    if (filterChange.kind === "noop") {
+      setPendingFilter(null);
+    }
+  }, [filterChange.kind]);
 
   const confirmFilter = useCallback(async () => {
     if (!pendingFilter) return;

@@ -201,4 +201,26 @@ describe("FilterChangeModal", () => {
 
     expect(screen.getByText(/2 existing clips will be marked stale/)).toBeInTheDocument();
   });
+
+  it("returns null when kind is noop (no modal rendered)", () => {
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+
+    const { container } = render(
+      <FilterChangeModal
+        song={makeSong()}
+        kind="noop"
+        newFilter={makeSong().filter}
+        preview={null}
+        previewError={null}
+        inFlight={false}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />
+    );
+
+    expect(container.firstChild).toBeNull();
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });
