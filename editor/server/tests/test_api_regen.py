@@ -16,8 +16,6 @@ from __future__ import annotations
 
 import time
 
-from editor.server.store import connection
-
 
 def _wait_for_run(client, run_id: int, slug: str, *, terminal=("done", "failed", "cancelled"), timeout=5.0):
     """Poll the run-list endpoint until the run transitions to terminal state."""
@@ -155,37 +153,3 @@ def test_list_regen_runs(client_for, tmp_env, fixture_song_one):
     lst = client_for.get("/api/songs/tiny-song/regen").json()["runs"]
     assert len(lst) >= 1
     assert lst[0]["song_id"] is not None
-
-
-def test_list_regen_runs_neutralizes_obsolete_poc_audio_transcribe_error(
-    client_for, tmp_env, fixture_song_one,
-):
-    fixture_song_one(tmp_env["music"], tmp_env["outputs"])
-    client_for.post("/api/import")
-    with connection(tmp_env["db"]) as c:
-        song = c.execute(
-            "SELECT id FROM songs WHERE slug = ?", ("tiny-song",),
-        ).fetchone()
-        assert song is not None
-        c.execute(
-            """
-            INSERT INTO regen_runs
-                (scope, song_id, status, created_at, started_at, ended_at, error)
-            VALUES
-                ('stage_audio_transcribe', ?, 'failed', ?, ?, ?, ?)
-            """,
-            (
-                song["id"],
-                time.time(),
-                time.time(),
-                time.time(),
-                "Usage: /Users/julian/expts/macvideo/pocs/30-whisper-timestamped/"
-                "scripts/transcribe_whisperx_noprompt.py <vocals_in> <json_out>\n",
-            ),
-        )
-
-    runs = client_for.get("/api/songs/tiny-song/regen").json()["runs"]
-    assert runs[0]["status"] == "cancelled"
-    assert runs[0]["error"] is None
-    assert "pocs/30-whisper-timestamped" not in str(runs[0])
-    assert "transcribe_whisperx_noprompt.py" not in str(runs[0])
