@@ -68,7 +68,6 @@ describe("TopBar", () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => previewResponse,
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     render(<MemoryRouter><TopBar song={makeSong()} onSongUpdate={() => {}} onBack={() => {}} /></MemoryRouter>);
@@ -86,7 +85,6 @@ describe("TopBar", () => {
 
   it("opens a cosmetic confirmation on quality_mode change without fetching preview-change", async () => {
     const fetchSpy = vi.fn();
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     render(<MemoryRouter><TopBar song={makeSong()} onSongUpdate={() => {}} onBack={() => {}} /></MemoryRouter>);
@@ -104,7 +102,6 @@ describe("TopBar", () => {
 
   it("fresh-song filter pick shows 'Set filter' setup modal — no destructive copy, no preview-change fetch", async () => {
     const fetchSpy = vi.fn();
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
     const fresh = makeSong({
       filter: null, abstraction: null,
@@ -152,7 +149,6 @@ describe("TopBar", () => {
         would_conflict_with: { run_id: 42, reason: "a chain is already running" },
       }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     render(<MemoryRouter><TopBar song={makeSong()} onSongUpdate={() => {}} onBack={() => {}} /></MemoryRouter>);

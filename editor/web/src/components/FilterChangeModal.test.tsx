@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import FilterChangeModal from "./FilterChangeModal";
 import type { SongDetail } from "../types";
+import type { ChainPreview } from "../api";
 
 function makeSong(extras: Partial<SongDetail> = {}): SongDetail {
   return {
@@ -44,7 +45,8 @@ describe("FilterChangeModal", () => {
   });
 
   it("renders destructive modal with full cost breakdown", () => {
-    const previewData = {
+    const previewData: ChainPreview = {
+      kind: "destructive",
       from: { filter: "oil impasto", abstraction: 25 },
       to: { filter: "cyanotype", abstraction: 25 },
       scope: {
@@ -119,7 +121,8 @@ describe("FilterChangeModal", () => {
   });
 
   it("disables confirm button when there's a conflict", () => {
-    const previewData = {
+    const previewData: ChainPreview = {
+      kind: "destructive",
       from: { filter: "oil impasto", abstraction: 25 },
       to: { filter: "cyanotype", abstraction: 25 },
       scope: {
@@ -166,7 +169,8 @@ describe("FilterChangeModal", () => {
       ],
     });
 
-    const previewData = {
+    const previewData: ChainPreview = {
+      kind: "destructive",
       from: { filter: "oil impasto", abstraction: 25 },
       to: { filter: "cyanotype", abstraction: 25 },
       scope: {
@@ -210,7 +214,7 @@ describe("FilterChangeModal", () => {
       <FilterChangeModal
         song={makeSong()}
         kind="noop"
-        newFilter={makeSong().filter}
+        newFilter="oil impasto"
         preview={null}
         previewError={null}
         inFlight={false}

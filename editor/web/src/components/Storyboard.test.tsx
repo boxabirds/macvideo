@@ -44,7 +44,6 @@ function makeSong(scenes: Scene[]): SongDetail {
 
 function stubFetchEcho() {
   const spy = vi.fn();
-  // @ts-expect-error
   globalThis.fetch = spy;
   return spy;
 }
@@ -109,7 +108,6 @@ describe("Storyboard", () => {
       ok: true, status: 200,
       json: async () => ({ ...song.scenes[0], target_text: "new lyric" }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     const { container } = render(
@@ -139,7 +137,6 @@ describe("Storyboard", () => {
       ok: true, status: 200,
       json: async () => ({ ...song.scenes[0], beat: "new" }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
@@ -239,7 +236,6 @@ describe("Storyboard", () => {
       ok: false, status: 422,
       json: async () => ({ detail: "bad value" }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
@@ -273,7 +269,6 @@ describe("Storyboard", () => {
     const song = makeSong([makeScene({ index: 1, beat: "old" })]);
     // fetch throws TypeError — what the browser does when offline.
     const fetchSpy = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
@@ -332,7 +327,6 @@ describe("Storyboard", () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 1, status: "pending", estimated_seconds: 15 }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
     const song = makeSong([makeScene({ index: 1 })]);
     const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
@@ -355,8 +349,7 @@ describe("Storyboard", () => {
       ok: true, status: 200,
       json: async () => ({ takes: [{ id: 5, artefact_kind: "keyframe", asset_path: "/x.png", created_at: 0, quality_mode: "draft", source_run_id: 3, is_selected: false }] }),
     } as Response);
-    // @ts-expect-error
-    globalThis.fetch = vi.fn((url: string, init?: RequestInit) => {
+    globalThis.fetch = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
       if (init?.method === "PATCH") return patchSpy();
       return takesSpy();
     });

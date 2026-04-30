@@ -5,6 +5,12 @@ import { test, expect } from "@playwright/test";
 // non-fresh tiny-song fixture still gets the destructive modal.
 
 test.describe("Fresh-song setup modal", () => {
+  test.beforeEach(async ({ request }) => {
+    await request.post("http://localhost:8000/api/test-only/reset-song", {
+      data: { slug: "fresh-song-nl" },
+    });
+  });
+
   test("fresh-song filter pick renders 'Set filter' setup modal", async ({ page }) => {
     await page.goto("/songs/fresh-song-nl");
     await page.locator(".topbar select").first().waitFor({ state: "attached" });

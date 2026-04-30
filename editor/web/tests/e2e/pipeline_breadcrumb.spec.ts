@@ -89,14 +89,13 @@ test.describe("Pipeline breadcrumb (Story 17)", () => {
 
   test("running-detail: triggering transcribe on a fresh song surfaces the .stage-running-detail label", async ({ page }) => {
     // Covers ui.stage-running-detail. fresh-song-nl has lyric alignment pending
-    // (no scenes yet); clicking the segment fires transcribe; the running
-    // window is short but observable before completion.
+    // (no scenes yet); clicking the audio-transcribe action fires the stage,
+    // and the running window is short but observable before completion.
     await gotoEditor(page, FRESH);
     const segment = page.locator('[data-stage="transcription"]');
     await expect(segment).toHaveAttribute("data-status", "pending");
-    // Click the main stage-segment button (not the new Transcribe-from-audio
-    // button added by Story 14, which lives in the same segment).
-    await segment.locator("button.stage-segment-btn").click();
+    await segment.getByRole("button", { name: /Transcribe from audio/i }).click();
+    await page.getByRole("button", { name: /^Start$/ }).click();
     // Either the running-detail label appears mid-flight, or the run completes
     // so fast that data-status flips straight to "done". Both prove the
     // running-detail surface exists in the rendered tree.

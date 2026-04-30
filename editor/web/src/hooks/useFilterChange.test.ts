@@ -81,7 +81,6 @@ describe("useFilterChange", () => {
       status: 200,
       json: async () => previewResponse,
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     const song = makeSong({ filter: "oil impasto", world_brief: "narrator" });
@@ -103,7 +102,6 @@ describe("useFilterChange", () => {
 
   it("handles preview fetch errors gracefully", async () => {
     const fetchSpy = vi.fn().mockRejectedValue(new Error("Network error"));
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     const song = makeSong({ filter: "oil impasto", world_brief: "narrator" });
@@ -121,7 +119,6 @@ describe("useFilterChange", () => {
 
   it("skips preview fetch for fresh-setup", async () => {
     const fetchSpy = vi.fn();
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     const fresh = makeSong({
@@ -141,7 +138,6 @@ describe("useFilterChange", () => {
 
   it("cancels in-flight preview fetch on unmount", async () => {
     const fetchSpy = vi.fn().mockImplementation(() => new Promise(() => {})); // Never resolves
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     const song = makeSong({ filter: "oil impasto", world_brief: "narrator" });

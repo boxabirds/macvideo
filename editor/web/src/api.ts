@@ -100,6 +100,7 @@ export async function regenerateScene(
 }
 
 export type ChainPreview = {
+  kind: "fresh-setup" | "destructive" | "noop";
   from: { filter: string | null; abstraction: number | null };
   to: { filter: string | null; abstraction: number | null };
   scope: {
@@ -137,6 +138,7 @@ export type SceneTake = {
   id: number;
   artefact_kind: "keyframe" | "clip";
   asset_path: string;
+  source_run_id: number | null;
   created_at: number;
   quality_mode: string | null;
   is_selected: boolean;

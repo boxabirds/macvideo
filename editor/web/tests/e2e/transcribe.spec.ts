@@ -1,24 +1,10 @@
 import { test, expect } from "@playwright/test";
 
-// Story 12 e2e: full-stack transcribe through the browser.
-// Backend runs against:
-//   - fresh-song-wl  (audio + lyrics, no outputs/) → happy uncached path.
-//   - fresh-song-nl  (audio only, no .txt) → preflight rejects, failed banner.
-//   - fresh-song-nl + injected lyrics → Try again recovers.
-//
-// EDITOR_FAKE_WHISPERX_ALIGN points the transcribe stage at the fake
-// whisperx_align so we don't pull torch/wav2vec2 into the e2e box.
-//
-// Note: the cached-POC-song case (fourth case in the task body) is proven
-// at the integration level by editor/server/tests/test_transcribe_integration
-// .py::test_transcribe_cached_song_skips_whisperx, since the browser-level
-// signal is indistinguishable from the uncached path (both end at done) —
-// only the absence of a fresh whisperx_cache write proves the skip, which
-// is a backend concern, not a UI one.
+// Story 18 e2e: fresh songs transcribe from audio through the browser and
+// land scenes directly in the DB. The legacy manual-lyrics run button remains
+// disabled for untranscribed songs so the UI cannot offer a failing action.
 
-const FAILED_BANNER_TIMEOUT_MS = 12_000;
 const SCENES_LANDED_TIMEOUT_MS = 15_000;
-const BANNER_DISMISS_TIMEOUT_MS = 2_000;
 
 async function gotoEditor(page: import("@playwright/test").Page, slug: string) {
   await page.goto(`/songs/${slug}`);
@@ -30,9 +16,7 @@ function transcribeRow(page: import("@playwright/test").Page) {
 }
 
 function transcribeRunButton(page: import("@playwright/test").Page) {
-  // Scope to the run button (not the "Try again" button that lives inside
-  // the failed banner of the same row).
-  return transcribeRow(page).getByTitle(/^(Run|Re-run) lyric alignment/);
+  return transcribeRow(page).getByRole("button", { name: /Transcribe from audio/i });
 }
 
 async function fetchSong(page: import("@playwright/test").Page, slug: string) {
@@ -42,7 +26,16 @@ async function fetchSong(page: import("@playwright/test").Page, slug: string) {
 }
 
 test.describe("transcribe e2e", () => {
-  test("happy_uncached: fresh song with lyrics → transcribe runs, scenes land", async ({ page }) => {
+  test.afterEach(async ({ request }) => {
+    await request.post("http://localhost:8000/api/test-only/reset-song", {
+      data: { slug: "fresh-song-wl" },
+    });
+    await request.post("http://localhost:8000/api/test-only/reset-song", {
+      data: { slug: "fresh-song-nl" },
+    });
+  });
+
+  test("audio_with_lyrics_file: Transcribe from audio runs, scenes land", async ({ page }) => {
     await gotoEditor(page, "fresh-song-wl");
 
     // Pre-condition: empty song, no scenes.
@@ -50,6 +43,7 @@ test.describe("transcribe e2e", () => {
     expect(before.scenes.length).toBe(0);
 
     await transcribeRunButton(page).click();
+    await page.getByRole("button", { name: /^Start$/ }).click();
 
     // Wait for scenes to land. The fake whisperx + real make_shots may
     // complete faster than the 2s SWR poll cycle, so we don't assert on
@@ -63,52 +57,24 @@ test.describe("transcribe e2e", () => {
     await expect(page.locator(".transcribe-failed")).not.toBeVisible();
   });
 
-  test("blocked_missing_lyrics: preflight rejects, failed banner appears", async ({ page }) => {
+  test("audio_only_no_lyrics_file: Transcribe from audio runs, scenes land", async ({ page }) => {
     await gotoEditor(page, "fresh-song-nl");
 
-    // If a previous test already failed this song, the failed banner is
-    // already showing; skip the click in that case.
-    const banner = page.locator(".transcribe-failed");
-    if (!(await banner.isVisible().catch(() => false))) {
-      await transcribeRunButton(page).click();
-    }
+    const before = await fetchSong(page, "fresh-song-nl");
+    expect(before.scenes.length).toBe(0);
 
-    await expect(banner).toBeVisible({ timeout: FAILED_BANNER_TIMEOUT_MS });
-    await expect(banner).toContainText(/fresh-song-nl\.txt/);
-    await expect(banner.getByRole("button", { name: /Try again/i })).toBeVisible();
-
-    const detail = await fetchSong(page, "fresh-song-nl");
-    expect(detail.scenes.length).toBe(0);
-  });
-
-  test("retry_from_failed: inject lyrics file then Try again succeeds", async ({ page }) => {
-    await gotoEditor(page, "fresh-song-nl");
-
-    // Ensure a failed banner is present (from this run or a prior test).
-    const banner = page.locator(".transcribe-failed");
-    if (!(await banner.isVisible().catch(() => false))) {
-      await transcribeRunButton(page).click();
-    }
-    await expect(banner).toBeVisible({ timeout: FAILED_BANNER_TIMEOUT_MS });
-
-    // Inject a lyrics file via the test-only backend helper (mounted
-    // when EDITOR_TEST_ENDPOINTS=1, which setup_backend.sh exports).
-    const writeRes = await page.request.post(
-      "http://localhost:8000/api/test-only/write-lyrics",
-      {
-        data: { slug: "fresh-song-nl", text: "now there is a line of lyric\nand a second\n" },
-      },
-    );
-    expect(writeRes.ok()).toBeTruthy();
-
-    // Click Try again. Banner dismisses optimistically.
-    await banner.getByRole("button", { name: /Try again/i }).click();
-    await expect(banner).not.toBeVisible({ timeout: BANNER_DISMISS_TIMEOUT_MS });
-
-    // Scenes land within the alignment timeout.
+    await transcribeRunButton(page).click();
+    await page.getByRole("button", { name: /^Start$/ }).click();
     await expect.poll(
       async () => (await fetchSong(page, "fresh-song-nl")).scenes.length,
       { timeout: SCENES_LANDED_TIMEOUT_MS, intervals: [500, 1000, 2000] },
     ).toBeGreaterThan(0);
+    await expect(page.locator(".transcribe-failed")).not.toBeVisible();
+  });
+
+  test("legacy run button is disabled before scenes exist", async ({ page }) => {
+    await gotoEditor(page, "fresh-song-nl");
+    await expect(transcribeRow(page).locator("button.stage-segment-btn")).toBeDisabled();
+    await expect(transcribeRunButton(page)).toBeVisible();
   });
 });

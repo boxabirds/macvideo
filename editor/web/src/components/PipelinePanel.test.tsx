@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PipelinePanel from "./PipelinePanel";
-import type { SongDetail, StageStatus } from "../types";
+import type { Scene, SongDetail, StageStatus } from "../types";
 import type { RegenRunSummary } from "../api";
 
 function transcribeRun(overrides: Partial<RegenRunSummary> = {}): RegenRunSummary {
@@ -20,6 +20,30 @@ function makeSong(partial: Partial<SongDetail> = {}): SongDetail {
     slug: "tiny", audio_path: "/x.wav", duration_s: 5, size_bytes: 1,
     filter: "charcoal", abstraction: 25, quality_mode: "draft",
     world_brief: "w", sequence_arc: "a", scenes: [],
+    ...partial,
+  };
+}
+
+function makeScene(partial: Partial<Scene> = {}): Scene {
+  return {
+    index: 0,
+    kind: "lyric",
+    target_text: "a",
+    start_s: 0,
+    end_s: 1,
+    target_duration_s: 1,
+    num_frames: 24,
+    beat: "b",
+    camera_intent: null,
+    subject_focus: null,
+    prev_link: null,
+    next_link: null,
+    image_prompt: "p",
+    prompt_is_user_authored: false,
+    selected_keyframe_path: null,
+    selected_clip_path: null,
+    missing_assets: [],
+    dirty_flags: [],
     ...partial,
   };
 }
@@ -60,7 +84,6 @@ describe("PipelinePanel", () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 1, status: "pending" }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     render(<PipelinePanel song={makeSong()} status={status()} />);
@@ -73,8 +96,8 @@ describe("PipelinePanel", () => {
     await userEvent.click(regenBtn);
     expect(screen.getByRole("heading", { name: /This is a big deal/ })).toBeInTheDocument();
     // Inside the confirmation, click the (second) Regenerate button.
-    const confirmBtns = screen.getAllByRole("button", { name: /^Regenerate$/ });
-    await userEvent.click(confirmBtns[confirmBtns.length - 1]);
+    const confirmBtn = screen.getAllByRole("button", { name: /^Regenerate$/ }).at(-1)!;
+    await userEvent.click(confirmBtn);
 
     await new Promise(r => setTimeout(r, 10));
     const urls = fetchSpy.mock.calls.map(c => c[0] as string);
@@ -88,7 +111,6 @@ describe("PipelinePanel", () => {
       ok: true, status: 200,
       json: async () => ({ ...makeSong(), world_brief: "edited" }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     render(<PipelinePanel song={makeSong()} status={status()} onSongUpdate={() => {}} />);
@@ -147,7 +169,6 @@ describe("PipelinePanel", () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 2, status: "pending" }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     render(
@@ -170,7 +191,6 @@ describe("PipelinePanel", () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 99, status: "pending" }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     render(
@@ -289,9 +309,7 @@ describe("PipelinePanel", () => {
     render(
       <PipelinePanel
         song={makeSong({
-          scenes: [
-            { index: 0, start_s: 0, end_s: 1, lyric: "a", beat: "b", image_prompt: "p" },
-          ] as SongDetail["scenes"],
+          scenes: [makeScene()],
         })}
         status={status()}
       />,
@@ -364,15 +382,15 @@ describe("PipelinePanel", () => {
   });
 
   it("Story 14: Start fires POST /audio-transcribe with force=false", async () => {
-    const fetchSpy = vi.fn(async (url: string) => {
-      if (typeof url === "string" && url.includes("/audio-transcribe")) {
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/audio-transcribe")) {
         return {
           ok: true, status: 200, json: async () => ({ run_id: 5, status: "pending" }),
         } as Response;
       }
       return { ok: true, status: 200, json: async () => ({ finished: [] }) } as Response;
     });
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
     render(
       <PipelinePanel
@@ -391,8 +409,9 @@ describe("PipelinePanel", () => {
 
   it("Story 14: 409 overwrite_required flips the modal to overwrite copy + force=true on confirm", async () => {
     let audioTranscribeCalls = 0;
-    const fetchSpy = vi.fn(async (url: string) => {
-      if (typeof url === "string" && url.includes("/audio-transcribe")) {
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/audio-transcribe")) {
         audioTranscribeCalls += 1;
         if (audioTranscribeCalls === 1) {
           return {
@@ -411,7 +430,6 @@ describe("PipelinePanel", () => {
         ok: true, status: 200, json: async () => ({ finished: [] }),
       } as Response;
     });
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
     render(
       <PipelinePanel
@@ -472,7 +490,6 @@ describe("PipelinePanel", () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 7, status: "pending" }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
     render(
       <PipelinePanel
@@ -496,7 +513,6 @@ describe("PipelinePanel", () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 1, status: "pending" }),
     } as Response);
-    // @ts-expect-error
     globalThis.fetch = fetchSpy;
 
     render(<PipelinePanel song={makeSong()} status={status({

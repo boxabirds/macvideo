@@ -47,6 +47,7 @@ data/logs/
 pocs/*/inputs/
 pocs/*/stems/
 pocs/*/cache/
+pocs/*/whisperx_cache/
 
 # Editor (storyboard editor) runtime state
 editor/data/

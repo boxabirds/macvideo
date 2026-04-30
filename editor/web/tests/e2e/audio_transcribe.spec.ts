@@ -7,8 +7,7 @@ import { test, expect } from "@playwright/test";
 //   1. empty-state Transcribe-from-audio button visible.
 //   2. confirm modal first-run copy + Start fires fetch.
 //   3. running state visible after Start.
-//   4. lyrics file lands and the segment goes done.
-//   5. overwrite branch on a song that already has lyrics.
+//   4. the audio-transcribe run row lands.
 
 const FRESH = "fresh-song-nl";
 
@@ -105,7 +104,7 @@ test.describe("Audio transcribe (Story 14)", () => {
     await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 5000 });
   });
 
-  test("after Start, the audio-transcribe run lands in regen_runs and lyrics file is written", async ({ page, request }) => {
+  test("after Start, the audio-transcribe run lands in regen_runs", async ({ page, request }) => {
     await gotoEditor(page, FRESH);
     await page.locator('[data-stage="transcription"]')
       .getByRole("button", { name: /Transcribe from audio/i })
@@ -113,10 +112,8 @@ test.describe("Audio transcribe (Story 14)", () => {
     await page.getByRole("button", { name: /^Start$/ }).click();
 
     // Poll the regen endpoint until the audio-transcribe run terminates.
-    // Story 14's contract: run_audio_transcribe writes the lyrics file
-    // before handing off to the existing alignment stage. We assert the
-    // run row exists with the correct scope; downstream alignment is
-    // covered by Story 12's transcribe.spec.ts.
+    // Story 18's contract: audio transcription writes scenes directly to
+    // the DB, with the whole orchestration tracked under stage_audio_transcribe.
     await expect.poll(async () => {
       const r = await request.get(`http://localhost:8000/api/songs/${FRESH}/regen`);
       const body = await r.json();

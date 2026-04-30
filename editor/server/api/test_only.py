@@ -66,4 +66,15 @@ def reset_song(body: ResetSongBody):
             sid = row["id"]
             c.execute("DELETE FROM scenes WHERE song_id = ?", (sid,))
             c.execute("DELETE FROM regen_runs WHERE song_id = ?", (sid,))
+            c.execute(
+                """
+                UPDATE songs
+                SET filter = NULL,
+                    abstraction = NULL,
+                    world_brief = NULL,
+                    sequence_arc = NULL
+                WHERE id = ?
+                """,
+                (sid,),
+            )
     return {"ok": True}

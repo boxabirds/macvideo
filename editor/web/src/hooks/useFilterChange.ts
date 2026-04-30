@@ -64,6 +64,7 @@ export function useFilterChange(song: SongDetail, newFilter: string | null) {
         if (!cancelled) {
           setState((prev) => ({
             ...prev,
+            kind: p.kind,
             preview: p,
             previewError: null,
             inFlight: false,
@@ -88,7 +89,9 @@ export function useFilterChange(song: SongDetail, newFilter: string | null) {
 
   // Apply the filter change.
   const apply = useCallback(async () => {
-    if (!newFilter) return;
+    if (!newFilter) {
+      throw new Error("no filter selected");
+    }
     const updated = await patchSong(song.slug, { filter: newFilter });
     return updated;
   }, [newFilter, song.slug]);

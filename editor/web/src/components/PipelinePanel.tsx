@@ -45,9 +45,9 @@ type StageKey =
   | "image_prompts" | "keyframes" | "final_video";
 
 type StageScope =
-  | "stage_transcribe" | "stage_world_description" | "stage_storyboard"
-  | "stage_image_prompts" | "stage_keyframes" | "stage_clips"
-  | "stage_render_final";
+  | "stage_transcribe" | "stage_audio_transcribe" | "stage_world_brief"
+  | "stage_storyboard" | "stage_image_prompts" | "stage_keyframes"
+  | "final_video";
 
 type StageDef = {
   key: StageKey;
@@ -65,7 +65,7 @@ const STAGES: readonly StageDef[] = [
   { key: "storyboard",     label: "storyboard",        stageName: "storyboard",    scope: "stage_storyboard",         historyModel: "replace" },
   { key: "image_prompts",  label: "image prompts",     stageName: "image-prompts", scope: "stage_image_prompts",      historyModel: "replace" },
   { key: "keyframes",      label: "keyframes",         stageName: "keyframes",     scope: "stage_keyframes",          historyModel: "take" },
-  { key: "final_video",    label: "final video",       stageName: "render-final",  scope: "stage_render_final",       historyModel: "replace" },
+  { key: "final_video",    label: "final video",       stageName: "render-final",  scope: "final_video",              historyModel: "replace" },
 ] as const;
 
 // Each stage runs only after its prereqs are done. Linear chain today; the
@@ -79,7 +79,7 @@ const STAGE_PREREQS: Record<StageKey, StageKey[]> = {
   final_video:   ["keyframes"],
 };
 
-type StageDoneState = "done" | "progress" | "empty";
+type StageDoneState = "done" | "progress" | "empty" | "error";
 
 function deriveDoneState(
   stage: StageDef, song: SongDetail, status: StageStatus, finishedCount: number,
@@ -107,7 +107,13 @@ function deriveDoneState(
     };
   }
   return {
-    doneState: ((status as Record<string, string>)[stage.key] as StageDoneState) ?? "empty",
+    doneState: stage.key === "transcription"
+      ? status.transcription
+      : stage.key === "world_brief"
+        ? status.world_brief
+        : stage.key === "storyboard"
+          ? status.storyboard
+          : "empty",
     summary: "",
   };
 }
@@ -122,6 +128,7 @@ function deriveSegmentStatus(args: {
   const { doneState, activeRun, failedRun, prereqsDone } = args;
   if (activeRun) return "running";
   if (failedRun) return "failed";
+  if (doneState === "error") return "failed";
   if (doneState === "done") return "done";
   if (doneState === "progress") return prereqsDone ? "pending" : "blocked";
   return prereqsDone ? "pending" : "blocked";

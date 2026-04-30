@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from .. import config as _cfg
 from ..importer import import_all
 from ..pipeline.stages import run_gen_keyframes_for_stage
-from ..pipeline.transitions import FilterChangeTransition
+from ..pipeline.transitions import ConflictError, FilterChangeTransition, NotFoundError
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import create_run, get_run
 from ..store.schema import QualityMode
@@ -243,8 +243,10 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
     if not patch_fields:
         return get_song(slug, conn)
 
-    # Check for conflicts first (filter/abstraction/quality_mode changes all blocked).
-    if any(k in patch_fields for k in ("filter", "abstraction", "quality_mode")):
+    # Filter changes delegate conflict detection to FilterChangeTransition so
+    # no-op filter selections can short-circuit without being blocked by an
+    # unrelated active run.
+    if "filter" not in patch_fields and any(k in patch_fields for k in ("abstraction", "quality_mode")):
         active = conn.execute("""
             SELECT id FROM regen_runs
             WHERE song_id = ?
@@ -288,21 +290,14 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
     if chain_triggering:
         if "filter" in patch_fields:
             new_filter = patch_fields["filter"]
-            transition = FilterChangeTransition(conn, slug, new_filter)
-            kind = transition.kind()
-
-            if kind == "noop":
-                # Setting filter to its current value: no-op.
-                return get_song(slug, conn)
-
-            # Apply the filter change.
-            conn.execute(
-                "UPDATE songs SET filter = ?, updated_at = ? WHERE id = ?",
-                (new_filter, time.time(), song["id"]),
-            )
-            scope = "song_filter"
-            enqueued_filter = new_filter
-            enqueued_abstraction = song["abstraction"] or 25
+            try:
+                transition = FilterChangeTransition(conn, slug, new_filter)
+                transition.apply(script_path=_override_gen_keyframes())
+            except NotFoundError as e:
+                raise HTTPException(status_code=404, detail=str(e)) from e
+            except ConflictError as e:
+                raise HTTPException(status_code=409, detail=str(e)) from e
+            return get_song(slug, conn)
         else:
             # Abstraction change.
             new_abstraction = patch_fields["abstraction"]

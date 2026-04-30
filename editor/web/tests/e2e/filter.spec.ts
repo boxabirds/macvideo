@@ -4,6 +4,12 @@ import { test, expect } from "@playwright/test";
 // Tests fresh-setup vs destructive kinds, preview parity, and Story 16 regression.
 
 test.describe("Filter change kind classification", () => {
+  test.afterEach(async ({ request }) => {
+    await request.post("http://localhost:8000/api/test-only/reset-song", {
+      data: { slug: "fresh-song-nl" },
+    });
+  });
+
   test("destructive filter change: fetch estimate + render dialog + confirm", async ({ page }) => {
     await page.goto("/songs/tiny-song");
     await page.locator(".preview audio").waitFor({ state: "attached" });

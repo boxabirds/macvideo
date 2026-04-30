@@ -7,9 +7,10 @@ import SongBrowser from "./SongBrowser";
 import type { Song } from "../types";
 
 function makeSong(partial: Partial<Song> & { slug: string }): Song {
+  const { slug, status: partialStatus, ...rest } = partial;
   return {
-    slug: partial.slug,
-    audio_path: `/Users/x/music/${partial.slug}.wav`,
+    slug,
+    audio_path: `/Users/x/music/${slug}.wav`,
     duration_s: 210,
     size_bytes: 44_000_000,
     filter: "stained glass",
@@ -24,9 +25,9 @@ function makeSong(partial: Partial<Song> & { slug: string }): Song {
       clips_done: 0,
       clips_total: 10,
       final: "empty",
-      ...partial.status,
+      ...partialStatus,
     },
-    ...partial,
+    ...rest,
   };
 }
 
@@ -35,7 +36,6 @@ function stubFetch(songs: Song[]) {
     ok: true, status: 200,
     json: async () => ({ songs }),
   } as Response);
-  // @ts-expect-error override global fetch
   globalThis.fetch = spy;
   return spy;
 }

@@ -19,7 +19,7 @@ export default defineConfig({
     {
       command: "bash tests/e2e/setup_backend.sh",
       url: "http://localhost:8000/healthz",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 30_000,
     },
     {
@@ -27,7 +27,7 @@ export default defineConfig({
       // doesn't reap the backend that the webServer above just started.
       command: "bun run dev:vite-only",
       url: "http://localhost:5173",
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 30_000,
     },
   ],
