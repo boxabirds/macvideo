@@ -14,11 +14,11 @@ test.describe("Fresh-song setup modal", () => {
     await expect(page.getByRole("button", { name: /apply change/i })).toHaveCount(0);
   });
 
-  test("fresh-song abstraction pick renders 'Set abstraction' setup modal", async ({ page }) => {
+  test("fresh-song abstraction pick renders 'Confirm abstraction change' modal", async ({ page }) => {
     await page.goto("/songs/fresh-song-nl");
     await page.locator(".topbar select").nth(1).waitFor({ state: "attached" });
     await page.locator(".topbar select").nth(1).selectOption({ value: "75" });
-    await expect(page.getByRole("heading", { name: /set abstraction/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /confirm abstraction change/i })).toBeVisible();
   });
 
   test("non-fresh control: tiny-song filter pick still shows destructive 'Confirm filter change' modal", async ({ page }) => {
