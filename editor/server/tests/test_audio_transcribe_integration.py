@@ -1,15 +1,14 @@
-"""Story 14 — integration tests for run_audio_transcribe.
+"""Story 18 — integration tests for run_audio_transcribe.
 
 Covers the seven cases enumerated in the design's
 lyrics.audio-transcribe-pipeline capability:
-  1. success path
+  1. success path (Story 18: returns segments, no lyrics.txt)
   2. Demucs failure
   3. WhisperX failure
   4. cancellation pre-Demucs
   5. cancellation mid-Demucs
   6. cancellation mid-WhisperX
-  7. cancellation after success (race window — cancel after WhisperX exit
-     but before lyrics write)
+  7. cancellation after success (Story 18: segments not returned)
 
 Uses fake subprocess scripts under tests/fake_scripts/ so the suite runs in
 seconds instead of the multi-minute real-Demucs+WhisperX pipeline.
@@ -65,6 +64,7 @@ def env(tmp_env, monkeypatch):
 # ---------- 1. success path -------------------------------------------------
 
 def test_success_writes_lyrics_and_phase_durations(env):
+    """Story 18: no lyrics.txt written. Segments returned in result."""
     progress: list[tuple[str, float]] = []
     res = run_audio_transcribe(
         slug=_SLUG, paths=env["paths"], run_id=101, force=False,
@@ -72,10 +72,11 @@ def test_success_writes_lyrics_and_phase_durations(env):
     )
     assert res.ok is True
     assert res.cancelled is False
-    assert res.lyrics_path == env["paths"].lyrics_txt
-    assert env["paths"].lyrics_txt.exists()
-    body = env["paths"].lyrics_txt.read_text()
-    assert "fake transcript" in body
+    # Story 18: segments returned instead of lyrics path.
+    assert len(res.segments) == 3
+    assert res.segments[0]["text"] == "this is a fake segment"
+    # No lyrics file written.
+    assert not env["paths"].lyrics_txt.exists()
     # vocals.wav was written into the run dir.
     assert (env["paths"].run_dir / "vocals.wav").exists()
     # Both phases reported.
@@ -184,46 +185,24 @@ def test_cancel_mid_whisperx_keeps_vocals_no_lyrics(env, monkeypatch):
 # ---------- 7. cancellation after success (race window) --------------------
 
 def test_cancel_after_whisperx_before_write_no_lyrics(env, monkeypatch):
-    """Race: cancel_event fires AFTER WhisperX exited ok but BEFORE the
-    orchestrator writes the lyrics file. The design contract says the
-    lyrics file MUST NOT be written in this window — cancel takes priority
-    over commit.
+    """Story 18: cancel event fires AFTER WhisperX exited ok but BEFORE the
+    orchestrator returns segments. The design contract says no segments MUST
+    be returned in this window — cancel takes priority over commit.
     """
     cancel = threading.Event()
 
-    # We arm cancel_event from the progress callback when phase 2 completes
-    # — i.e. WhisperX has exited ok, but the orchestrator hasn't yet checked
-    # the post-write cancel guard. To do that deterministically, we trip the
-    # event when we see the second progress event (phase 2 open). Because
-    # subprocesses are short with the fake, cancel will fire within a few
-    # ms of WhisperX exiting.
-    progress_seen: list[str] = []
-
-    def _cb(phase: str, _pct: float) -> None:
-        progress_seen.append(phase)
-
-    # Use a short delay so Demucs returns fast, and we set cancel BEFORE
-    # phase-2's transcribe completes — but the race-window cancel is the
-    # one that fires AFTER WhisperX returned ok. We approximate by setting
-    # cancel mid-phase-2 with a very short WhisperX run; if cancel fires
-    # before WhisperX exits, the test still proves the no-write
-    # invariant — cancellation at any post-Demucs point must result in
-    # no lyrics file. The pre-write guard is the strict invariant.
     monkeypatch.setenv("FAKE_WHISPERX_DELAY_S", "0.5")
 
     def _trip_cancel() -> None:
-        # 0.4s lands in the middle of WhisperX's 0.5s sleep — close enough
-        # to the race window that a few ms of jitter on either side still
-        # asserts the same guard.
         time.sleep(0.4)
         cancel.set()
     threading.Thread(target=_trip_cancel, daemon=True).start()
 
     res = run_audio_transcribe(
         slug=_SLUG, paths=env["paths"], run_id=107, force=False,
-        cancel_event=cancel, progress_cb=_cb,
+        cancel_event=cancel,
     )
     assert res.cancelled is True
-    # The strict invariant: lyrics MUST NOT be written when cancel fires
-    # any time after entry until phase-3 completes.
+    # Story 18: no segments returned when cancelled.
+    assert len(res.segments) == 0
     assert not env["paths"].lyrics_txt.exists()

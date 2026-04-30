@@ -61,7 +61,7 @@ type SegmentStatus = "done" | "running" | "failed" | "pending" | "blocked";
 
 const STAGES: readonly StageDef[] = [
   { key: "transcription",  label: "lyric alignment",   stageName: "transcribe",    scope: "stage_transcribe",         historyModel: "replace" },
-  { key: "world_brief",    label: "world description", stageName: "world-brief",   scope: "stage_world_description",  historyModel: "replace" },
+  { key: "world_brief",    label: "world description", stageName: "world-brief",   scope: "stage_world_brief",       historyModel: "replace" },
   { key: "storyboard",     label: "storyboard",        stageName: "storyboard",    scope: "stage_storyboard",         historyModel: "replace" },
   { key: "image_prompts",  label: "image prompts",     stageName: "image-prompts", scope: "stage_image_prompts",      historyModel: "replace" },
   { key: "keyframes",      label: "keyframes",         stageName: "keyframes",     scope: "stage_keyframes",          historyModel: "take" },
@@ -340,8 +340,10 @@ export default function PipelinePanel({
                 type="button"
                 className={`stage-segment-btn`}
                 onClick={() => onSegmentClick(stage)}
-                disabled={busy === stage.stageName || segStatus === "running"}
-                title={segStatus === "blocked"
+                disabled={busy === stage.stageName || segStatus === "running" || (stage.key === "transcription" && song.scenes.length === 0)}
+                title={stage.key === "transcription" && song.scenes.length === 0
+                  ? "Transcribe from audio first"
+                  : segStatus === "blocked"
                   ? `Complete ${tooltipPrereqs.join(", ")} first`
                   : segStatus === "done" ? `Regenerate ${stage.label}`
                   : segStatus === "failed" ? `Retry ${stage.label}`

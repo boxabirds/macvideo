@@ -1,25 +1,24 @@
-"""Story 14: audio-only transcription pipeline (Demucs → WhisperX → write).
+"""Story 18: audio-only transcription pipeline (Demucs → WhisperX → segments).
 
-This module is the upstream half of the transcribe stack. Story 12's
-`_run_transcribe` consumes a lyrics file at `${EDITOR_MUSIC_DIR}/${slug}.txt`;
-Story 14 produces that file from raw audio when it doesn't yet exist.
+Demucs → WhisperX → return timestamped segments. Scene insertion happens in
+api/audio_transcribe.py _orchestrate().
+
+Story 18 eliminates the lyrics.txt intermediate file entirely. WhisperX emits
+JSON with timestamped segments; _orchestrate consumes them and inserts scene
+rows into the DB directly. The forced-alignment stage is no longer used.
 
 Three phases run sequentially:
   1. Demucs separates vocals from the song into a vocals.wav stem.
-  2. WhisperX transcribes the vocals stem to plain text.
-  3. The transcribed text is moved atomically to the lyrics path; only on
-     full success.
-
-The canonical lyrics file is never written until the whole pipeline succeeds,
-so a mid-run cancel cannot corrupt the user's existing transcript.
+  2. WhisperX transcribes the vocals stem to JSON with segments.
+  3. Segments are returned to the caller for DB insertion.
 
 Tests inject fake subprocess scripts via EDITOR_FAKE_DEMUCS and
-EDITOR_FAKE_WHISPERX_TRANSCRIBE so the suite runs in seconds instead of the
-multi-minute real-Demucs+WhisperX pass.
+EDITOR_FAKE_WHISPERX_TRANSCRIBE so the suite runs in seconds.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import sys
@@ -28,7 +27,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from .paths import SongPaths
 from .subprocess_runner import RunResult, cancel_run, run_script
@@ -38,7 +37,6 @@ from .subprocess_runner import RunResult, cancel_run, run_script
 
 PHASE_SEPARATING_VOCALS = "separating-vocals"
 PHASE_TRANSCRIBING = "transcribing"
-PHASE_ALIGNING = "aligning"
 
 ProgressCb = Callable[[str, float], None]
 
@@ -52,7 +50,7 @@ class AudioTranscribeResult:
     stderr_tail: str = ""
     duration_s: float = 0.0
     phase_durations: dict[str, float] = field(default_factory=dict)
-    lyrics_path: Optional[Path] = None
+    segments: list[dict[str, Any]] = field(default_factory=list)
     failing_phase: Optional[str] = None
 
 
@@ -208,7 +206,7 @@ def run_audio_transcribe(
             failing_phase=PHASE_SEPARATING_VOCALS,
         )
 
-    # ---------- phase 2: WhisperX transcription -----------------------------
+    # ---------- phase 2: WhisperX transcription (JSON with segments) --------
     wx_script = _resolve_whisperx_script()
     if not wx_script.exists():
         return AudioTranscribeResult(
@@ -219,19 +217,17 @@ def run_audio_transcribe(
             failing_phase=PHASE_TRANSCRIBING,
         )
     cb(PHASE_TRANSCRIBING, 0.0)
-    # Write to a temp file first; only move into music dir on full success.
     tmp_dir = Path(tempfile.mkdtemp(prefix="audio-transcribe-", dir=str(paths.run_dir)))
-    tmp_transcript = tmp_dir / f"{slug}.transcript.txt"
+    tmp_json = tmp_dir / f"{slug}.segments.json"
     p2_start = time.time()
     wx_result = _run_phase(
         script=wx_script,
-        args=["--audio", str(vocals_path), "--out", str(tmp_transcript)],
+        args=["--audio", str(vocals_path), "--out", str(tmp_json)],
         run_id=run_id,
         cancel_event=cancel_event,
     )
     phase_durations[PHASE_TRANSCRIBING] = time.time() - p2_start
     if cancel_event.is_set():
-        # vocals.wav stays on disk — the alignment stage may reuse it.
         shutil.rmtree(tmp_dir, ignore_errors=True)
         return AudioTranscribeResult(
             ok=True, cancelled=True,
@@ -251,19 +247,39 @@ def run_audio_transcribe(
             phase_durations=phase_durations,
             failing_phase=PHASE_TRANSCRIBING,
         )
-    if not tmp_transcript.exists():
+    if not tmp_json.exists():
         shutil.rmtree(tmp_dir, ignore_errors=True)
         return AudioTranscribeResult(
             ok=False, returncode=126,
-            stderr_tail=f"whisperx exited ok but produced no transcript at {tmp_transcript}",
+            stderr_tail=f"whisperx exited ok but produced no json at {tmp_json}",
             duration_s=time.time() - started,
             phase_durations=phase_durations,
             failing_phase=PHASE_TRANSCRIBING,
         )
 
-    # ---------- phase 3: atomic write to lyrics path ------------------------
-    # Race-window contract from the design: a cancel that arrives between
-    # WhisperX exit and this write must NOT result in a written lyrics file.
+    # Parse the JSON to extract segments.
+    try:
+        payload = json.loads(tmp_json.read_text())
+        segments = payload.get("segments", [])
+        if not segments:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            return AudioTranscribeResult(
+                ok=False, returncode=126,
+                stderr_tail="whisperx produced json but no segments",
+                duration_s=time.time() - started,
+                phase_durations=phase_durations,
+                failing_phase=PHASE_TRANSCRIBING,
+            )
+    except (json.JSONDecodeError, KeyError) as e:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        return AudioTranscribeResult(
+            ok=False, returncode=126,
+            stderr_tail=f"failed to parse whisperx json: {e}",
+            duration_s=time.time() - started,
+            phase_durations=phase_durations,
+            failing_phase=PHASE_TRANSCRIBING,
+        )
+
     if cancel_event.is_set():
         shutil.rmtree(tmp_dir, ignore_errors=True)
         return AudioTranscribeResult(
@@ -274,15 +290,12 @@ def run_audio_transcribe(
             phase_durations=phase_durations,
         )
 
-    paths.lyrics_txt.parent.mkdir(parents=True, exist_ok=True)
-    os.replace(str(tmp_transcript), str(paths.lyrics_txt))
     shutil.rmtree(tmp_dir, ignore_errors=True)
-
     return AudioTranscribeResult(
         ok=True,
         stdout_tail=_tail(wx_result.stdout),
         stderr_tail=_tail(wx_result.stderr),
         duration_s=time.time() - started,
         phase_durations=phase_durations,
-        lyrics_path=paths.lyrics_txt,
+        segments=segments,
     )

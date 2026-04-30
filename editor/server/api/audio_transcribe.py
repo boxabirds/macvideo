@@ -1,24 +1,21 @@
-"""Story 14: HTTP endpoint for audio-only transcription.
+"""Story 18: HTTP endpoint for audio-only transcription.
 
 POST /api/songs/{slug}/audio-transcribe
-  query: force=true|false (default false)
 
-Spawns a background task that runs the Demucs+WhisperX pipeline
-(editor.server.pipeline.audio_transcribe.run_audio_transcribe), then on
-ok=True hands off to the existing forced-alignment stage from Story 12
-(_run_transcribe in editor.server.pipeline.stages) so scenes land in the
-DB. The whole sequence is tracked under a single regen_runs row with
-scope='stage_audio_transcribe'.
+Spawns a background task that runs the Demucs+WhisperX pipeline to produce
+timestamped segments, then inserts scene rows directly into the DB. The
+forced-alignment stage (Story 12) is no longer used. Tracked under a single
+regen_runs row with scope='stage_audio_transcribe'.
 
 Single-flight discipline: blocks if any pending/running stage_transcribe
-or stage_audio_transcribe run already exists for this slug — the user
-can't have two transcription paths racing.
+or stage_audio_transcribe run already exists for this slug.
 """
 
 from __future__ import annotations
 
 import asyncio
 import threading
+import time
 import wave
 from pathlib import Path
 
@@ -26,11 +23,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .. import config as _cfg
 from ..pipeline.audio_transcribe import (
-    PHASE_ALIGNING, PHASE_SEPARATING_VOCALS, PHASE_TRANSCRIBING,
+    PHASE_SEPARATING_VOCALS, PHASE_TRANSCRIBING,
     run_audio_transcribe,
 )
 from ..pipeline.paths import resolve_song_paths
-from ..pipeline.stages import _run_transcribe
+from ..pipeline.stages import StageResult
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import (
     create_run, get_run, update_run_phase,
@@ -108,13 +105,6 @@ async def trigger_audio_transcribe(
             "detail": f"a transcribe run is already in progress (run {conflict_id})",
         })
 
-    # Overwrite guard: existing lyrics file must be confirmed via force=true.
-    if paths.lyrics_txt.exists() and not force:
-        raise HTTPException(status_code=409, detail={
-            "code": "overwrite_required",
-            "detail": "lyrics file already exists; retry with force=true",
-        })
-
     run_id = create_run(
         conn, scope="stage_audio_transcribe", song_id=song["id"],
     )
@@ -146,8 +136,12 @@ def _orchestrate(
     *, slug: str, run_id: int, force: bool,
     db_path: Path, music_root: Path, outputs_root: Path,
     quality_mode: str,
-) -> dict:
-    """Run audio_transcribe → on success, run_transcribe (Story 12 alignment)."""
+) -> StageResult:
+    """Run audio_transcribe and insert segments as scene rows.
+
+    Story 18: WhisperX emits timestamped JSON segments. Insert one scene row
+    per segment directly into the DB. No forced-alignment pass needed.
+    """
     paths = resolve_song_paths(
         outputs_root=outputs_root, music_root=music_root, slug=slug,
     )
@@ -157,8 +151,6 @@ def _orchestrate(
             update_run_phase(c, run_id, phase)
 
     def _progress_cb(phase: str, _pct: float) -> None:
-        # Phase transitions are the only signal we surface to the run row;
-        # within-phase pct is a future enhancement.
         _set_phase(phase)
 
     cancel = threading.Event()
@@ -168,27 +160,78 @@ def _orchestrate(
     )
 
     if not audio_result.ok:
-        # The queue layer maps a non-ok dict to status='failed'.
-        return {
-            "ok": False,
-            "stdout_tail": audio_result.stdout_tail,
-            "stderr_tail": audio_result.stderr_tail,
-            "returncode": audio_result.returncode,
-        }
+        return StageResult(
+            ok=False,
+            returncode=audio_result.returncode,
+            new_keyframes=0,
+            new_prompts=0,
+            stdout_tail=audio_result.stdout_tail,
+            stderr_tail=audio_result.stderr_tail or audio_result.failing_phase or "failed",
+            duration_s=audio_result.duration_s,
+        )
     if audio_result.cancelled:
-        return {"ok": False, "stderr_tail": "cancelled"}
+        return StageResult(
+            ok=False,
+            returncode=1,
+            new_keyframes=0,
+            new_prompts=0,
+            stdout_tail="",
+            stderr_tail="cancelled",
+            duration_s=audio_result.duration_s,
+        )
 
-    # Phase 3: hand off to forced alignment + scene derivation.
-    _set_phase(PHASE_ALIGNING)
-    align_result = _run_transcribe(
-        song_slug=slug, paths=paths, source_run_id=run_id,
-        progress_cb=None, db_path=db_path,
-        song_quality_mode=quality_mode,
-        music_root=music_root, outputs_root=outputs_root,
+    # Insert scene rows from segments.
+    with connection(db_path) as c:
+        song = c.execute(
+            "SELECT id FROM songs WHERE slug = ?", (slug,)
+        ).fetchone()
+        if not song:
+            return StageResult(
+                ok=False,
+                returncode=1,
+                new_keyframes=0,
+                new_prompts=0,
+                stdout_tail="",
+                stderr_tail=f"song {slug} not found",
+                duration_s=audio_result.duration_s,
+            )
+
+        now = time.time()
+        for scene_index, segment in enumerate(audio_result.segments):
+            target_text = segment.get("text", "")
+            start_s = segment.get("start", 0.0)
+            end_s = segment.get("end", 0.0)
+            duration_s = end_s - start_s if end_s > start_s else 0.0
+
+            c.execute(
+                """
+                INSERT INTO scenes (
+                    song_id, scene_index, kind, target_text,
+                    start_s, end_s, target_duration_s, num_frames,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    song["id"],
+                    scene_index,
+                    "lyric",
+                    target_text,
+                    start_s,
+                    end_s,
+                    duration_s,
+                    0,
+                    now,
+                    now,
+                ),
+            )
+        c.commit()
+
+    return StageResult(
+        ok=True,
+        returncode=0,
+        new_keyframes=0,
+        new_prompts=0,
+        stdout_tail=audio_result.stdout_tail,
+        stderr_tail="",
+        duration_s=audio_result.duration_s,
     )
-    return {
-        "ok": align_result.ok,
-        "returncode": align_result.returncode,
-        "stdout_tail": align_result.stdout_tail,
-        "stderr_tail": align_result.stderr_tail,
-    }

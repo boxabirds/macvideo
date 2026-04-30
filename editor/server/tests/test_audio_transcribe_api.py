@@ -72,25 +72,27 @@ def test_post_accepts_fresh_song_returns_run_id(client_for, fresh_song_with_audi
     assert row["scope"] == "stage_audio_transcribe"
 
 
-# ---------- 2. existing lyrics + force=true → 200 -------------------------
+# ---------- 2. force param no longer needed (Story 18: no lyrics.txt) -----
 
 def test_post_existing_lyrics_force_true_starts(client_for, fresh_song_with_audio):
+    """Story 18: force param no longer relevant since we don't write lyrics.txt.
+    Verify that transcription works regardless of any stray .txt file."""
     slug = fresh_song_with_audio["slug"]
     music = fresh_song_with_audio["tmp_env"]["music"]
-    (music / f"{slug}.txt").write_text("pre-existing lyrics\n")
+    (music / f"{slug}.txt").write_text("pre-existing lyrics (ignored)\n")
     r = client_for.post(f"/api/songs/{slug}/audio-transcribe?force=true")
     assert r.status_code == 200, r.text
 
 
-# ---------- 3. existing lyrics + force=false → 409 overwrite_required ----
+# ---------- 3. lyrics.txt no longer used (Story 18) ----------------------
 
-def test_post_existing_lyrics_force_false_409(client_for, fresh_song_with_audio):
+def test_post_ignores_existing_lyrics_file(client_for, fresh_song_with_audio):
+    """Story 18: lyrics.txt is no longer used. Transcription works normally."""
     slug = fresh_song_with_audio["slug"]
     music = fresh_song_with_audio["tmp_env"]["music"]
-    (music / f"{slug}.txt").write_text("pre-existing lyrics\n")
+    (music / f"{slug}.txt").write_text("pre-existing lyrics (should be ignored)\n")
     r = client_for.post(f"/api/songs/{slug}/audio-transcribe")
-    assert r.status_code == 409
-    assert r.json()["detail"]["code"] == "overwrite_required"
+    assert r.status_code == 200, r.text
 
 
 # ---------- 4. cross-stage single-flight: stage_audio_transcribe blocks ---
@@ -161,22 +163,37 @@ def test_post_unknown_slug_404(client_for, tmp_env, monkeypatch):
     assert r.status_code == 404
 
 
-# ---------- 9. happy path completes: lyrics file lands -------------------
+# ---------- 9. happy path completes: scenes created in DB ---------------
 
 def test_post_writes_lyrics_after_run_completes(client_for, fresh_song_with_audio):
+    """Story 18: Transcription creates scene rows in DB instead of lyrics.txt."""
     slug = fresh_song_with_audio["slug"]
-    music = fresh_song_with_audio["tmp_env"]["music"]
-    lyrics_path = music / f"{slug}.txt"
-    assert not lyrics_path.exists()
+    from editor.server.store import connection
 
     r = client_for.post(f"/api/songs/{slug}/audio-transcribe")
     assert r.status_code == 200
 
-    # Wait for the orchestrator to finish writing the lyrics file. The
-    # full alignment phase needs whisperx_align (the existing Story 12
-    # script) too, which is fake-able via EDITOR_FAKE_WHISPERX_ALIGN —
-    # for THIS test we only verify the audio-transcribe phase wrote
-    # the lyrics file. Phase 3 (alignment) will fail because the fake
-    # for whisperx_align isn't wired here; that's a separate concern.
-    assert _wait_until(lyrics_path.exists, timeout=5.0)
-    assert "fake transcript" in lyrics_path.read_text()
+    # Wait for the orchestrator to insert scene rows. Story 18 inserts scenes
+    # directly from WhisperX segments; no forced-alignment phase needed.
+    def scenes_exist():
+        with connection(fresh_song_with_audio["tmp_env"]["db"]) as c:
+            row = c.execute(
+                "SELECT COUNT(*) as cnt FROM scenes WHERE song_id = "
+                "(SELECT id FROM songs WHERE slug = ?)",
+                (slug,),
+            ).fetchone()
+            return row["cnt"] > 0
+
+    assert _wait_until(scenes_exist, timeout=5.0)
+    # Verify the fake script's three segments were inserted.
+    with connection(fresh_song_with_audio["tmp_env"]["db"]) as c:
+        rows = c.execute(
+            "SELECT scene_index, target_text, start_s, end_s FROM scenes "
+            "WHERE song_id = (SELECT id FROM songs WHERE slug = ?) "
+            "ORDER BY scene_index",
+            (slug,),
+        ).fetchall()
+    assert len(rows) == 3
+    assert rows[0]["target_text"] == "this is a fake segment"
+    assert rows[1]["target_text"] == "produced by the fake whisperx script"
+    assert rows[2]["target_text"] == "for integration tests only"

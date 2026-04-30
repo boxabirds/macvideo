@@ -1,28 +1,28 @@
-"""Fake WhisperX transcription script for Story 14 integration tests.
+"""Fake WhisperX transcription script for Story 18 integration tests.
 
-CLI: --audio <vocals.wav> --out <transcript.txt>
+CLI: --audio <vocals.wav> --out <json_out>
+
+Outputs timestamped JSON segments (Story 18: direct to DB).
 
 Env vars mirror fake_demucs.py:
   FAKE_WHISPERX_FAIL=1       → non-zero exit.
   FAKE_WHISPERX_DELAY_S=N    → sleep before writing.
-  FAKE_WHISPERX_PARTIAL=1    → write partial output before sleeping.
-  FAKE_WHISPERX_TEXT=<text>  → override the transcript text (default: a
-                               three-line synthetic transcript).
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import time
 from pathlib import Path
 
-DEFAULT_TRANSCRIPT = (
-    "this is a fake transcript\n"
-    "produced by the fake whisperx script\n"
-    "for integration tests only\n"
-)
+DEFAULT_SEGMENTS = [
+    {"text": "this is a fake segment", "start": 0.0, "end": 2.1},
+    {"text": "produced by the fake whisperx script", "start": 2.1, "end": 5.3},
+    {"text": "for integration tests only", "start": 5.3, "end": 8.5},
+]
 
 
 def main() -> int:
@@ -38,19 +38,20 @@ def main() -> int:
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    if os.environ.get("FAKE_WHISPERX_PARTIAL") == "1":
-        out.write_text("PARTIAL\n")
-        print("[fake-whisperx] wrote partial transcript", flush=True)
-
     delay_s = float(os.environ.get("FAKE_WHISPERX_DELAY_S", "0") or "0")
     if delay_s > 0:
         end = time.time() + delay_s
         while time.time() < end:
             time.sleep(0.05)
 
-    text = os.environ.get("FAKE_WHISPERX_TEXT") or DEFAULT_TRANSCRIPT
-    out.write_text(text)
-    print("[fake-whisperx] wrote transcript", flush=True)
+    segments = DEFAULT_SEGMENTS
+    payload = {
+        "method": "fake_whisperx",
+        "segments": segments,
+        "segment_count": len(segments),
+    }
+    out.write_text(json.dumps(payload, indent=2))
+    print("[fake-whisperx] wrote json with segments", flush=True)
     return 0
 
 
