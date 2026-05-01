@@ -29,17 +29,6 @@ export function formatApiError(error: unknown): string {
   return String(error);
 }
 
-export function isSavedConfigurationPreflightError(error: unknown): boolean {
-  if (!(error instanceof ApiError)) return false;
-  const detail = error.detail as { detail?: unknown } | null;
-  const payload = detail && typeof detail === "object" && "detail" in detail
-    ? detail.detail
-    : error.detail;
-  if (!payload || typeof payload !== "object") return false;
-  const body = payload as { code?: unknown; configuration_saved?: unknown };
-  return body.code === "dependency_preflight_failed" && body.configuration_saved === true;
-}
-
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail: unknown = null;

@@ -90,8 +90,9 @@ def test_missing_generation_provider_blocks_before_run(
 
     assert r.status_code == 422
     body = r.json()["detail"]
-    assert body["code"] == "dependency_preflight_failed"
-    assert body["missing"][0]["code"] == "model_credentials_missing"
+    assert body["code"] == "workflow_transition_rejected"
+    assert body["reason_code"] == "blocked"
+    assert "generation provider" in body["reason"]
     assert "gen_keyframes.py" not in str(body)
 
 

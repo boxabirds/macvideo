@@ -6,9 +6,17 @@ import sqlite3
 import time
 from pathlib import Path
 
+import pytest
+
 from editor.server.store.schema import init_db
 from editor.server.workflow import describe_stage_progress, evaluate_song_workflow
 from editor.server.workflow.state import RunRef
+
+
+@pytest.fixture(autouse=True)
+def _workflow_providers(monkeypatch):
+    monkeypatch.setenv("EDITOR_GENERATION_PROVIDER", "fake")
+    monkeypatch.setenv("EDITOR_RENDER_PROVIDER", "fake")
 
 
 def _db(tmp_path: Path):
@@ -108,6 +116,31 @@ def test_transcript_only_song_without_visual_setup_blocks_world_on_setup(tmp_pat
 
     assert workflow["world_brief"].state == "blocked"
     assert workflow["world_brief"].blocked_reason == "Choose a filter and abstraction first."
+
+
+def test_configured_world_blocks_on_missing_generation_provider(tmp_path, monkeypatch):
+    monkeypatch.delenv("EDITOR_GENERATION_PROVIDER", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    conn = _db(tmp_path)
+    song_id = _song(conn, filter_="charcoal", abstraction=0, world=None, storyboard=None)
+    _scene(conn, song_id, 1)
+
+    workflow = evaluate_song_workflow(conn, song_id).stages
+
+    assert workflow["world_brief"].state == "blocked"
+    assert "generation provider" in workflow["world_brief"].blocked_reason
+
+
+def test_complete_clips_block_final_video_on_missing_render_provider(tmp_path, monkeypatch):
+    monkeypatch.delenv("EDITOR_RENDER_PROVIDER", raising=False)
+    conn = _db(tmp_path)
+    song_id = _song(conn, world="world", storyboard="arc")
+    _scene(conn, song_id, 1, beat="b", prompt="p", keyframe=True, clip=True)
+
+    workflow = evaluate_song_workflow(conn, song_id).stages
+
+    assert workflow["final_video"].state == "blocked"
+    assert "render adapter" in workflow["final_video"].blocked_reason
 
 
 def test_complete_keyframes_block_final_video_until_clips_exist(tmp_path):

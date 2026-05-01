@@ -330,9 +330,7 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
             except ConflictError as e:
                 raise HTTPException(status_code=409, detail=str(e)) from e
             if not preflight.ok:
-                detail = preflight.to_http_detail()
-                detail["configuration_saved"] = True
-                raise HTTPException(status_code=422, detail=detail)
+                return get_song(slug, conn)
             return get_song(slug, conn)
         else:
             # Abstraction change.
@@ -361,9 +359,7 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
                     "UPDATE songs SET world_brief = NULL, sequence_arc = NULL, updated_at = ? "
                     "WHERE id = ?", (time.time(), song["id"]),
                 )
-                detail = preflight.to_http_detail()
-                detail["configuration_saved"] = True
-                raise HTTPException(status_code=422, detail=detail)
+                return get_song(slug, conn)
 
         # Mark clips stale and null out world_brief/storyboard.
         rows = conn.execute(

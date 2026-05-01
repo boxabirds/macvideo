@@ -6,6 +6,8 @@ import json
 from dataclasses import asdict, dataclass
 from typing import Any, Literal
 
+from ..pipeline.preflight import preflight_stage
+
 
 StageKey = Literal[
     "transcription",
@@ -213,7 +215,7 @@ def describe_stage_progress(stage_key: str, run: RunRef | None, *, duration_s: f
 
 def evaluate_song_workflow(conn, song_id: int) -> SongWorkflowView:
     song = conn.execute(
-        "SELECT id, filter, abstraction, world_brief, sequence_arc, duration_s "
+        "SELECT id, slug, filter, abstraction, world_brief, sequence_arc, duration_s "
         "FROM songs WHERE id = ?",
         (song_id,),
     ).fetchone()
@@ -300,11 +302,20 @@ def evaluate_song_workflow(conn, song_id: int) -> SongWorkflowView:
         elif prereq_labels:
             state = "blocked"
         else:
-            state = "available"
+            if stage.key in ("world_brief", "storyboard", "image_prompts", "keyframes", "final_video"):
+                preflight_stage_name = "final-video" if stage.key == "final_video" else stage.stage_name
+                preflight = preflight_stage(slug=song["slug"], stage=preflight_stage_name)  # type: ignore[arg-type]
+                state = "available" if preflight.ok else "blocked"
+            else:
+                state = "available"
 
         blocked_reason = None
         if state == "blocked":
-            if stage.key == "final_video" and "scene clips" in prereq_labels:
+            if not prereq_labels:
+                preflight_stage_name = "final-video" if stage.key == "final_video" else stage.stage_name
+                preflight = preflight_stage(slug=song["slug"], stage=preflight_stage_name)  # type: ignore[arg-type]
+                blocked_reason = preflight.first_reason or "This action is not available yet."
+            elif stage.key == "final_video" and "scene clips" in prereq_labels:
                 blocked_reason = "Render clips for every scene first."
             elif stage.key in ("image_prompts", "keyframes", "final_video") and (
                 not stages.get("world_brief") or stages["world_brief"].state != "done"

@@ -10,8 +10,6 @@ import {
   audioTranscribe,
   ApiError,
   formatApiError,
-  getSong,
-  isSavedConfigurationPreflightError,
   patchSong,
 } from "../api";
 import {
@@ -453,11 +451,6 @@ export default function PipelinePanel({
               onSongUpdate?.(updated);
               setFilterPicker(null);
             } catch (e) {
-              if (isSavedConfigurationPreflightError(e)) {
-                const updated = await getSong(song.slug);
-                onSongUpdate?.(updated);
-                setFilterPicker(null);
-              }
               setError(formatApiError(e));
             }
           }}

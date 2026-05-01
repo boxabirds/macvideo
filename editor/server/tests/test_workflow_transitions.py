@@ -23,6 +23,12 @@ from editor.server.workflow.transitions import STAGE_KEY_TO_SCOPE, WorkflowActio
 ACTIONS: tuple[WorkflowActionKind, ...] = ("start", "retry", "regenerate", "configure")
 
 
+@pytest.fixture(autouse=True)
+def _workflow_providers(monkeypatch):
+    monkeypatch.setenv("EDITOR_GENERATION_PROVIDER", "fake")
+    monkeypatch.setenv("EDITOR_RENDER_PROVIDER", "fake")
+
+
 def _db(tmp_path: Path):
     dbp = tmp_path / "workflow-transitions.db"
     init_db(dbp)

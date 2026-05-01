@@ -10,8 +10,16 @@ from __future__ import annotations
 import sqlite3
 import time
 
+import pytest
+
 from editor.server.api.stages import _stage_deps
 from editor.server.store.schema import init_db
+
+
+@pytest.fixture(autouse=True)
+def _workflow_providers(monkeypatch):
+    monkeypatch.setenv("EDITOR_GENERATION_PROVIDER", "fake")
+    monkeypatch.setenv("EDITOR_RENDER_PROVIDER", "fake")
 
 
 def _mk_db():

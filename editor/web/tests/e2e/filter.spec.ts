@@ -80,7 +80,7 @@ test.describe("World-owned visual language", () => {
     }).toBe("cyanotype");
   });
 
-  test("confirm and run persists visual language when generation provider is missing", async ({ page, request }) => {
+  test("confirm and run saves visual language without HTTP error when generation provider is missing", async ({ page, request }) => {
     const slug = "visual-language-missing-provider";
     await request.post("http://localhost:8000/api/test-only/env", {
       data: { set: { EDITOR_GENERATION_PROVIDER: null } },
@@ -103,13 +103,14 @@ test.describe("World-owned visual language", () => {
     await page.locator('[data-stage="world_brief"] button').click();
     await page.getByRole("button", { name: /confirm and run/i }).click();
 
-    const error = page.locator(".pipeline-error").first();
-    await expect(error).toContainText(/generation requires GEMINI_API_KEY|generation provider/i);
-    await expect(error).not.toContainText(/HTTP 422/i);
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+    await expect(page.locator(".pipeline-error")).toHaveCount(0);
     await expect.poll(async () => {
       const response = await request.get(`http://localhost:8000/api/songs/${slug}`);
       const body = await response.json();
       return `${body.filter}:${body.abstraction}`;
     }).toBe("oil impasto:0");
+    await page.locator('[data-stage="world_brief"] button').click();
+    await expect(page.getByRole("tooltip")).toContainText(/generation provider/i);
   });
 });

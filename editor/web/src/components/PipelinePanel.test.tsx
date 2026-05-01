@@ -754,21 +754,26 @@ describe("PipelinePanel", () => {
     expect(onSongUpdate).toHaveBeenCalledWith(updated);
   });
 
-  it("visual-language setup persists saved configuration preflight failures without raw HTTP text", async () => {
-    const updated = makeSong({ filter: "charcoal", abstraction: 0, world_brief: null, scenes: [makeScene()] });
+  it("visual-language setup accepts saved blocked workflow without raw HTTP error text", async () => {
+    const updated = makeSong({
+      filter: "charcoal",
+      abstraction: 0,
+      world_brief: null,
+      scenes: [makeScene()],
+      workflow: backendWorkflow({
+        world_brief: {
+          state: "blocked",
+          blocked_reason: "generation requires GEMINI_API_KEY or a configured product generation provider before it can start.",
+        },
+      }),
+    });
     const fetchSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === "/api/songs/tiny" && init?.method === "PATCH") {
         return {
-          ok: false,
-          status: 422,
-          json: async () => ({
-            detail: {
-              code: "dependency_preflight_failed",
-              reason: "generation requires GEMINI_API_KEY or a configured product generation provider before it can start.",
-              configuration_saved: true,
-            },
-          }),
+          ok: true,
+          status: 200,
+          json: async () => updated,
         } as Response;
       }
       if (url === "/api/songs/tiny") {
@@ -800,8 +805,8 @@ describe("PipelinePanel", () => {
     await userEvent.click(screen.getByRole("button", { name: /Confirm and run/i }));
 
     await waitFor(() => expect(onSongUpdate).toHaveBeenCalledWith(updated));
-    expect(screen.getByText(/generation requires GEMINI_API_KEY/i)).toBeInTheDocument();
     expect(screen.queryByText(/HTTP 422/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/generation requires GEMINI_API_KEY/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

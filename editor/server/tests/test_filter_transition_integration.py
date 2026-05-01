@@ -107,14 +107,15 @@ def test_visual_language_patch_persists_inputs_when_generation_provider_missing(
         json={"filter": "charcoal", "abstraction": 0},
     )
 
-    assert patch_res.status_code == 422, patch_res.text
-    body = patch_res.json()["detail"]
-    assert body["code"] == "dependency_preflight_failed"
-    assert body["configuration_saved"] is True
-
-    persisted = client_for.get("/api/songs/world-inputs-no-provider").json()
+    assert patch_res.status_code == 200, patch_res.text
+    persisted = patch_res.json()
     assert persisted["filter"] == "charcoal"
     assert persisted["abstraction"] == 0
+    assert persisted["workflow"]["stages"]["world_brief"]["state"] == "blocked"
+    assert "generation provider" in persisted["workflow"]["stages"]["world_brief"]["blocked_reason"]
+
+    runs = client_for.get("/api/songs/world-inputs-no-provider/regen").json()["runs"]
+    assert not any(r["scope"] == "song_filter" for r in runs)
 
 
 def test_combined_visual_language_patch_applies_abstraction_when_filter_is_unchanged(
