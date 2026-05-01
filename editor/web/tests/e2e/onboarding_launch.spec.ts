@@ -1,13 +1,13 @@
 import { test, expect } from "@playwright/test";
 
 test("known-good launcher opens the editor with isolated fixture data", async ({ page, request }) => {
-  const health = await request.get("http://localhost:8000/healthz");
+  const health = await request.get("/healthz");
   expect(health.ok()).toBeTruthy();
 
   await page.goto("/");
   await expect(page.locator("body")).toContainText("tiny-song");
 
-  const response = await request.get("http://localhost:8000/api/songs");
+  const response = await request.get("/api/songs");
   expect(response.ok()).toBeTruthy();
   const body = await response.json();
   const serialized = JSON.stringify(body);

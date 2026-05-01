@@ -7,6 +7,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 FIXTURES_ROOT="${REPO_ROOT}/editor/server/tests/fixtures"
 FIXTURES="${FIXTURES_ROOT}/tiny-song"
+API_PORT="${EDITOR_E2E_API_PORT:-${EDITOR_API_PORT:-18000}}"
 
 # Build any fixtures that are not committed (idempotent).
 uv run python "${FIXTURES_ROOT}/_build_tiny_song.py" >/dev/null
@@ -44,4 +45,4 @@ exec env \
   EDITOR_TEST_ENDPOINTS=1 \
   EDITOR_GENERATION_PROVIDER=fake \
   EDITOR_RENDER_PROVIDER=fake \
-  uv run uvicorn editor.server.main:app --port 8000 --log-level warning
+  uv run uvicorn editor.server.main:app --host 127.0.0.1 --port "${API_PORT}" --log-level warning

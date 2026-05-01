@@ -7,7 +7,7 @@ test.describe("Visual language request flow", () => {
     page.on("request", req => {
       if (req.url().includes("/preview-change")) previewCalls.push(req.url());
     });
-    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+    await request.post("/api/test-only/workflow-fixture", {
       data: {
         slug,
         filter: null,
@@ -31,7 +31,7 @@ test.describe("Visual language request flow", () => {
 
   test("combined selection starts the visual-language chain once", async ({ page, request }) => {
     const slug = "visual-language-chain-once";
-    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+    await request.post("/api/test-only/workflow-fixture", {
       data: {
         slug,
         filter: null,
@@ -49,7 +49,7 @@ test.describe("Visual language request flow", () => {
     await page.getByRole("button", { name: /confirm and run/i }).click();
 
     await expect.poll(async () => {
-      const response = await request.get(`http://localhost:8000/api/songs/${slug}/regen`);
+      const response = await request.get(`/api/songs/${slug}/regen`);
       const body = await response.json();
       return body.runs.filter((r: { scope: string }) => r.scope === "song_filter").length;
     }).toBe(1);

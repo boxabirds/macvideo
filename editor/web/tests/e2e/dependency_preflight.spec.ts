@@ -9,13 +9,13 @@ async function gotoEditor(page: import("@playwright/test").Page) {
 
 test.describe("Dependency preflight", () => {
   test.afterEach(async ({ request }) => {
-    await request.post("http://localhost:8000/api/test-only/env", {
+    await request.post("/api/test-only/env", {
       data: { set: { EDITOR_RENDER_PROVIDER: "fake" } },
     });
   });
 
   test("Playwright shows product-level dependency failure before generation starts", async ({ page }) => {
-    await page.request.post("http://localhost:8000/api/test-only/env", {
+    await page.request.post("/api/test-only/env", {
       data: { set: { EDITOR_RENDER_PROVIDER: null } },
     });
     await gotoEditor(page);

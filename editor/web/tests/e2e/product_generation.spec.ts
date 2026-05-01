@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 
 async function generationFixture(request: import("@playwright/test").APIRequestContext, slug: string) {
-  await request.post("http://localhost:8000/api/test-only/env", {
+  await request.post("/api/test-only/env", {
     data: { set: { EDITOR_GENERATION_PROVIDER: "fake" } },
   });
-  await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+  await request.post("/api/test-only/workflow-fixture", {
     data: {
       slug,
       world_brief: null,
@@ -16,7 +16,7 @@ async function generationFixture(request: import("@playwright/test").APIRequestC
 }
 
 async function song(request: import("@playwright/test").APIRequestContext, slug: string) {
-  const response = await request.get(`http://localhost:8000/api/songs/${slug}`);
+  const response = await request.get(`/api/songs/${slug}`);
   expect(response.ok()).toBeTruthy();
   return response.json();
 }
@@ -60,10 +60,10 @@ test.describe("Product-owned generation", () => {
 
   test("shows model-response failures without historical script names", async ({ page, request }) => {
     const slug = "product-generation-failure-e2e";
-    await request.post("http://localhost:8000/api/test-only/env", {
+    await request.post("/api/test-only/env", {
       data: { set: { EDITOR_GENERATION_PROVIDER: "malformed" } },
     });
-    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+    await request.post("/api/test-only/workflow-fixture", {
       data: {
         slug,
         world_brief: "world",
@@ -81,7 +81,7 @@ test.describe("Product-owned generation", () => {
       .toBeVisible({ timeout: 10_000 });
     await expect(page.locator("body")).not.toContainText(/pocs\/|gen_keyframes\.py|image_prompts\.json/i);
 
-    await request.post("http://localhost:8000/api/test-only/env", {
+    await request.post("/api/test-only/env", {
       data: { set: { EDITOR_GENERATION_PROVIDER: "fake" } },
     });
   });

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("World-owned visual language", () => {
   test.afterEach(async ({ request }) => {
-    await request.post("http://localhost:8000/api/test-only/env", {
+    await request.post("/api/test-only/env", {
       data: { set: { EDITOR_GENERATION_PROVIDER: "fake" } },
     });
   });
@@ -19,7 +19,7 @@ test.describe("World-owned visual language", () => {
 
   test("first world generation chooses filter and abstraction together", async ({ page, request }) => {
     const slug = "visual-language-first-run";
-    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+    await request.post("/api/test-only/workflow-fixture", {
       data: {
         slug,
         filter: null,
@@ -44,12 +44,12 @@ test.describe("World-owned visual language", () => {
 
     await expect(page.getByRole("dialog")).not.toBeVisible();
     await expect.poll(async () => {
-      const response = await request.get(`http://localhost:8000/api/songs/${slug}`);
+      const response = await request.get(`/api/songs/${slug}`);
       const body = await response.json();
       return `${body.filter}:${body.abstraction}`;
     }).toBe("watercolour:0");
     await expect.poll(async () => {
-      const response = await request.get(`http://localhost:8000/api/songs/${slug}/regen`);
+      const response = await request.get(`/api/songs/${slug}/regen`);
       const body = await response.json();
       return body.runs.some((r: { scope: string }) => r.scope === "song_filter");
     }).toBe(true);
@@ -57,7 +57,7 @@ test.describe("World-owned visual language", () => {
 
   test("existing world changes visual language through world dialog confirmation", async ({ page, request }) => {
     const slug = "visual-language-existing-world";
-    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+    await request.post("/api/test-only/workflow-fixture", {
       data: { slug, include_failed_runs: false },
     });
 
@@ -74,7 +74,7 @@ test.describe("World-owned visual language", () => {
     await page.getByRole("button", { name: /apply and regenerate/i }).click();
 
     await expect.poll(async () => {
-      const response = await request.get(`http://localhost:8000/api/songs/${slug}`);
+      const response = await request.get(`/api/songs/${slug}`);
       const body = await response.json();
       return body.filter;
     }).toBe("cyanotype");
@@ -82,10 +82,10 @@ test.describe("World-owned visual language", () => {
 
   test("confirm and run saves visual language without HTTP error when generation provider is missing", async ({ page, request }) => {
     const slug = "visual-language-missing-provider";
-    await request.post("http://localhost:8000/api/test-only/env", {
+    await request.post("/api/test-only/env", {
       data: { set: { EDITOR_GENERATION_PROVIDER: null, GEMINI_API_KEY: null } },
     });
-    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+    await request.post("/api/test-only/workflow-fixture", {
       data: {
         slug,
         filter: null,
@@ -107,7 +107,7 @@ test.describe("World-owned visual language", () => {
     await expect(page.locator(".pipeline-error")).toContainText(/generation provider/i);
     await expect(page.locator(".pipeline-error")).not.toContainText(/HTTP 422/i);
     await expect.poll(async () => {
-      const response = await request.get(`http://localhost:8000/api/songs/${slug}`);
+      const response = await request.get(`/api/songs/${slug}`);
       const body = await response.json();
       return `${body.filter}:${body.abstraction}`;
     }).toBe("oil impasto:0");

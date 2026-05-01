@@ -13,7 +13,7 @@ test.describe("Centralized workflow state", () => {
     await blockedKeyframes.locator("button").click();
     await expect(page.getByRole("tooltip")).toContainText(/world and storyboard/i);
 
-    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+    await request.post("/api/test-only/workflow-fixture", {
       data: { slug: "workflow-e2e" },
     });
     await gotoEditor(page, "workflow-e2e");

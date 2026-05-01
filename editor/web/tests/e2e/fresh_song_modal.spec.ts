@@ -12,7 +12,7 @@ test.describe("World visual-language modal", () => {
 
   test("transcribed song with missing visual language opens combined picker", async ({ page, request }) => {
     const slug = "visual-language-modal";
-    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+    await request.post("/api/test-only/workflow-fixture", {
       data: {
         slug,
         filter: null,

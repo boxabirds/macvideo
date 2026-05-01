@@ -20,17 +20,17 @@ function transcribeRunButton(page: import("@playwright/test").Page) {
 }
 
 async function fetchSong(page: import("@playwright/test").Page, slug: string) {
-  const r = await page.request.get(`http://localhost:8000/api/songs/${slug}`);
+  const r = await page.request.get(`/api/songs/${slug}`);
   expect(r.ok()).toBeTruthy();
   return r.json();
 }
 
 test.describe("transcribe e2e", () => {
   test.afterEach(async ({ request }) => {
-    await request.post("http://localhost:8000/api/test-only/reset-song", {
+    await request.post("/api/test-only/reset-song", {
       data: { slug: "fresh-song-wl" },
     });
-    await request.post("http://localhost:8000/api/test-only/reset-song", {
+    await request.post("/api/test-only/reset-song", {
       data: { slug: "fresh-song-nl" },
     });
   });

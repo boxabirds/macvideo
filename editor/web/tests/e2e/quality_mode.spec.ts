@@ -18,7 +18,7 @@ test("quality-mode change opens a cosmetic confirm + applies on OK", async ({ pa
   // The backend PATCH should update songs.quality_mode='final'.
   await expect.poll(async () => {
     const response = await page.request.get(
-      `http://localhost:8000/api/songs/${SONG_SLUG}`,
+      `/api/songs/${SONG_SLUG}`,
     );
     const data = await response.json();
     return data.quality_mode;

@@ -16,7 +16,7 @@ async function expandScene(page: import("@playwright/test").Page, index: number)
 
 test.describe("Saved scenes and transcript are authoritative", () => {
   test("opens saved scenes without old generated files and preserves corrected timing", async ({ page, request }) => {
-    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+    await request.post("/api/test-only/workflow-fixture", {
       data: { slug: "saved-scenes-e2e" },
     });
 

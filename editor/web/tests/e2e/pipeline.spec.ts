@@ -43,7 +43,7 @@ test.describe("PipelinePanel stages", () => {
     // Null out scene 2's selected_keyframe so keyframes stage becomes
     // not-done, then reload. The button click should fire immediately.
     const patchRes = await page.request.patch(
-      `http://localhost:8000/api/songs/${SONG_SLUG}/scenes/2`,
+      `/api/songs/${SONG_SLUG}/scenes/2`,
       { data: { image_prompt: "e2e trigger" } },
     );
     expect(patchRes.ok()).toBeTruthy();

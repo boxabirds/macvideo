@@ -160,10 +160,11 @@ workflows completed with real model outputs. True product E2E requires the
 diagnostics to show the relevant credentials, adapters, local tools, and sample
 data are available.
 
-Browser tests never reuse already-running local servers. `editor/web/scripts/e2e.sh`
-tears down ports before and after the run, and
-`editor/web/tests/e2e/setup_backend.sh` creates a fresh temp database, music
-root, and outputs root for each invocation.
+Browser tests never reuse or stop the local dev servers on ports `8000` and
+`5173`. `editor/web/scripts/e2e.sh` runs a separate test stack on
+`EDITOR_E2E_API_PORT` and `EDITOR_E2E_WEB_PORT` (defaults: `18000` and
+`15173`) and only tears down those test ports. `editor/web/tests/e2e/setup_backend.sh`
+creates a fresh temp database, music root, and outputs root for each invocation.
 
 ## Hard lessons baked in
 

@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# Run Playwright from a known-clean local server state, then clean up again.
+# Run Playwright on an isolated test stack, separate from local dev servers.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WEB_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${WEB_DIR}/../.." && pwd)"
 
+export EDITOR_E2E_API_PORT="${EDITOR_E2E_API_PORT:-18000}"
+export EDITOR_E2E_WEB_PORT="${EDITOR_E2E_WEB_PORT:-15173}"
+export EDITOR_API_PORT="${EDITOR_E2E_API_PORT}"
+export EDITOR_WEB_PORT="${EDITOR_E2E_WEB_PORT}"
+
 cleanup() {
-  "${REPO_ROOT}/scripts/stop_editor.sh" 8000 5173
+  "${REPO_ROOT}/scripts/stop_editor.sh" "${EDITOR_E2E_API_PORT}" "${EDITOR_E2E_WEB_PORT}"
 }
 
 cleanup
@@ -20,5 +25,5 @@ if [[ ! -x "${PLAYWRIGHT_BIN}" ]]; then
   exit 1
 fi
 
-echo "[e2e] suite=${EDITOR_E2E_SUITE:-fake-backed}; fake-backed Playwright uses isolated temp data"
+echo "[e2e] suite=${EDITOR_E2E_SUITE:-fake-backed}; api=:${EDITOR_E2E_API_PORT}; web=:${EDITOR_E2E_WEB_PORT}; fake-backed Playwright uses isolated temp data"
 "${PLAYWRIGHT_BIN}" test "$@"

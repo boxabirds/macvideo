@@ -27,13 +27,13 @@ test.describe("Audio transcribe (Story 14)", () => {
     const deadline = Date.now() + 4000;
     while (Date.now() < deadline) {
       const r = await request.get(
-        `http://localhost:8000/api/songs/${FRESH}/regen?active_only=true`,
+        `/api/songs/${FRESH}/regen?active_only=true`,
       );
       const body = await r.json().catch(() => ({ runs: [] }));
       if (!body.runs || body.runs.length === 0) break;
       await new Promise(rs => setTimeout(rs, 200));
     }
-    await request.post("http://localhost:8000/api/test-only/reset-song", {
+    await request.post("/api/test-only/reset-song", {
       data: { slug: FRESH },
     });
   });
@@ -114,7 +114,7 @@ test.describe("Audio transcribe (Story 14)", () => {
     // Story 18's contract: audio transcription writes scenes directly to
     // the DB, with the whole orchestration tracked under stage_audio_transcribe.
     await expect.poll(async () => {
-      const r = await request.get(`http://localhost:8000/api/songs/${FRESH}/regen`);
+      const r = await request.get(`/api/songs/${FRESH}/regen`);
       const body = await r.json();
       const run = (body.runs as { scope: string; status: string }[])
         .find(x => x.scope === "stage_audio_transcribe");

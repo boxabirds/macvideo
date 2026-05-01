@@ -60,7 +60,7 @@ def test_stop_editor_script_clears_known_port():
             proc.wait(timeout=5)
 
 
-def test_web_dev_and_e2e_scripts_use_repo_lifecycle_scripts():
+def test_web_dev_and_e2e_scripts_use_separate_lifecycle_ports():
     dev = (REPO_ROOT / "editor" / "web" / "scripts" / "dev.sh").read_text()
     e2e = (REPO_ROOT / "editor" / "web" / "scripts" / "e2e.sh").read_text()
     teardown = (REPO_ROOT / "editor" / "web" / "scripts" / "teardown_servers.sh").read_text()
@@ -68,6 +68,10 @@ def test_web_dev_and_e2e_scripts_use_repo_lifecycle_scripts():
     assert "scripts/start_editor.sh" in dev
     assert "scripts/stop_editor.sh" in e2e
     assert "scripts/stop_editor.sh" in teardown
+    assert "EDITOR_E2E_API_PORT" in e2e
+    assert "EDITOR_E2E_WEB_PORT" in e2e
+    assert '"${EDITOR_E2E_API_PORT}" "${EDITOR_E2E_WEB_PORT}"' in e2e
+    assert "stop_editor.sh\" 8000 5173" not in e2e
 
 
 def test_playwright_never_reuses_existing_servers():
@@ -75,7 +79,25 @@ def test_playwright_never_reuses_existing_servers():
 
     assert "reuseExistingServer: false" in config
     assert "setup_backend.sh" in config
+    assert '"18000"' in config
+    assert '"15173"' in config
+    assert "EDITOR_E2E_API_PORT" in config
+    assert "EDITOR_E2E_WEB_PORT" in config
     assert "timeout: 30_000" in config
+
+
+def test_e2e_specs_do_not_hardcode_local_dev_ports():
+    e2e_files = [
+        *sorted((REPO_ROOT / "editor" / "web" / "tests" / "e2e").glob("*.spec.ts")),
+        REPO_ROOT / "editor" / "web" / "tests" / "e2e" / "setup_backend.sh",
+        REPO_ROOT / "editor" / "web" / "playwright.config.ts",
+    ]
+    for path in e2e_files:
+        text = path.read_text()
+        assert "localhost:8000" not in text, path
+        assert "localhost:5173" not in text, path
+        assert "127.0.0.1:8000" not in text, path
+        assert "127.0.0.1:5173" not in text, path
 
 
 def test_package_scripts_separate_fake_backed_and_product_diagnostics():
@@ -95,4 +117,4 @@ def test_readme_documents_clean_checkout_and_test_taxonomy():
     assert "scripts/check_dev_environment.py --mode dev" in readme
     assert "test:e2e:fake" in readme
     assert "fake-backed E2E" in readme
-    assert "never reuse already-running local servers" in readme
+    assert "never reuse or stop the local dev servers" in readme

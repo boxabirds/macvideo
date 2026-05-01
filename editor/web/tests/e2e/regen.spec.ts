@@ -65,7 +65,7 @@ test.describe("Per-scene regen", () => {
     // Use the API directly to trigger a regen — we don't want the UI's race
     // to interfere with the cancel path.
     const trigger = await request.post(
-      `http://localhost:8000/api/songs/${SONG_SLUG}/scenes/1/takes`,
+      `/api/songs/${SONG_SLUG}/scenes/1/takes`,
       { data: { artefact_kind: "keyframe" } },
     );
     const triggerStatus = trigger.status();
@@ -76,7 +76,7 @@ test.describe("Per-scene regen", () => {
     expect(trigger.ok()).toBeTruthy();
     const { run_id } = await trigger.json();
 
-    const cancel = await request.post(`http://localhost:8000/api/regen/${run_id}/cancel`);
+    const cancel = await request.post(`/api/regen/${run_id}/cancel`);
     // 200 if we caught it mid-flight, 409 if it already finished — both
     // valid when the backend records the run before the next poll.
     expect([200, 409]).toContain(cancel.status());
@@ -86,7 +86,7 @@ test.describe("Per-scene regen", () => {
     // Smoke-test the SSE endpoint returns text/event-stream and the
     // connection doesn't 500 on initial handshake. Full event-replay
     // coverage is unit-integration tested via hub.history().
-    const res = await request.get("http://localhost:8000/events/regen", {
+    const res = await request.get("/events/regen", {
       timeout: 3000,
     }).catch(e => e);
     // Either we get a streaming response (ok) or the request times out
