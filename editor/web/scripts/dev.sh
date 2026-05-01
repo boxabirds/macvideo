@@ -9,10 +9,16 @@ REPO_ROOT="$(cd "${WEB_DIR}/../.." && pwd)"
 
 "${SCRIPT_DIR}/teardown_servers.sh" 8000 5173
 
-# E2E harnesses set these to fast fake subprocesses. Local dev must exercise
-# the real production pipeline unless the backend is launched explicitly by hand.
-unset EDITOR_FAKE_DEMUCS
-unset EDITOR_FAKE_WHISPERX_TRANSCRIBE
+# Unit tests may set fake subprocess overrides. Local dev must exercise the
+# product pipeline, so fake overrides are removed only for the backend command.
+BACKEND_ENV=(
+  env
+  -u EDITOR_FAKE_GEN_KEYFRAMES
+  -u EDITOR_FAKE_RENDER_CLIPS
+  -u EDITOR_FAKE_WHISPERX_ALIGN
+  -u EDITOR_FAKE_DEMUCS
+  -u EDITOR_FAKE_WHISPERX_TRANSCRIBE
+)
 
 cleanup() {
   if [[ -n "${BACKEND_PID:-}" ]] && kill -0 "${BACKEND_PID}" 2>/dev/null; then
@@ -24,7 +30,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo "[dev] starting backend on :8000"
-( cd "${REPO_ROOT}" && uv run uvicorn editor.server.main:app --port 8000 --log-level info ) &
+( cd "${REPO_ROOT}" && "${BACKEND_ENV[@]}" uv run uvicorn editor.server.main:app --port 8000 --log-level info ) &
 BACKEND_PID=$!
 
 echo "[dev] starting vite on :5173"

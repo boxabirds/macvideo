@@ -80,6 +80,14 @@ export function useAudioPlayback(args: { scenes: Scene[] }): UseAudioPlaybackRes
   const seekTo = useCallback((timeSeconds: number) => {
     const a = audioRef.current;
     if (!a) return;
+    const s = findSceneAt(scenesRef.current, timeSeconds);
+    if (s) {
+      selectedSceneIdxRef.current = s.index;
+      setPlayingSceneIdx(prev => {
+        playingSceneIdxRef.current = s.index;
+        return prev === s.index ? prev : s.index;
+      });
+    }
     a.currentTime = timeSeconds;
   }, []);
 

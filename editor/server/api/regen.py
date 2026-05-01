@@ -65,13 +65,21 @@ class TakeTriggerResponse(BaseModel):
 async def trigger_take(slug: str, idx: int, body: TakeTriggerBody, conn=Depends(get_db)):
     row = conn.execute("""
         SELECT s.id AS scene_id, s.image_prompt, s.scene_index,
-               g.id AS song_id, g.slug, g.filter, g.abstraction, g.quality_mode
+               s.selected_keyframe_take_id,
+               g.id AS song_id, g.slug, g.filter, g.abstraction,
+               g.quality_mode, g.world_brief, g.sequence_arc
         FROM scenes s JOIN songs g ON g.id = s.song_id
         WHERE g.slug = ? AND s.scene_index = ?
     """, (slug, idx)).fetchone()
     if row is None:
         raise HTTPException(status_code=404,
                             detail=f"scene {idx} of song '{slug}' not found")
+
+    if not row["world_brief"] or not row["sequence_arc"]:
+        raise HTTPException(
+            status_code=422,
+            detail={"reason": "Please generate the world and storyboard first."},
+        )
 
     conflict = conn.execute("""
         SELECT id FROM regen_runs
@@ -86,6 +94,11 @@ async def trigger_take(slug: str, idx: int, body: TakeTriggerBody, conn=Depends(
     if body.artefact_kind == "keyframe" and not row["image_prompt"]:
         raise HTTPException(status_code=422,
                             detail=f"scene {idx} has no image_prompt to regenerate")
+    if body.artefact_kind == "clip" and row["selected_keyframe_take_id"] is None:
+        raise HTTPException(
+            status_code=422,
+            detail={"reason": "Please generate a keyframe first."},
+        )
 
     scope = "scene_keyframe" if body.artefact_kind == "keyframe" else "scene_clip"
     quality_mode = row["quality_mode"] if body.artefact_kind == "clip" else None
@@ -101,7 +114,7 @@ async def trigger_take(slug: str, idx: int, body: TakeTriggerBody, conn=Depends(
     slug_captured = row["slug"]
     scene_index = row["scene_index"]
     song_filter = row["filter"] or "charcoal"
-    song_abstraction = row["abstraction"] or 25
+    song_abstraction = row["abstraction"] if row["abstraction"] is not None else 0
     song_quality_mode = row["quality_mode"] or "draft"
 
     if body.artefact_kind == "keyframe":

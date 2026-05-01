@@ -160,7 +160,7 @@ class FilterChangeTransition:
         return {
             "kind": self.kind(),
             "from": {"filter": self.current_filter, "abstraction": self.current_abstraction},
-            "to": {"filter": self.new_filter, "abstraction": self.current_abstraction},
+            "to": {"filter": self.new_filter, "abstraction": self.current_abstraction if self.current_abstraction is not None else 0},
             "scope": {
                 "will_regen_world_brief": est.will_regen_world_brief,
                 "will_regen_storyboard": est.will_regen_storyboard,
@@ -192,9 +192,10 @@ class FilterChangeTransition:
         if reason is not None:
             raise ConflictError(reason)
 
+        resolved_abstraction = self.current_abstraction if self.current_abstraction is not None else 0
         self.conn.execute(
-            "UPDATE songs SET filter = ?, updated_at = ? WHERE id = ?",
-            (self.new_filter, time.time(), self.song_id),
+            "UPDATE songs SET filter = ?, abstraction = ?, updated_at = ? WHERE id = ?",
+            (self.new_filter, resolved_abstraction, time.time(), self.song_id),
         )
 
         if kind == "destructive":
@@ -227,7 +228,7 @@ class FilterChangeTransition:
 
         slug = self.slug
         song_filter = self.new_filter
-        song_abstraction = self.current_abstraction or 25
+        song_abstraction = resolved_abstraction
         song_quality_mode = self.current_quality_mode or "draft"
 
         async def handler(r):  # noqa: ANN001

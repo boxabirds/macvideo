@@ -106,6 +106,32 @@ def test_trigger_returns_422_missing_image_prompt(client_for, tmp_env, fixture_s
     assert r.status_code == 422
 
 
+def test_trigger_returns_422_when_world_or_storyboard_missing(client_for, tmp_env, fixture_song_one):
+    fixture_song_one(tmp_env["music"], tmp_env["outputs"])
+    client_for.post("/api/import")
+    from editor.server.store import connection
+    with connection(tmp_env["db"]) as c:
+        c.execute("UPDATE songs SET world_brief = NULL, sequence_arc = NULL WHERE slug = 'tiny-song'")
+
+    r = client_for.post("/api/songs/tiny-song/scenes/1/takes",
+                        json={"artefact_kind": "keyframe"})
+    assert r.status_code == 422
+    assert r.json()["detail"]["reason"] == "Please generate the world and storyboard first."
+
+
+def test_clip_regen_requires_selected_keyframe(client_for, tmp_env, fixture_song_one):
+    fixture_song_one(tmp_env["music"], tmp_env["outputs"])
+    client_for.post("/api/import")
+    from editor.server.store import connection
+    with connection(tmp_env["db"]) as c:
+        c.execute("UPDATE scenes SET selected_keyframe_take_id = NULL WHERE scene_index = 1")
+
+    r = client_for.post("/api/songs/tiny-song/scenes/1/takes",
+                        json={"artefact_kind": "clip"})
+    assert r.status_code == 422
+    assert r.json()["detail"]["reason"] == "Please generate a keyframe first."
+
+
 def test_cancel_run_moves_it_to_cancelled(client_for, tmp_env, fixture_song_one):
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")

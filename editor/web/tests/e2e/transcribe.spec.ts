@@ -45,8 +45,8 @@ test.describe("transcribe e2e", () => {
     await transcribeRunButton(page).click();
     await page.getByRole("button", { name: /^Start$/ }).click();
 
-    // Wait for scenes to land. The fake whisperx + real make_shots may
-    // complete faster than the 2s SWR poll cycle, so we don't assert on
+    // Wait for scenes to land. The queue may complete faster than the 2s SWR
+    // poll cycle, so we don't assert on
     // the intermediate "running" class — just on the eventual outcome.
     await expect.poll(
       async () => (await fetchSong(page, "fresh-song-wl")).scenes.length,

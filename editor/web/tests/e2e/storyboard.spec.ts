@@ -74,6 +74,35 @@ test.describe("Storyboard", () => {
     expect(t).toBeLessThanOrEqual(0.31);
   });
 
+  test("double-clicking a collapsed scene title expands without seeking playback", async ({ page }) => {
+    await gotoEditor(page);
+    const row = page.locator('.scene-row[data-scene-index="2"]');
+    await expect(row).toHaveClass(/collapsed/);
+    await row.locator(".scene-title").dblclick();
+    await expect(row).toHaveClass(/expanded/);
+    const t = await page.evaluate(() => {
+      const a = document.querySelector(".preview audio") as HTMLAudioElement;
+      return a.currentTime;
+    });
+    expect(t).toBeLessThan(0.1);
+  });
+
+  test("selecting a transcript word seeks playback to that word", async ({ page }) => {
+    await gotoEditor(page);
+    await expandRow(page, 1);
+    const row = page.locator('.scene-row[data-scene-index="1"]');
+    const word = row.locator(".transcript-word").nth(1);
+    const title = await word.getAttribute("title");
+    const expectedStart = Number(title?.match(/^([0-9.]+)s/)?.[1]);
+    await word.click();
+    const t = await page.evaluate(() => {
+      const a = document.querySelector(".preview audio") as HTMLAudioElement;
+      return a.currentTime;
+    });
+    expect(t).toBeGreaterThanOrEqual(expectedStart - 0.02);
+    expect(t).toBeLessThanOrEqual(expectedStart + 0.02);
+  });
+
   test("editing a beat marks the keyframe chip stale (staleness cascade, full stack)", async ({ page }) => {
     // State note: prior tests in this file may have already PATCHed scene 1,
     // so the "before" state of the chips is undefined — state lives in the

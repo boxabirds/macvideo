@@ -147,7 +147,7 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
             lambda: run_gen_keyframes_for_stage(
                 song_slug=slug_captured,
                 song_filter=song_filter or "charcoal",
-                song_abstraction=song_abstraction or 25,
+                song_abstraction=song_abstraction if song_abstraction is not None else 0,
                 song_quality_mode=song_quality_mode or "draft",
                 source_run_id=r.id,
                 stage=stage_captured,
@@ -208,7 +208,7 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
     # via the subprocess's sys.exit on error.
     slug_captured = slug
     song_filter = song["filter"] or "charcoal"
-    song_abstraction = song["abstraction"] or 25
+    song_abstraction = song["abstraction"] if song["abstraction"] is not None else 0
     song_quality_mode = song["quality_mode"] or "draft"
 
     triggered: list[dict] = []

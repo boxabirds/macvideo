@@ -36,8 +36,8 @@ function makeSong(scenes: Scene[]): SongDetail {
     filter: "charcoal",
     abstraction: 25,
     quality_mode: "draft",
-    world_brief: null,
-    sequence_arc: null,
+    world_brief: "world",
+    sequence_arc: "storyboard",
     scenes,
   };
 }
@@ -111,6 +111,18 @@ describe("Storyboard", () => {
     expect(container.querySelector(".scene-body")).toBeInTheDocument();
   });
 
+  it("double-clicking a collapsed scene title expands without seeking playback", async () => {
+    const song = makeSong([makeScene({ index: 1 })]);
+    const onSeekToScene = vi.fn();
+    const { container } = render(
+      <Storyboard song={song} cameraIntents={["static hold"]}
+        playingSceneIdx={null} onSeekToScene={onSeekToScene} onPatch={() => {}} />,
+    );
+    await userEvent.dblClick(container.querySelector(".scene-title")!);
+    expect(container.querySelector(".scene-row.expanded")).toBeInTheDocument();
+    expect(onSeekToScene).not.toHaveBeenCalled();
+  });
+
   it("renders the time range on the scene header", () => {
     const song = makeSong([makeScene({ index: 1, start_s: 0.0, end_s: 3.3 })]);
     const { container } = render(
@@ -164,6 +176,48 @@ describe("Storyboard", () => {
     expect(JSON.parse((patchCall![1] as RequestInit).body as string))
       .toEqual({ start_word_index: 0, end_word_index: 0, text: "new lyric" });
     expect(onPatch).toHaveBeenCalledWith(1, expect.objectContaining({ target_text: "new lyric" }));
+  });
+
+  it("clicking a transcript word seeks playback to that word start", async () => {
+    const song = makeSong([makeScene({ index: 1, target_text: "first second", start_s: 10, end_s: 14 })]);
+    const scene = song.scenes[0]!;
+    const onSeekToTime = vi.fn();
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/transcript")) {
+        return { ok: true, status: 200, json: async () => transcriptPayload(scene) } as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}) } as Response;
+    });
+    const { container } = render(
+      <Storyboard song={song} cameraIntents={["static hold"]}
+        playingSceneIdx={null} onSeekToScene={() => {}} onSeekToTime={onSeekToTime} onPatch={() => {}} />,
+    );
+    await expandAll(container);
+    await userEvent.click(await screen.findByRole("button", { name: "second" }));
+    expect(onSeekToTime).toHaveBeenCalledWith(12);
+  });
+
+  it("ending a transcript drag seeks playback to the first selected word", async () => {
+    const song = makeSong([makeScene({ index: 1, target_text: "one two three", start_s: 0, end_s: 9 })]);
+    const scene = song.scenes[0]!;
+    const onSeekToTime = vi.fn();
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/transcript")) {
+        return { ok: true, status: 200, json: async () => transcriptPayload(scene) } as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}) } as Response;
+    });
+    const { container } = render(
+      <Storyboard song={song} cameraIntents={["static hold"]}
+        playingSceneIdx={null} onSeekToScene={() => {}} onSeekToTime={onSeekToTime} onPatch={() => {}} />,
+    );
+    await expandAll(container);
+    const one = await screen.findByRole("button", { name: "one" });
+    const three = await screen.findByRole("button", { name: "three" });
+    fireEvent.mouseDown(one, { button: 0, buttons: 1 });
+    fireEvent.mouseEnter(three, { buttons: 1 });
+    fireEvent.mouseUp(three);
+    expect(onSeekToTime).toHaveBeenCalledWith(0);
   });
 
   it("renders an empty transcript separately from a populated visual beat", async () => {
@@ -447,6 +501,37 @@ describe("Storyboard", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText(/\$0\.04/)).toBeInTheDocument();
     expect(screen.getByText(/~16s/)).toBeInTheDocument();
+  });
+
+  it("hides the legacy scene refresh button", async () => {
+    stubFetchEcho();
+    const song = makeSong([makeScene({ index: 1 })]);
+    const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
+    await expandAll(container);
+    expect(screen.queryByRole("button", { name: /refresh/i })).not.toBeInTheDocument();
+  });
+
+  it("blocks scene regeneration until world and storyboard exist", async () => {
+    const song = {
+      ...makeSong([makeScene({ index: 1 })]),
+      world_brief: null,
+      sequence_arc: null,
+    };
+    const scene = song.scenes[0]!;
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/transcript")) {
+        return { ok: true, status: 200, json: async () => transcriptPayload(scene) } as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}) } as Response;
+    });
+    globalThis.fetch = fetchSpy;
+    const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
+    await expandAll(container);
+    await userEvent.click(screen.getByTitle("regenerate keyframe"));
+    expect(screen.getByText("Please generate the world and storyboard first.")).toBeInTheDocument();
+    expect(fetchSpy.mock.calls.some(c => String(c[0]).includes("/takes"))).toBe(false);
   });
 
   it("POSTs to /takes when the regen confirm button fires", async () => {

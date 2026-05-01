@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-// Story 9 e2e: clicking a stage button fires the backend stage handler
-// (fake subprocess). Tiny-song fixture arrives with all stages already done
-// so we exercise the re-run path for world-brief.
+// Story 9 product E2E: clicking a stage button fires the backend stage
+// handler. Tiny-song fixture arrives with all stages already done so we
+// exercise the re-run path for world-brief.
 
 const SONG_SLUG = "tiny-song";
 

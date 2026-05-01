@@ -6,15 +6,7 @@ import type { QualityMode, SongDetail } from "../types";
 import { patchSong, previewChange } from "../api";
 import FilterChangeModal from "./FilterChangeModal";
 import { useFilterChange } from "../hooks/useFilterChange";
-
-const FILTER_OPTIONS = [
-  "oil impasto", "mosaic", "stained glass", "claymation", "watercolour",
-  "papercut", "charcoal", "scratchboard", "risograph", "cyanotype", "sumi-e",
-  "daguerreotype", "embroidery", "double exposure", "baroque chiaroscuro",
-  "surrealist",
-] as const;
-
-const ABSTRACTION_STOPS = [0, 25, 50, 75, 100];
+import { ABSTRACTION_OPTIONS, FILTER_OPTIONS } from "../lib/filterOptions";
 
 type Props = {
   song: SongDetail;
@@ -96,17 +88,17 @@ export default function TopBar({ song, onSongUpdate, onBack }: Props) {
             style={{ background: "transparent", color: "inherit", border: "none", font: "inherit" }}
           >
             <option value="">(unset)</option>
-            {FILTER_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+            {FILTER_OPTIONS.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
           </select>
         </span>
         <span className="pill">
           abstraction:{" "}
           <select
-            value={song.abstraction ?? ""}
+            value={song.abstraction ?? 0}
             onChange={e => setPendingAbstraction({ newValue: Number(e.target.value) })}
             style={{ background: "transparent", color: "inherit", border: "none", font: "inherit" }}
           >
-            {ABSTRACTION_STOPS.map(v => <option key={v} value={v}>{v}</option>)}
+            {ABSTRACTION_OPTIONS.map(v => <option key={v.value} value={v.value}>{v.value}</option>)}
           </select>
         </span>
         <span className="pill">

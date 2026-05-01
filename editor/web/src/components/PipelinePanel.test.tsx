@@ -580,6 +580,75 @@ describe("PipelinePanel", () => {
     expect(stageCall).toBeDefined();
     expect(stageCall!).toContain("redo=false");
   });
+
+  it("world generation that fails immediately shows retry state, retry icon, and error fallback", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ run_id: 4, status: "pending" }),
+    } as Response);
+    globalThis.fetch = fetchSpy;
+    const pendingSong = makeSong({
+      world_brief: null,
+      sequence_arc: null,
+      scenes: [makeScene()],
+    });
+    const pendingStatus = status({
+      transcription: "done", world_brief: "empty", storyboard: "empty",
+      keyframes_done: 0, keyframes_total: 1,
+    });
+    const { container, rerender } = render(
+      <PipelinePanel song={pendingSong} status={pendingStatus} />,
+    );
+
+    await userEvent.click(screen.getByText(/world description/).closest("button")!);
+    await new Promise(r => setTimeout(r, 10));
+    expect(fetchSpy.mock.calls.some(c => String(c[0]).includes("/stages/world-brief"))).toBe(true);
+
+    rerender(
+      <PipelinePanel
+        song={pendingSong}
+        status={pendingStatus}
+        regenRuns={[transcribeRun({
+          id: 4,
+          scope: "stage_world_brief",
+          status: "failed",
+          error: null,
+          ended_at: 2,
+        })]}
+      />,
+    );
+
+    const world = container.querySelector('[data-stage="world_brief"]')!;
+    expect(world).toHaveAttribute("data-status", "failed");
+    expect(world.querySelector(".stage-indicator-glyph")?.textContent).toBe("⟳");
+    expect(screen.getByRole("alert").textContent).toContain("world description failed. Try again.");
+
+    await userEvent.click(screen.getByRole("button", { name: /Try again/i }));
+    await new Promise(r => setTimeout(r, 10));
+    const retryCall = fetchSpy.mock.calls
+      .map(c => String(c[0]))
+      .filter(url => url.includes("/stages/world-brief"))
+      .at(-1);
+    expect(retryCall).toContain("redo=true");
+  });
+
+  it("setup picker uses approved filter descriptions and abstraction defaults to 0", async () => {
+    render(<PipelinePanel
+      song={makeSong({ filter: null, abstraction: null, world_brief: null, scenes: [makeScene()] })}
+      status={status({
+        transcription: "done", world_brief: "empty", storyboard: "empty",
+        keyframes_done: 0, keyframes_total: 1,
+      })}
+    />);
+    await userEvent.click(screen.getByText(/world description/).closest("button")!);
+
+    expect(screen.getByRole("heading", { name: /Choose the visual language/i })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getAllByText(/Thick palette-knife paint/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Layered cut-paper diorama/i).length).toBeGreaterThan(0);
+    const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
+    expect(selects[1]!.value).toBe("0");
+    expect(screen.getByText(/Concrete, recognisable scenes/i)).toBeInTheDocument();
+  });
 });
 
 afterEach(() => vi.restoreAllMocks());

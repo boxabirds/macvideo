@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-// Story 5 e2e: per-scene regen against real Chromium + live backend +
-// fake gen_keyframes.py. Proves the click→confirm→POST→status-transition
-// path wires up end-to-end.
+// Story 5 product E2E: per-scene regen against real Chromium and a live
+// backend. Fake pipeline scripts are deliberately not injected by the
+// Playwright backend launcher.
 
 const SONG_SLUG = "tiny-song";
 
@@ -78,7 +78,7 @@ test.describe("Per-scene regen", () => {
 
     const cancel = await request.post(`http://localhost:8000/api/regen/${run_id}/cancel`);
     // 200 if we caught it mid-flight, 409 if it already finished — both
-    // valid since the fake subprocess is very fast.
+    // valid when the backend records the run before the next poll.
     expect([200, 409]).toContain(cancel.status());
   });
 

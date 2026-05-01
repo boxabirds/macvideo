@@ -20,6 +20,7 @@ from editor.server.pipeline.paths import resolve_song_paths
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _DEV_SCRIPT = _REPO_ROOT / "editor" / "web" / "scripts" / "dev.sh"
+_E2E_BACKEND_SCRIPT = _REPO_ROOT / "editor" / "web" / "tests" / "e2e" / "setup_backend.sh"
 _TESTS_DIR = Path(__file__).resolve().parent
 _FAKE_DEMUCS = _TESTS_DIR / "fake_scripts" / "fake_demucs.py"
 
@@ -276,7 +277,21 @@ def test_demucs_wrapper_returns_nonzero_when_vocals_missing(
     assert "produced no vocals.wav" in capsys.readouterr().err
 
 
-def test_dev_launcher_unsets_e2e_fake_script_overrides():
+def test_dev_launcher_scopes_fake_script_removal_to_backend_command():
     body = _DEV_SCRIPT.read_text()
-    assert "unset EDITOR_FAKE_DEMUCS" in body
-    assert "unset EDITOR_FAKE_WHISPERX_TRANSCRIBE" in body
+    assert "unset EDITOR_FAKE_DEMUCS" not in body
+    assert "unset EDITOR_FAKE_WHISPERX_TRANSCRIBE" not in body
+    assert "-u EDITOR_FAKE_DEMUCS" in body
+    assert "-u EDITOR_FAKE_WHISPERX_TRANSCRIBE" in body
+    assert '"${BACKEND_ENV[@]}" uv run uvicorn' in body
+
+
+def test_e2e_backend_launcher_does_not_inject_fake_scripts():
+    body = _E2E_BACKEND_SCRIPT.read_text()
+    assert "EDITOR_FAKE_GEN_KEYFRAMES" not in body
+    assert "EDITOR_FAKE_RENDER_CLIPS" not in body
+    assert "EDITOR_FAKE_WHISPERX_ALIGN" not in body
+    assert "EDITOR_FAKE_DEMUCS" not in body
+    assert "EDITOR_FAKE_WHISPERX_TRANSCRIBE" not in body
+    assert "exec env \\" in body
+    assert "uv run uvicorn editor.server.main:app" in body

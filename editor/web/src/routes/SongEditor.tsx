@@ -82,6 +82,7 @@ function SongEditorInner({
     loopEnabled,
     setLoopEnabled,
     seekToScene,
+    seekTo,
   } = useAudioPlayback({
     scenes: song.scenes,
   });
@@ -122,6 +123,7 @@ function SongEditorInner({
             cameraIntents={intents?.values ?? []}
             playingSceneIdx={playingSceneIdx}
             onSeekToScene={seekToScene}
+            onSeekToTime={seekTo}
             onPatch={onScenePatched}
             activeRegens={activeRegens}
           />

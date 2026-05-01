@@ -30,22 +30,10 @@ cp -R "${FIXTURES}/outputs/tiny-song" "${E2E_ROOT}/outputs/"
 cp "${FIXTURES_ROOT}/fresh-song-with-lyrics/music/"* "${E2E_ROOT}/music/"
 cp "${FIXTURES_ROOT}/fresh-song-no-lyrics/music/"* "${E2E_ROOT}/music/"
 
-export EDITOR_DB_PATH="${E2E_ROOT}/editor.db"
-export EDITOR_MUSIC_DIR="${E2E_ROOT}/music"
-export EDITOR_OUTPUTS_DIR="${E2E_ROOT}/outputs"
-# Point pipeline subprocess wrappers at the fake scripts so e2e doesn't
-# call Gemini / LTX / WhisperX. Tests that explicitly exercise the real
-# pipeline unset these variables.
-export EDITOR_FAKE_GEN_KEYFRAMES="${REPO_ROOT}/editor/server/tests/fake_scripts/fake_gen_keyframes.py"
-export EDITOR_FAKE_RENDER_CLIPS="${REPO_ROOT}/editor/server/tests/fake_scripts/fake_render_clips.py"
-export EDITOR_FAKE_WHISPERX_ALIGN="${REPO_ROOT}/editor/server/tests/fake_scripts/fake_whisperx_align.py"
-# Story 14: fakes for the audio-transcribe upstream phases so the e2e flow
-# completes deterministically without downloading multi-GB Demucs/WhisperX
-# models.
-export EDITOR_FAKE_DEMUCS="${REPO_ROOT}/editor/server/tests/fake_scripts/fake_demucs.py"
-export EDITOR_FAKE_WHISPERX_TRANSCRIBE="${REPO_ROOT}/editor/server/tests/fake_scripts/fake_whisperx_transcribe.py"
-# Mount the test-only filesystem helper used by retry_from_failed.
-export EDITOR_TEST_ENDPOINTS=1
-
 cd "${REPO_ROOT}"
-exec uv run uvicorn editor.server.main:app --port 8000 --log-level warning
+exec env \
+  EDITOR_DB_PATH="${E2E_ROOT}/editor.db" \
+  EDITOR_MUSIC_DIR="${E2E_ROOT}/music" \
+  EDITOR_OUTPUTS_DIR="${E2E_ROOT}/outputs" \
+  EDITOR_TEST_ENDPOINTS=1 \
+  uv run uvicorn editor.server.main:app --port 8000 --log-level warning

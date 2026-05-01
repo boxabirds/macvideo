@@ -7,6 +7,19 @@ import { useCallback, useEffect, useState } from "react";
 import type { SongDetail, StageStatus } from "../types";
 import type { RegenRunSummary } from "../api";
 import { audioTranscribe, ApiError, patchSong } from "../api";
+import {
+  ABSTRACTION_OPTIONS,
+  FILTER_OPTIONS,
+  describeAbstraction,
+} from "../lib/filterOptions";
+import {
+  STAGES,
+  deriveSongWorkflowState,
+  type SegmentStatus,
+  type StageDef,
+  type StageKey,
+  type StageScope,
+} from "../lib/songWorkflowState";
 
 // Story 14: phase strings emitted by the audio-transcribe orchestrator.
 const PHASE_LABEL: Record<string, string> = {
@@ -68,107 +81,13 @@ function audioProgressDetail(song: SongDetail, activeRun: RegenRunSummary): stri
   return phaseLabel;
 }
 
-type StageKey =
-  | "transcription" | "world_brief" | "storyboard"
-  | "image_prompts" | "keyframes" | "final_video";
-
-type StageScope =
-  | "stage_transcribe" | "stage_audio_transcribe" | "stage_world_brief"
-  | "stage_storyboard" | "stage_image_prompts" | "stage_keyframes"
-  | "final_video";
-
-type StageDef = {
-  key: StageKey;
-  label: string;
-  stageName: string;
-  scope: StageScope;
-  historyModel: "replace" | "take";
-};
-
-type SegmentStatus = "done" | "running" | "failed" | "pending" | "blocked";
-
-const STAGES: readonly StageDef[] = [
-  { key: "transcription",  label: "transcription",     stageName: "transcribe",    scope: "stage_transcribe",         historyModel: "replace" },
-  { key: "world_brief",    label: "world description", stageName: "world-brief",   scope: "stage_world_brief",       historyModel: "replace" },
-  { key: "storyboard",     label: "storyboard",        stageName: "storyboard",    scope: "stage_storyboard",         historyModel: "replace" },
-  { key: "image_prompts",  label: "image prompts",     stageName: "image-prompts", scope: "stage_image_prompts",      historyModel: "replace" },
-  { key: "keyframes",      label: "keyframes",         stageName: "keyframes",     scope: "stage_keyframes",          historyModel: "take" },
-  { key: "final_video",    label: "final video",       stageName: "render-final",  scope: "final_video",              historyModel: "replace" },
-] as const;
-
-// Each stage runs only after its prereqs are done. Linear chain today; the
-// map gives the breadcrumb its prereq-blocked tooltip text.
-const STAGE_PREREQS: Record<StageKey, StageKey[]> = {
-  transcription: [],
-  world_brief:   ["transcription"],
-  storyboard:    ["world_brief"],
-  image_prompts: ["storyboard"],
-  keyframes:     ["image_prompts"],
-  final_video:   ["keyframes"],
-};
-
-type StageDoneState = "done" | "progress" | "empty" | "error";
-
-function deriveDoneState(
-  stage: StageDef, song: SongDetail, status: StageStatus, finishedCount: number,
-): { doneState: StageDoneState; summary: string } {
-  if (stage.key === "keyframes") {
-    const done = status.keyframes_done;
-    const total = status.keyframes_total;
-    return {
-      doneState: done === total && total > 0 ? "done" : done > 0 ? "progress" : "empty",
-      summary: ` (${done}/${total})`,
-    };
-  }
-  if (stage.key === "image_prompts") {
-    const total = song.scenes.length;
-    const withPrompt = song.scenes.filter(s => s.image_prompt).length;
-    return {
-      doneState: withPrompt === total && total > 0 ? "done" : withPrompt > 0 ? "progress" : "empty",
-      summary: ` (${withPrompt}/${total})`,
-    };
-  }
-  if (stage.key === "final_video") {
-    return {
-      doneState: finishedCount > 0 ? "done" : "empty",
-      summary: "",
-    };
-  }
-  return {
-    doneState: stage.key === "transcription"
-      ? status.transcription
-      : stage.key === "world_brief"
-        ? status.world_brief
-        : stage.key === "storyboard"
-          ? status.storyboard
-          : "empty",
-    summary: "",
-  };
-}
-
-function deriveSegmentStatus(args: {
-  stage: StageDef;
-  doneState: StageDoneState;
-  activeRun: RegenRunSummary | undefined;
-  failedRun: RegenRunSummary | undefined;
-  prereqsDone: boolean;
-}): SegmentStatus {
-  const { doneState, activeRun, failedRun, prereqsDone } = args;
-  if (activeRun) return "running";
-  if (failedRun) return "failed";
-  if (doneState === "error") return "failed";
-  if (doneState === "done") return "done";
-  if (doneState === "progress") return prereqsDone ? "pending" : "blocked";
-  return prereqsDone ? "pending" : "blocked";
-}
-
 const STATUS_LABEL_BACKUP: Record<SegmentStatus, string> = {
   done: "done", running: "running", failed: "failed",
   pending: "ready", blocked: "blocked",
 };
 
 const STATUS_GLYPH: Record<SegmentStatus, string> = {
-  done: "✓", running: "●", failed: "✕", pending: "○", blocked: "⌧",
+  done: "✓", running: "●", failed: "⟳", pending: "○", blocked: "⌧",
 };
 
 async function runStage(slug: string, stageName: string, redo: boolean) {
@@ -275,33 +194,16 @@ export default function PipelinePanel({
     }
   }, [song.slug, loadFinished]);
 
-  const segmentStatuses: Record<StageKey, SegmentStatus> = STAGES.reduce((acc, stage) => {
-    const { doneState } = deriveDoneState(stage, song, status, finished.length);
-    // Story 14: the transcription segment matches BOTH transcribe scopes so a
-    // running stage_audio_transcribe run flips it to amber the same as
-    // stage_transcribe.
-    const matchesScope = (r: RegenRunSummary) =>
-      stage.key === "transcription"
-        ? (r.scope === "stage_transcribe" || r.scope === "stage_audio_transcribe")
-        : r.scope === stage.scope;
-    const stageRuns = (regenRuns ?? []).filter(matchesScope);
-    const activeRun = stageRuns.find(r => r.status === "pending" || r.status === "running");
-    const latestTerm = stageRuns.find(r => r.status === "done" || r.status === "failed" || r.status === "cancelled");
-    const failedRun =
-      stage.key === "transcription"
-        ? (transcribeFailed ? latestTranscribe : undefined)
-        : (latestTerm?.status === "failed" ? latestTerm : undefined);
-    const prereqsDone = STAGE_PREREQS[stage.key].every(
-      pk => acc[pk] === "done",
-    );
-    acc[stage.key] = deriveSegmentStatus({
-      stage, doneState, activeRun, failedRun, prereqsDone,
-    });
-    return acc;
-  }, {} as Record<StageKey, SegmentStatus>);
+  const workflow = deriveSongWorkflowState({
+    song,
+    status,
+    regenRuns,
+    finishedCount: finished.length,
+    dismissedFailedTranscribeId: dismissedFailedId,
+  });
 
   const onSegmentClick = useCallback((stage: StageDef) => {
-    const segStatus = segmentStatuses[stage.key];
+    const segStatus = workflow[stage.key].status;
 
     if (segStatus === "running") return;
 
@@ -347,24 +249,23 @@ export default function PipelinePanel({
       return;
     }
     setPendingRegen({ scope: stage.scope, label: stage.label, stageName: stage.stageName });
-  }, [segmentStatuses, latestTranscribe, song.filter, song.abstraction, trigger]);
+  }, [workflow, latestTranscribe, song.filter, song.abstraction, trigger]);
 
   return (
     <div className="pipeline-panel" aria-label="Pipeline stages">
       <div className="pipeline-breadcrumb">
         {STAGES.map((stage, i) => {
-          const segStatus = segmentStatuses[stage.key];
-          const { summary } = deriveDoneState(stage, song, status, finished.length);
+          const stageState = workflow[stage.key];
+          const segStatus = stageState.status;
+          const { summary } = stageState;
           const isTranscribeRunning = stage.key === "transcription" && segStatus === "running";
           const isTranscribeFailed = stage.key === "transcription" && segStatus === "failed";
+          const isStageFailed = stage.key !== "transcription" && segStatus === "failed";
           // .pipeline-stage class kept for back-compat with story-9 tests; the
           // doneState class (.done / .progress / .empty) is also kept so older
           // assertions don't regress. The new stage-indicator is the visual
           // truth for traffic-light status.
-          const { doneState } = deriveDoneState(stage, song, status, finished.length);
-          const tooltipPrereqs = STAGE_PREREQS[stage.key]
-            .filter(pk => segmentStatuses[pk] !== "done")
-            .map(pk => STAGES.find(s => s.key === pk)?.label ?? pk);
+          const { doneState, tooltipPrereqs } = stageState;
           return (
             <div key={stage.key}
               className={`pipeline-stage ${doneState} ${segStatus}`}
@@ -459,6 +360,19 @@ export default function PipelinePanel({
                       }
                     }}
                     disabled={busy === "transcribe"}
+                  >
+                    Try again
+                  </button>
+                </div>
+              ) : null}
+              {isStageFailed ? (
+                <div className="stage-failed" role="alert">
+                  <span>
+                    {stageState.failedRun?.error ?? `${stage.label} failed. Try again.`}
+                  </span>
+                  <button
+                    onClick={() => trigger(stage.stageName, true)}
+                    disabled={busy === stage.stageName}
                   >
                     Try again
                   </button>
@@ -761,29 +675,58 @@ function FilterAbstractionPicker({
   onCancel: () => void;
   onConfirmed: (filter: string, abstraction: number) => void;
 }) {
-  const [filter, setFilter] = useState(song.filter ?? "papercut");
-  const [abstraction, setAbstraction] = useState(song.abstraction ?? 25);
+  const [filter, setFilter] = useState(song.filter ?? FILTER_OPTIONS[0]!.name);
+  const [abstraction, setAbstraction] = useState(song.abstraction ?? 0);
+  const selectedAbstraction = describeAbstraction(abstraction);
   return (
     <div className="dialog-backdrop" role="dialog" aria-modal="true">
       <div className="dialog">
-        <h2>Pick filter and abstraction</h2>
+        <h2>Choose the visual language</h2>
         <p>
-          Both are required for the world description stage. They flow through
-          every downstream stage (storyboard, image prompts, keyframes).
-          You can change them later via the top bar.
+          Pick the material style for the whole video and how literal the
+          generated imagery should be. These choices shape the world
+          description, storyboard, scene prompts, and keyframes.
         </p>
-        <div style={{ display: "grid", gap: 8 }}>
+        <div className="setup-picker">
           <label>
-            Filter:{" "}
-            <input value={filter} onChange={e => setFilter(e.target.value)} />
+            Filter
+            <select value={filter} onChange={e => setFilter(e.target.value)}>
+              {FILTER_OPTIONS.map(option => (
+                <option key={option.name} value={option.name}>
+                  {option.name} - {option.description}
+                </option>
+              ))}
+            </select>
           </label>
+          <div className="filter-description-list" aria-label="Filter descriptions">
+            {FILTER_OPTIONS.map(option => (
+              <button
+                key={option.name}
+                type="button"
+                className={option.name === filter ? "selected" : ""}
+                onClick={() => setFilter(option.name)}
+              >
+                <b>{option.name}</b>
+                <span>{option.description}</span>
+              </button>
+            ))}
+          </div>
           <label>
-            Abstraction (0-100):{" "}
-            <input type="number" min={0} max={100} step={25}
+            Abstraction
+            <select
               value={abstraction}
-              onChange={e => setAbstraction(Math.max(0, Math.min(100, Number(e.target.value))))}
-            />
+              onChange={e => setAbstraction(Number(e.target.value))}
+            >
+              {ABSTRACTION_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
+          {selectedAbstraction ? (
+            <p className="abstraction-help">{selectedAbstraction.description}</p>
+          ) : null}
         </div>
         <div className="actions">
           <button onClick={onCancel}>Cancel</button>

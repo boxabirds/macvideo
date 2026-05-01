@@ -1,9 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-// Story 14 e2e — audio-transcribe happy-path workflow against the real
-// backend (with EDITOR_FAKE_DEMUCS + EDITOR_FAKE_WHISPERX_TRANSCRIBE pointing
-// at fake scripts so the run completes in ~1s instead of multi-minute real
-// Demucs/WhisperX). Covers:
+// Story 14 product E2E — audio-transcribe workflow against the browser,
+// FastAPI backend, and product pipeline wrappers. Fake pipeline scripts are
+// deliberately not injected by the Playwright backend launcher. Covers:
 //   1. empty-state Transcribe-from-audio button visible.
 //   2. confirm modal first-run copy + Start fires fetch.
 //   3. running state visible after Start.

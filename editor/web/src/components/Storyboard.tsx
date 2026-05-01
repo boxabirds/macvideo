@@ -24,6 +24,10 @@ import {
   selectTake,
   undoTranscriptCorrection,
 } from "../api";
+import {
+  type SceneArtefactKind,
+  sceneGenerationGate,
+} from "../lib/editorWorkflowState";
 
 // Module-scoped retry queue. A queued retry is a field edit whose PATCH
 // failed with a network error (fetch threw — not an API-level validation
@@ -125,6 +129,7 @@ type Props = {
   cameraIntents: string[];
   playingSceneIdx: number | null;
   onSeekToScene: (idx: number) => void;
+  onSeekToTime?: (timeSeconds: number) => void;
   onPatch: (idx: number, updated: Scene) => void;
   // Optional map of scene_index → set of artefacts currently regenerating.
   // Drives the "in-progress" state on status chips. Absent during unit
@@ -134,12 +139,14 @@ type Props = {
 
 const SceneRow = memo(function SceneRow({
   scene, cameraIntents, current, onClick, onPatch, slug, rowRef,
-  activeArtefacts, expanded, onToggleExpanded,
+  activeArtefacts, expanded, onToggleExpanded, song, onSeekToTime,
 }: {
+  song: SongDetail;
   scene: Scene;
   cameraIntents: string[];
   current: boolean;
   onClick: () => void;
+  onSeekToTime: (timeSeconds: number) => void;
   onPatch: (updated: Scene) => void;
   slug: string;
   rowRef?: (el: HTMLDivElement | null) => void;
@@ -156,6 +163,8 @@ const SceneRow = memo(function SceneRow({
   const [transcriptLoading, setTranscriptLoading] = useState(false);
   const [selection, setSelection] = useState<null | { start: number; end: number }>(null);
   const [correctionModal, setCorrectionModal] = useState<null | { text: string; error: string | null; busy: boolean }>(null);
+  const selectingRef = useRef(false);
+  const selectionRef = useRef<null | { start: number; end: number }>(null);
 
   // Per-field saving + error state. `saving` is the set of fields with an
   // in-flight PATCH; `errors` is { field -> message } when PATCH failed and
@@ -170,6 +179,10 @@ const SceneRow = memo(function SceneRow({
   useEffect(() => { setSubject(scene.subject_focus ?? ""); }, [scene.subject_focus]);
   useEffect(() => { setPrompt(scene.image_prompt ?? ""); }, [scene.image_prompt]);
   useEffect(() => { setCamera(scene.camera_intent ?? ""); }, [scene.camera_intent]);
+  const updateSelection = useCallback((next: null | { start: number; end: number }) => {
+    selectionRef.current = next;
+    setSelection(next);
+  }, []);
   useEffect(() => {
     if (!expanded || transcriptWords !== null || transcriptLoading) return;
     setTranscriptLoading(true);
@@ -256,9 +269,16 @@ const SceneRow = memo(function SceneRow({
 
   const applyTranscriptResponse = useCallback((resp: TranscriptResponse) => {
     setTranscriptWords(resp.words);
-    setSelection(null);
+    updateSelection(null);
     onPatch({ ...scene, target_text: resp.target_text });
-  }, [onPatch, scene]);
+  }, [onPatch, scene, updateSelection]);
+
+  const seekToWordSelection = useCallback((nextSelection: { start: number; end: number }) => {
+    if (!transcriptWords) return;
+    const first = transcriptWords.find(w => w.word_index === Math.min(nextSelection.start, nextSelection.end));
+    if (!first) return;
+    onSeekToTime(first.start_s);
+  }, [onSeekToTime, transcriptWords]);
 
   useEffect(() => {
     if (!current) return;
@@ -327,7 +347,10 @@ const SceneRow = memo(function SceneRow({
     >
       <div
         className="scene-header"
-        onClick={onClick}
+        onClick={event => {
+          if ((event.target as HTMLElement).closest(".scene-title")) return;
+          onClick();
+        }}
       >
         <button
           type="button"
@@ -341,7 +364,14 @@ const SceneRow = memo(function SceneRow({
         >
           {expanded ? "\u25BC" : "\u25B6"}
         </button>
-        <h3 className="scene-title">
+        <h3
+          className="scene-title"
+          onDoubleClick={event => {
+            event.stopPropagation();
+            if (!expanded) onToggleExpanded();
+          }}
+          title={expanded ? undefined : "Double-click to expand"}
+        >
           <span className="scene-num">#{scene.index}</span>
           <span className="scene-title-text">{sceneSummary(scene.target_text)}</span>
         </h3>
@@ -383,15 +413,34 @@ const SceneRow = memo(function SceneRow({
                     type="button"
                     className={`transcript-word${selected ? " selected" : ""}${word.correction_id ? " corrected" : ""}${word.warning ? " warning" : ""}`}
                     title={`${word.start_s.toFixed(2)}s – ${word.end_s.toFixed(2)}s${word.correction_id ? `\nOriginal: ${word.original_text}` : ""}${word.warning ? `\nWarning: ${word.warning}` : ""}`}
-                    onMouseDown={() => setSelection({ start: word.word_index, end: word.word_index })}
-                    onMouseEnter={e => {
-                      if (e.buttons !== 1) return;
-                      setSelection(prev => prev ? {
-                        start: Math.min(prev.start, word.word_index),
-                        end: Math.max(prev.start, word.word_index),
-                      } : prev);
+                    onMouseDown={event => {
+                      if (event.button !== 0) return;
+                      selectingRef.current = true;
+                      updateSelection({ start: word.word_index, end: word.word_index });
                     }}
-                    onClick={() => setSelection({ start: word.word_index, end: word.word_index })}
+                    onMouseEnter={e => {
+                      if (e.buttons !== 1 || !selectingRef.current) return;
+                      updateSelection(selectionRef.current ? {
+                        start: Math.min(selectionRef.current.start, word.word_index),
+                        end: Math.max(selectionRef.current.start, word.word_index),
+                      } : selectionRef.current);
+                    }}
+                    onMouseUp={() => {
+                      selectingRef.current = false;
+                      const nextSelection = selectionRef.current
+                        ? {
+                          start: Math.min(selectionRef.current.start, word.word_index),
+                          end: Math.max(selectionRef.current.start, word.word_index),
+                        }
+                        : { start: word.word_index, end: word.word_index };
+                      updateSelection(nextSelection);
+                      seekToWordSelection(nextSelection);
+                    }}
+                    onClick={() => {
+                      if (!selectionRef.current) {
+                        updateSelection({ start: word.word_index, end: word.word_index });
+                      }
+                    }}
                   >
                     {word.text}
                   </button>
@@ -442,6 +491,8 @@ const SceneRow = memo(function SceneRow({
 
           <RegenActions
             slug={slug} sceneIndex={scene.index}
+            song={song}
+            scene={scene}
             onPatched={onPatch}
           />
         </div>
@@ -484,13 +535,16 @@ const SceneRow = memo(function SceneRow({
 });
 
 function RegenActions({
-  slug, sceneIndex, onPatched,
+  slug, sceneIndex, song, scene, onPatched,
 }: {
   slug: string;
   sceneIndex: number;
+  song: SongDetail;
+  scene: Scene;
   onPatched: (s: Scene) => void;
 }) {
   const [confirm, setConfirm] = useState<null | "keyframe" | "clip">(null);
+  const [blockedReason, setBlockedReason] = useState<string | null>(null);
   const [showTakes, setShowTakes] = useState(false);
   const [takes, setTakes] = useState<SceneTake[] | null>(null);
   const [takesLoading, setTakesLoading] = useState(false);
@@ -514,7 +568,16 @@ function RegenActions({
     if (!showTakes && takes === null) void fetchTakes();
   }, [showTakes, takes, fetchTakes]);
 
-  const triggerRegen = useCallback(async (kind: "keyframe" | "clip") => {
+  const openRegen = useCallback((kind: SceneArtefactKind) => {
+    const gate = sceneGenerationGate(song, scene, kind);
+    if (!gate.ok) {
+      setBlockedReason(gate.reason);
+      return;
+    }
+    setConfirm(kind);
+  }, [scene, song]);
+
+  const triggerRegen = useCallback(async (kind: SceneArtefactKind) => {
     try {
       await regenerateScene(slug, sceneIndex, kind);
     } catch (e) {
@@ -536,32 +599,14 @@ function RegenActions({
   return (
     <>
       <div className="actions">
-        <button onClick={() => setConfirm("keyframe")} title="regenerate keyframe">
+        <button onClick={() => openRegen("keyframe")} title="regenerate keyframe">
           ⟳ keyframe
         </button>
-        <button onClick={() => setConfirm("clip")} title="regenerate clip">
+        <button onClick={() => openRegen("clip")} title="regenerate clip">
           ⟳ clip
         </button>
         <button onClick={onOpen} title="show takes for this scene">
           {showTakes ? "▾ takes" : "▸ takes"}
-        </button>
-        <button
-          onClick={async () => {
-            try {
-              // Re-read the scene from the backend to pull in any CLI-produced
-              // takes or out-of-band status changes.
-              const updated = await fetch(
-                `/api/songs/${encodeURIComponent(slug)}/scenes/${sceneIndex}`,
-              ).then(r => r.json());
-              onPatched(updated);
-              if (showTakes) await fetchTakes();
-            } catch (e) {
-              alert(`Refresh failed: ${String(e)}`);
-            }
-          }}
-          title="refresh this scene's status and takes from the backend"
-        >
-          ↻ refresh
         </button>
       </div>
 
@@ -606,12 +651,24 @@ function RegenActions({
           </div>
         </div>
       ) : null}
+
+      {blockedReason ? (
+        <div className="dialog-backdrop" role="dialog" aria-modal="true">
+          <div className="dialog">
+            <h2>Generation not ready</h2>
+            <p>{blockedReason}</p>
+            <div className="actions">
+              <button className="primary" onClick={() => setBlockedReason(null)}>OK</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
 
 export default function Storyboard({
-  song, cameraIntents, playingSceneIdx, onSeekToScene, onPatch, activeRegens,
+  song, cameraIntents, playingSceneIdx, onSeekToScene, onSeekToTime, onPatch, activeRegens,
 }: Props) {
   // Collect refs to scene rows so the parent can scroll the current scene
   // into view when the preview advances it.
@@ -693,6 +750,7 @@ export default function Storyboard({
   }, [playingSceneIdx]);
 
   const emptyActive = useRef<Set<ActiveArtefacts>>(new Set());
+  const seekToTime = onSeekToTime ?? (() => {});
 
   return (
     <div className="storyboard" aria-label="Scene list" ref={containerRef}>
@@ -700,10 +758,12 @@ export default function Storyboard({
         <SceneRow
           key={scene.index}
           slug={song.slug}
+          song={song}
           scene={scene}
           cameraIntents={cameraIntents}
           current={scene.index === playingSceneIdx}
           onClick={() => onSeekToScene(scene.index)}
+          onSeekToTime={seekToTime}
           onPatch={updated => onPatch(scene.index, updated)}
           rowRef={el => {
             if (el) rowRefs.current.set(scene.index, el);
