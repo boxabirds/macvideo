@@ -8,7 +8,7 @@ test("quality-mode change opens a cosmetic confirm + applies on OK", async ({ pa
   await page.goto(`/songs/${SONG_SLUG}`);
   await page.locator(".preview audio").waitFor({ state: "attached" });
 
-  const modeSelect = page.locator(".topbar select").nth(2);
+  const modeSelect = page.locator(".topbar select").first();
   await modeSelect.selectOption("final");
   await expect(page.getByRole("dialog")).toBeVisible();
   // The cosmetic branch copy.

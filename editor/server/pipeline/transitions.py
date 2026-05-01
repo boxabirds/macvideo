@@ -73,8 +73,9 @@ class FilterChangeTransition:
 
     def kind(self) -> Literal["fresh-setup", "destructive", "noop"]:
         """Classify the type of transition."""
-        # noop: filter is already the target value.
-        if self.new_filter == self.current_filter:
+        # noop: visual language is already the target value.
+        target_abstraction = self.new_abstraction if self.new_abstraction is not None else self.current_abstraction
+        if self.new_filter == self.current_filter and target_abstraction == self.current_abstraction:
             return "noop"
 
         # fresh-setup: filter is None, world_brief is None, no scenes yet.

@@ -695,6 +695,77 @@ describe("PipelinePanel", () => {
     expect(screen.getByText(/Concrete, recognisable scenes/i)).toBeInTheDocument();
   });
 
+  it("blocked world visual-language setup opens picker instead of tooltip", async () => {
+    const song = makeSong({
+      filter: null,
+      abstraction: null,
+      world_brief: null,
+      scenes: [makeScene()],
+      workflow: backendWorkflow({
+        world_brief: {
+          state: "blocked",
+          done: false,
+          available: false,
+          can_start: false,
+          blocked_reason: "Choose a filter and abstraction first.",
+        },
+      }),
+    });
+    render(<PipelinePanel song={song} status={status({
+      transcription: "done", world_brief: "empty", storyboard: "empty",
+      keyframes_done: 0, keyframes_total: 1,
+    })} />);
+
+    await userEvent.click(screen.getByText(/world description/).closest("button")!);
+
+    expect(screen.getByRole("heading", { name: /Choose the visual language/i })).toBeInTheDocument();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("visual-language setup patches both values and does not separately POST the world stage", async () => {
+    const updated = makeSong({ filter: "cyanotype", abstraction: 0, world_brief: null, scenes: [makeScene()] });
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => updated,
+    } as Response);
+    globalThis.fetch = fetchSpy;
+    const onSongUpdate = vi.fn();
+
+    render(<PipelinePanel
+      song={makeSong({ filter: null, abstraction: null, world_brief: null, scenes: [makeScene()] })}
+      status={status({
+        transcription: "done", world_brief: "empty", storyboard: "empty",
+        keyframes_done: 0, keyframes_total: 1,
+      })}
+      onSongUpdate={onSongUpdate}
+    />);
+
+    await userEvent.click(screen.getByText(/world description/).closest("button")!);
+    await userEvent.selectOptions(screen.getAllByRole("combobox")[0] as HTMLSelectElement, "cyanotype");
+    await userEvent.click(screen.getByRole("button", { name: /Confirm and run/i }));
+
+    await new Promise(r => setTimeout(r, 10));
+    const calls = fetchSpy.mock.calls.map(([url, init]) => ({ url: String(url), init: init as RequestInit | undefined }));
+    const patchCalls = calls.filter(call => call.url === "/api/songs/tiny");
+    expect(patchCalls).toHaveLength(1);
+    expect(JSON.parse(String(patchCalls[0]!.init?.body))).toEqual({ filter: "cyanotype", abstraction: 0 });
+    expect(calls.some(call => call.url.includes("/stages/world-brief"))).toBe(false);
+    expect(onSongUpdate).toHaveBeenCalledWith(updated);
+  });
+
+  it("existing world exposes confirmed visual-language change from the world dialog", async () => {
+    render(<PipelinePanel song={makeSong()} status={status()} />);
+
+    await userEvent.click(screen.getByText(/world description/).closest("button")!);
+    await userEvent.click(screen.getByRole("button", { name: /Change visual language/i }));
+
+    expect(screen.getByRole("heading", { name: /Change the visual language/i })).toBeInTheDocument();
+    expect(screen.getByText(/regenerates the world description, storyboard, scene prompts, and keyframes/i))
+      .toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Apply and regenerate/i })).toBeDisabled();
+  });
+
   it("Story 29: renders blocked reason from backend workflow state", async () => {
     const song = makeSong({
       workflow: backendWorkflow({

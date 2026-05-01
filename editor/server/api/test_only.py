@@ -122,6 +122,8 @@ def set_env(body: EnvOverrideBody):
 
 class WorkflowFixtureBody(BaseModel):
     slug: str = "workflow-e2e"
+    filter: str | None = "charcoal"
+    abstraction: int | None = 0
     world_brief: str | None = "world"
     sequence_arc: str | None = "arc"
     include_prompts: bool = True
@@ -159,10 +161,11 @@ def create_workflow_fixture(body: WorkflowFixtureBody):
             INSERT INTO songs (
                 slug, audio_path, duration_s, size_bytes, filter, abstraction,
                 quality_mode, world_brief, sequence_arc, created_at, updated_at
-            ) VALUES (?, ?, 2, ?, 'charcoal', 0, 'draft', ?, ?, ?, ?)
+            ) VALUES (?, ?, 2, ?, ?, ?, 'draft', ?, ?, ?, ?)
             """,
             (
                 body.slug, str(wav_path), wav_path.stat().st_size,
+                body.filter, body.abstraction,
                 body.world_brief, body.sequence_arc, now, now,
             ),
         )

@@ -1,37 +1,44 @@
 import { test, expect } from "@playwright/test";
 
-// Story 16 e2e — fresh-song modal renders against the real fresh-song-nl
-// fixture (no filter, no abstraction, no world brief, no scenes), and the
-// non-fresh tiny-song fixture still gets the destructive modal.
+test.describe("World visual-language modal", () => {
+  test("untranscribed fresh song does not expose visual-language setup", async ({ page }) => {
+    await page.goto("/songs/fresh-song-nl");
+    const world = page.locator('[data-stage="world_brief"]');
+    await world.getByRole("button").click();
 
-test.describe("Fresh-song setup modal", () => {
-  test.beforeEach(async ({ request }) => {
-    await request.post("http://localhost:8000/api/test-only/reset-song", {
-      data: { slug: "fresh-song-nl" },
+    await expect(page.getByRole("heading", { name: /choose the visual language/i })).toHaveCount(0);
+    await expect(page.getByRole("tooltip")).toContainText(/transcription/i);
+  });
+
+  test("transcribed song with missing visual language opens combined picker", async ({ page, request }) => {
+    const slug = "visual-language-modal";
+    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+      data: {
+        slug,
+        filter: null,
+        abstraction: null,
+        world_brief: null,
+        sequence_arc: null,
+        include_prompts: false,
+        include_takes: false,
+        include_failed_runs: false,
+      },
     });
+
+    await page.goto(`/songs/${slug}`);
+    await page.locator('[data-stage="world_brief"] button').click();
+
+    await expect(page.getByRole("heading", { name: /choose the visual language/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /oil impasto.*Thick palette-knife paint/i }))
+      .toBeVisible();
+    await expect(page.getByRole("button", { name: /confirm and run/i })).toBeVisible();
   });
 
-  test("fresh-song filter pick renders 'Set filter' setup modal", async ({ page }) => {
-    await page.goto("/songs/fresh-song-nl");
-    await page.locator(".topbar select").first().waitFor({ state: "attached" });
-    await page.locator(".topbar select").first().selectOption({ label: "cyanotype" });
-    await expect(page.getByRole("heading", { name: /set filter/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /set filter/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /apply change/i })).toHaveCount(0);
-  });
-
-  test("fresh-song abstraction pick renders 'Confirm abstraction change' modal", async ({ page }) => {
-    await page.goto("/songs/fresh-song-nl");
-    await page.locator(".topbar select").nth(1).waitFor({ state: "attached" });
-    await page.locator(".topbar select").nth(1).selectOption({ value: "75" });
-    await expect(page.getByRole("heading", { name: /confirm abstraction change/i })).toBeVisible();
-  });
-
-  test("non-fresh control: tiny-song filter pick still shows destructive 'Confirm filter change' modal", async ({ page }) => {
+  test("top bar has no separate abstraction modal", async ({ page }) => {
     await page.goto("/songs/tiny-song");
     await page.locator(".preview audio").waitFor({ state: "attached" });
-    await page.locator(".topbar select").first().selectOption({ label: "cyanotype" });
-    await expect(page.getByRole("heading", { name: /confirm filter change/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /apply change/i })).toBeVisible();
+
+    await expect(page.locator(".topbar select")).toHaveCount(1);
+    await expect(page.getByRole("heading", { name: /confirm abstraction change/i })).toHaveCount(0);
   });
 });

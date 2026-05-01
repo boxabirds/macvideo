@@ -89,6 +89,31 @@ def test_visual_language_patch_does_not_preflight_downstream_keyframes(
     assert patch_res.json()["filter"] == "cyanotype"
 
 
+def test_combined_visual_language_patch_applies_abstraction_when_filter_is_unchanged(
+    client_for, tmp_env,
+):
+    song_id = _insert_song(
+        tmp_env["db"],
+        "same-filter-new-abstraction",
+        filter="charcoal",
+        abstraction=25,
+        world_brief="world",
+        sequence_arc="arc",
+    )
+    _insert_scene(tmp_env["db"], song_id, scene_index=0, has_clip=False)
+
+    patch_res = client_for.patch(
+        "/api/songs/same-filter-new-abstraction",
+        json={"filter": "charcoal", "abstraction": 75},
+    )
+
+    assert patch_res.status_code == 200, patch_res.text
+    body = patch_res.json()
+    assert body["filter"] == "charcoal"
+    assert body["abstraction"] == 75
+    assert body["world_brief"] is None
+
+
 def test_apply_refuses_in_flight_chain(client_for, tmp_env):
     song_id = _insert_song(tmp_env["db"], "blocked-filter", filter="oil impasto")
     _insert_regen_run(tmp_env["db"], song_id, scope="stage_world_brief", status="running")

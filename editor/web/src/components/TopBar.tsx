@@ -1,12 +1,8 @@
-// Top bar: song identity + filter / abstraction / quality-mode controls
-// (stories 4 and 8). Filter changes use FilterChangeModal branched on kind.
-// Abstraction + quality_mode changes use inline confirmation logic.
-import { useCallback, useEffect, useState } from "react";
+// Top bar: song identity + current visual language + quality-mode control.
+// Visual-language changes belong to the world stage, not independent controls.
+import { useCallback, useState } from "react";
 import type { QualityMode, SongDetail } from "../types";
-import { patchSong, previewChange } from "../api";
-import FilterChangeModal from "./FilterChangeModal";
-import { useFilterChange } from "../hooks/useFilterChange";
-import { ABSTRACTION_OPTIONS, FILTER_OPTIONS } from "../lib/filterOptions";
+import { patchSong } from "../api";
 
 type Props = {
   song: SongDetail;
@@ -15,46 +11,7 @@ type Props = {
 };
 
 export default function TopBar({ song, onSongUpdate, onBack }: Props) {
-  const [pendingFilter, setPendingFilter] = useState<string | null>(null);
-  const [pendingAbstraction, setPendingAbstraction] = useState<null | { newValue: number }>(null);
   const [pendingQualityMode, setPendingQualityMode] = useState<null | { newValue: QualityMode }>(null);
-
-  const filterChange = useFilterChange(song, pendingFilter);
-
-  // Noop changes require no confirmation—dismiss immediately.
-  useEffect(() => {
-    if (filterChange.kind === "noop") {
-      setPendingFilter(null);
-    }
-  }, [filterChange.kind]);
-
-  const confirmFilter = useCallback(async () => {
-    if (!pendingFilter) return;
-    try {
-      const updated = await filterChange.apply();
-      onSongUpdate(updated);
-      setPendingFilter(null);
-    } catch (e) {
-      alert(`Failed to update filter: ${String(e)}`);
-      setPendingFilter(null);
-    }
-  }, [pendingFilter, filterChange, onSongUpdate]);
-
-  const cancelFilter = useCallback(() => setPendingFilter(null), []);
-
-  const confirmAbstraction = useCallback(async () => {
-    if (!pendingAbstraction) return;
-    try {
-      const updated = await patchSong(song.slug, { abstraction: pendingAbstraction.newValue });
-      onSongUpdate(updated);
-      setPendingAbstraction(null);
-    } catch (e) {
-      alert(`Failed to update abstraction: ${String(e)}`);
-      setPendingAbstraction(null);
-    }
-  }, [pendingAbstraction, song.slug, onSongUpdate]);
-
-  const cancelAbstraction = useCallback(() => setPendingAbstraction(null), []);
 
   const confirmQualityMode = useCallback(async () => {
     if (!pendingQualityMode) return;
@@ -72,6 +29,9 @@ export default function TopBar({ song, onSongUpdate, onBack }: Props) {
 
   const sceneCount = song.scenes.length;
   const clipCount = song.scenes.filter(s => s.selected_clip_path).length;
+  const visualLanguage = song.filter == null || song.abstraction == null
+    ? "visual language: unset"
+    : `visual language: ${song.filter} · abstraction ${song.abstraction}`;
 
   return (
     <>
@@ -80,26 +40,8 @@ export default function TopBar({ song, onSongUpdate, onBack }: Props) {
           ← songs
         </button>
         <h1>{song.slug}</h1>
-        <span className="pill">
-          filter:{" "}
-          <select
-            value={song.filter ?? ""}
-            onChange={e => setPendingFilter(e.target.value || null)}
-            style={{ background: "transparent", color: "inherit", border: "none", font: "inherit" }}
-          >
-            <option value="">(unset)</option>
-            {FILTER_OPTIONS.map(f => <option key={f.name} value={f.name}>{f.name}</option>)}
-          </select>
-        </span>
-        <span className="pill">
-          abstraction:{" "}
-          <select
-            value={song.abstraction ?? 0}
-            onChange={e => setPendingAbstraction({ newValue: Number(e.target.value) })}
-            style={{ background: "transparent", color: "inherit", border: "none", font: "inherit" }}
-          >
-            {ABSTRACTION_OPTIONS.map(v => <option key={v.value} value={v.value}>{v.value}</option>)}
-          </select>
+        <span className="pill" title="Change this from the world description stage">
+          {visualLanguage}
         </span>
         <span className="pill">
           mode:{" "}
@@ -117,30 +59,6 @@ export default function TopBar({ song, onSongUpdate, onBack }: Props) {
         </span>
       </div>
 
-      {pendingFilter ? (
-        <FilterChangeModal
-          song={song}
-          kind={filterChange.kind}
-          newFilter={pendingFilter}
-          preview={filterChange.preview}
-          previewError={filterChange.previewError}
-          inFlight={filterChange.inFlight}
-          onConfirm={confirmFilter}
-          onCancel={cancelFilter}
-        />
-      ) : null}
-
-      {pendingAbstraction ? (
-        <ConfirmationModalAbstraction
-          song={song}
-          newValue={pendingAbstraction.newValue}
-          sceneCount={sceneCount}
-          clipCount={clipCount}
-          onConfirm={confirmAbstraction}
-          onCancel={cancelAbstraction}
-        />
-      ) : null}
-
       {pendingQualityMode ? (
         <ConfirmationModalQualityMode
           clipCount={clipCount}
@@ -149,48 +67,6 @@ export default function TopBar({ song, onSongUpdate, onBack }: Props) {
         />
       ) : null}
     </>
-  );
-}
-
-// Abstraction change confirmation modal (inline, not using FilterChangeModal).
-function ConfirmationModalAbstraction({
-  song, newValue, sceneCount, clipCount, onConfirm, onCancel,
-}: {
-  song: SongDetail;
-  newValue: number;
-  sceneCount: number;
-  clipCount: number;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  const currentAbstraction = song.abstraction ?? "(unset)";
-
-  return (
-    <div className="dialog-backdrop" role="dialog" aria-modal="true">
-      <div className="dialog">
-        <h2>Confirm abstraction change</h2>
-        <div className="body">
-          <p>Changing the abstraction from <b>{currentAbstraction}</b> to <b>{newValue}</b>.</p>
-          <dl>
-            <dt>Regenerate</dt>
-            <dd>World description, storyboard, {sceneCount} image prompts, {sceneCount} keyframes</dd>
-            <dt>Estimated cost</dt>
-            <dd>computing estimate…</dd>
-            <dt>Estimated time</dt>
-            <dd></dd>
-            <dt>Clip takes</dt>
-            <dd>{clipCount} existing clips will be marked stale but preserved as takes</dd>
-          </dl>
-          <p style={{ color: "var(--text-dim)", fontSize: 12 }}>
-            Note: clip re-rendering is NOT automatic — trigger it per scene or from the final-video action.
-          </p>
-        </div>
-        <div className="actions">
-          <button onClick={onCancel}>Cancel</button>
-          <button className="primary" onClick={onConfirm}>Apply change</button>
-        </div>
-      </div>
-    </div>
   );
 }
 

@@ -148,7 +148,7 @@ export default function PipelinePanel({
 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filterPicker, setFilterPicker] = useState<null | { pendingStageName: string; isRedo: boolean }>(null);
+  const [filterPicker, setFilterPicker] = useState<null | { mode: "setup" | "change" }>(null);
   const [worldBriefModal, setWorldBriefModal] = useState(false);
   const [pendingRegen, setPendingRegen] = useState<null | { scope: StageScope; label: string; stageName: string }>(null);
   const [tooltipKey, setTooltipKey] = useState<StageKey | null>(null);
@@ -216,9 +216,20 @@ export default function PipelinePanel({
   });
 
   const onSegmentClick = useCallback((stage: StageDef) => {
-    const segStatus = workflow[stage.key].status;
+    const stageState = workflow[stage.key];
+    const segStatus = stageState.status;
+    const visualLanguageMissing = stage.key === "world_brief"
+      && (song.filter == null || song.abstraction == null);
+    const blockedForVisualLanguage = visualLanguageMissing
+      && stageState.blockedReason === "Choose a filter and abstraction first.";
 
     if (segStatus === "running") return;
+
+    if ((segStatus === "blocked" && blockedForVisualLanguage)
+        || (segStatus === "pending" && visualLanguageMissing)) {
+      setFilterPicker({ mode: "setup" });
+      return;
+    }
 
     if (segStatus === "blocked") {
       setTooltipKey(prev => (prev === stage.key ? null : stage.key));
@@ -235,12 +246,6 @@ export default function PipelinePanel({
     }
 
     if (segStatus === "pending") {
-      // World-brief on first run still needs filter/abstraction picked.
-      if (stage.stageName === "world-brief"
-          && (song.filter == null || song.abstraction == null)) {
-        setFilterPicker({ pendingStageName: stage.stageName, isRedo: false });
-        return;
-      }
       if (stage.key === "final_video") {
         setRenderConfirm(true);
         return;
@@ -432,22 +437,17 @@ export default function PipelinePanel({
       {filterPicker ? (
         <FilterAbstractionPicker
           song={song}
+          mode={filterPicker.mode}
           onCancel={() => setFilterPicker(null)}
           onConfirmed={async (filter, abstraction) => {
             try {
-              await fetch(
-                `/api/songs/${encodeURIComponent(song.slug)}`,
-                {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ filter, abstraction }),
-                },
-              );
-            } catch { /* non-fatal */ }
-            const pendingStage = filterPicker.pendingStageName;
-            const pendingRedo = filterPicker.isRedo;
-            setFilterPicker(null);
-            void trigger(pendingStage, pendingRedo);
+              setError(null);
+              const updated = await patchSong(song.slug, { filter, abstraction });
+              onSongUpdate?.(updated);
+              setFilterPicker(null);
+            } catch (e) {
+              setError(String(e));
+            }
           }}
         />
       ) : null}
@@ -477,6 +477,10 @@ export default function PipelinePanel({
           song={song}
           onClose={() => setWorldBriefModal(false)}
           onSaved={s => onSongUpdate?.(s)}
+          onChangeVisualLanguage={() => {
+            setWorldBriefModal(false);
+            setFilterPicker({ mode: "change" });
+          }}
           onRegenConfirmed={async () => {
             setWorldBriefModal(false);
             await trigger("world-brief", true);
@@ -607,11 +611,12 @@ function RegenConfirmationModal({
 }
 
 function WorldBriefModal({
-  song, onClose, onSaved, onRegenConfirmed,
+  song, onClose, onSaved, onChangeVisualLanguage, onRegenConfirmed,
 }: {
   song: SongDetail;
   onClose: () => void;
   onSaved: (s: SongDetail) => void;
+  onChangeVisualLanguage: () => void;
   onRegenConfirmed: () => Promise<void>;
 }) {
   const [text, setText] = useState(song.world_brief ?? "");
@@ -654,6 +659,9 @@ function WorldBriefModal({
           <button onClick={onSave} disabled={saving || text === (song.world_brief ?? "")}>
             {saving ? "Saving…" : "Save edit"}
           </button>
+          <button onClick={onChangeVisualLanguage}>
+            Change visual language
+          </button>
           <button
             className="primary danger"
             onClick={() => setConfirmRegen(true)}
@@ -690,23 +698,35 @@ function WorldBriefModal({
 }
 
 function FilterAbstractionPicker({
-  song, onCancel, onConfirmed,
+  song, mode, onCancel, onConfirmed,
 }: {
   song: SongDetail;
+  mode: "setup" | "change";
   onCancel: () => void;
-  onConfirmed: (filter: string, abstraction: number) => void;
+  onConfirmed: (filter: string, abstraction: number) => Promise<void> | void;
 }) {
   const [filter, setFilter] = useState(song.filter ?? FILTER_OPTIONS[0]!.name);
   const [abstraction, setAbstraction] = useState(song.abstraction ?? 0);
+  const [saving, setSaving] = useState(false);
   const selectedAbstraction = describeAbstraction(abstraction);
+  const isChange = mode === "change";
+  const unchanged = filter === song.filter && abstraction === song.abstraction;
+  const submit = useCallback(async () => {
+    setSaving(true);
+    try {
+      await onConfirmed(filter, abstraction);
+    } finally {
+      setSaving(false);
+    }
+  }, [filter, abstraction, onConfirmed]);
   return (
     <div className="dialog-backdrop" role="dialog" aria-modal="true">
       <div className="dialog">
-        <h2>Choose the visual language</h2>
+        <h2>{isChange ? "Change the visual language" : "Choose the visual language"}</h2>
         <p>
-          Pick the material style for the whole video and how literal the
-          generated imagery should be. These choices shape the world
-          description, storyboard, scene prompts, and keyframes.
+          {isChange
+            ? "Changing visual language regenerates the world description, storyboard, scene prompts, and keyframes. Existing clip takes are preserved but may be marked stale."
+            : "Pick the material style for the whole video and how literal the generated imagery should be. These choices shape the world description, storyboard, scene prompts, and keyframes."}
         </p>
         <div className="setup-picker">
           <label>
@@ -750,9 +770,9 @@ function FilterAbstractionPicker({
           ) : null}
         </div>
         <div className="actions">
-          <button onClick={onCancel}>Cancel</button>
-          <button className="primary" onClick={() => onConfirmed(filter, abstraction)}>
-            Confirm and run
+          <button onClick={onCancel} disabled={saving}>Cancel</button>
+          <button className="primary" onClick={submit} disabled={saving || (isChange && unchanged)}>
+            {saving ? "Saving…" : isChange ? "Apply and regenerate" : "Confirm and run"}
           </button>
         </div>
       </div>
