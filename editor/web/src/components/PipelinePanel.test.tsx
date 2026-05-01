@@ -193,11 +193,19 @@ describe("PipelinePanel", () => {
   });
 
   it("transcribe row shows failed banner + Try again when latest transcribe run failed", () => {
-    render(
+    const { rerender } = render(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({ id: 7, status: "running" })]}
+      />,
+    );
+    rerender(
       <PipelinePanel
         song={makeSong()}
         status={status({ transcription: "empty" })}
         regenRuns={[transcribeRun({
+          id: 7,
           status: "failed",
           error: "expected music/no-mans-land.txt to exist",
           ended_at: 100,
@@ -216,11 +224,18 @@ describe("PipelinePanel", () => {
     } as Response);
     globalThis.fetch = fetchSpy;
 
-    render(
+    const { rerender } = render(
       <PipelinePanel
         song={makeSong()}
         status={status({ transcription: "empty" })}
-        regenRuns={[transcribeRun({ status: "failed", error: "boom", ended_at: 1 })]}
+        regenRuns={[transcribeRun({ id: 7, status: "running" })]}
+      />,
+    );
+    rerender(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({ id: 7, status: "failed", error: "boom", ended_at: 1 })]}
       />,
     );
     await userEvent.click(screen.getByRole("button", { name: /Try again/i }));
@@ -238,13 +253,18 @@ describe("PipelinePanel", () => {
     } as Response);
     globalThis.fetch = fetchSpy;
 
-    render(
+    const { rerender } = render(
       <PipelinePanel
         song={makeSong()}
         status={status({ transcription: "empty" })}
-        regenRuns={[transcribeRun({
-          id: 7, status: "failed", error: "preflight failed", ended_at: 1,
-        })]}
+        regenRuns={[transcribeRun({ id: 7, status: "running" })]}
+      />,
+    );
+    rerender(
+      <PipelinePanel
+        song={makeSong()}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({ id: 7, status: "failed", error: "preflight failed", ended_at: 1 })]}
       />,
     );
     expect(screen.getByRole("alert")).toBeInTheDocument();
@@ -589,11 +609,19 @@ describe("PipelinePanel", () => {
       ok: true, status: 200, json: async () => ({ run_id: 7, status: "pending" }),
     } as Response);
     globalThis.fetch = fetchSpy;
-    render(
+    const { rerender } = render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({ id: 7, scope: "stage_audio_transcribe", status: "running" })]}
+      />,
+    );
+    rerender(
       <PipelinePanel
         song={makeSong({ scenes: [] })}
         status={status({ transcription: "empty" })}
         regenRuns={[transcribeRun({
+          id: 7,
           scope: "stage_audio_transcribe", status: "failed",
           error: "demucs blew up", ended_at: 1,
         })]}
@@ -674,6 +702,53 @@ describe("PipelinePanel", () => {
       .filter(url => url.includes("/stages/world-brief"))
       .at(-1);
     expect(retryCall).toContain("redo=true");
+  });
+
+  it("does not show a previous world-generation failure as the current page result", () => {
+    const previousError = "Generation provider returned no world description.";
+    const song = makeSong({
+      world_brief: null,
+      sequence_arc: null,
+      scenes: [makeScene()],
+      workflow: backendWorkflow({
+        world_brief: {
+          state: "retryable",
+          done: false,
+          can_retry: true,
+          failed_reason: previousError,
+          failed_run: {
+            id: 44,
+            scope: "stage_world_brief",
+            status: "failed",
+            error: previousError,
+            progress_pct: null,
+            phase: null,
+            started_at: 1,
+            ended_at: 2,
+            created_at: 2,
+          },
+        },
+        storyboard: {
+          state: "blocked",
+          done: false,
+          available: false,
+          can_start: false,
+          blocked_reason: "Complete world description first.",
+        },
+      }),
+    });
+    const { container } = render(<PipelinePanel
+      song={song}
+      status={status({
+        transcription: "done", world_brief: "empty", storyboard: "empty",
+        keyframes_done: 0, keyframes_total: 1,
+      })}
+    />);
+
+    const world = container.querySelector('[data-stage="world_brief"]')!;
+    expect(world).toHaveAttribute("data-status", "pending");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText(previousError)).not.toBeInTheDocument();
   });
 
   it("setup picker uses approved filter descriptions and abstraction defaults to 0", async () => {

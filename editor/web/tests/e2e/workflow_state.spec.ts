@@ -6,7 +6,7 @@ async function gotoEditor(page: import("@playwright/test").Page, slug: string) {
 }
 
 test.describe("Centralized workflow state", () => {
-  test("blocked, running, retryable, and stale actions render from backend state", async ({ page, request }) => {
+  test("blocked, running, stale, and historical failed actions render from backend state", async ({ page, request }) => {
     await gotoEditor(page, "fresh-song-nl");
     const blockedKeyframes = page.locator('[data-stage="keyframes"]');
     await expect(blockedKeyframes).toHaveAttribute("data-status", "blocked");
@@ -25,9 +25,9 @@ test.describe("Centralized workflow state", () => {
     await expect(transcription.locator(".stage-running-detail")).not.toContainText("Aligning lyrics");
 
     const world = page.locator('[data-stage="world_brief"]');
-    await expect(world).toHaveAttribute("data-status", "failed");
-    await expect(world.locator(".stage-indicator-glyph")).toHaveText("⟳");
-    await expect(page.getByRole("alert").filter({ hasText: /world generation failed/i })).toBeVisible();
+    await expect(world).toHaveAttribute("data-status", "done");
+    await expect(world.locator(".stage-indicator-glyph")).toHaveText("✓");
+    await expect(page.getByRole("alert").filter({ hasText: /world generation failed/i })).toHaveCount(0);
 
     const keyframes = page.locator('[data-stage="keyframes"]');
     await expect(keyframes).toHaveAttribute("data-status", "pending");

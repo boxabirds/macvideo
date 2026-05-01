@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RegenRunSummary } from "../api";
-import type { Scene, SongDetail, StageStatus } from "../types";
+import type { BackendWorkflowStage, Scene, SongDetail, StageStatus, WorkflowActionState, WorkflowRunRef } from "../types";
 import { deriveSongWorkflowState } from "./songWorkflowState";
 
 function run(overrides: Partial<RegenRunSummary>): RegenRunSummary {
@@ -75,6 +75,50 @@ function status(partial: Partial<StageStatus> = {}): StageStatus {
     clips_total: 1,
     final: "empty",
     ...partial,
+  };
+}
+
+function backendRun(overrides: Partial<WorkflowRunRef> = {}): WorkflowRunRef {
+  return {
+    id: 41,
+    scope: "stage_world_brief",
+    status: "failed",
+    error: "Generation provider returned no world description.",
+    progress_pct: null,
+    phase: null,
+    started_at: 1,
+    ended_at: 2,
+    created_at: 2,
+    ...overrides,
+  };
+}
+
+function backendStage(
+  key: string,
+  label: string,
+  state: WorkflowActionState,
+  overrides: Partial<BackendWorkflowStage> = {},
+): BackendWorkflowStage {
+  return {
+    key,
+    label,
+    stage_name: key.replace("_", "-"),
+    scope: key === "final_video" ? "final_video" : `stage_${key}`,
+    history_model: key === "keyframes" ? "take" : "replace",
+    state,
+    done: state === "done",
+    available: !["blocked", "running"].includes(state),
+    can_start: ["available", "done", "stale"].includes(state),
+    can_retry: state === "retryable",
+    blocked_reason: state === "blocked" ? "Blocked by backend" : null,
+    failed_reason: null,
+    stale_reasons: [],
+    invalidates: [],
+    summary: "",
+    active_run: null,
+    failed_run: null,
+    progress: null,
+    ...overrides,
   };
 }
 
@@ -167,5 +211,47 @@ describe("deriveSongWorkflowState", () => {
     expect(state.world_brief.status).toBe("blocked");
     expect(state.world_brief.blockedReason).toBe("Choose a filter and abstraction first.");
     expect(state.keyframes.blockedReason).toBe("Please generate the world and storyboard first.");
+  });
+
+  it("does not expose historical backend failed runs that were not observed in the current UI session", () => {
+    const state = deriveSongWorkflowState({
+      song: song({
+        workflow: {
+          stages: {
+            world_brief: backendStage("world_brief", "world description", "retryable", {
+              done: false,
+              failed_run: backendRun(),
+            }),
+          },
+        },
+      }),
+      status: status({ world_brief: "empty" }),
+      finishedCount: 0,
+      visibleFailedRunIds: new Set(),
+    });
+
+    expect(state.world_brief.status).toBe("pending");
+    expect(state.world_brief.failedRun).toBeUndefined();
+  });
+
+  it("exposes failed backend runs that were started or observed in the current UI session", () => {
+    const state = deriveSongWorkflowState({
+      song: song({
+        workflow: {
+          stages: {
+            world_brief: backendStage("world_brief", "world description", "retryable", {
+              done: false,
+              failed_run: backendRun({ id: 42 }),
+            }),
+          },
+        },
+      }),
+      status: status({ world_brief: "empty" }),
+      finishedCount: 0,
+      visibleFailedRunIds: new Set([42]),
+    });
+
+    expect(state.world_brief.status).toBe("failed");
+    expect(state.world_brief.failedRun?.error).toBe("Generation provider returned no world description.");
   });
 });

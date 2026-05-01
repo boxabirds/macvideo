@@ -146,11 +146,47 @@ export default function PipelinePanel({
   const transcribeRuns = (regenRuns ?? []).filter(
     r => r.scope === "stage_transcribe" || r.scope === "stage_audio_transcribe",
   );
+  const [observedRunIds, setObservedRunIds] = useState<Set<number>>(() => new Set());
+  const addObservedRunId = useCallback((id: number | null | undefined) => {
+    if (id == null) return;
+    setObservedRunIds(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+  useEffect(() => {
+    const ids: number[] = [];
+    for (const run of regenRuns ?? []) {
+      if (run.status === "pending" || run.status === "running") ids.push(run.id);
+    }
+    const stages = song.workflow?.stages;
+    if (stages) {
+      for (const stage of Object.values(stages)) {
+        if (stage.active_run) ids.push(stage.active_run.id);
+      }
+    }
+    if (!ids.length) return;
+    setObservedRunIds(prev => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (!next.has(id)) {
+          next.add(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [regenRuns, song.workflow]);
   const activeTranscribe = transcribeRuns.find(
     r => r.status === "pending" || r.status === "running",
   );
   const latestTranscribe = transcribeRuns.find(
-    r => r.status === "done" || r.status === "failed" || r.status === "cancelled",
+    r => r.status === "done"
+      || (r.status === "failed" && observedRunIds.has(r.id))
+      || r.status === "cancelled",
   );
   const [dismissedFailedId, setDismissedFailedId] = useState<number | null>(null);
   const transcribeFailed =
@@ -190,7 +226,8 @@ export default function PipelinePanel({
     setBusy(stageName);
     setError(null);
     try {
-      await runStage(song.slug, stageName, isRedo);
+      const result = await runStage(song.slug, stageName, isRedo);
+      addObservedRunId(result?.run_id);
     } catch (e) {
       setError(formatApiError(e));
     } finally {
@@ -225,6 +262,7 @@ export default function PipelinePanel({
     regenRuns,
     finishedCount: finished.length,
     dismissedFailedTranscribeId: dismissedFailedId,
+    visibleFailedRunIds: observedRunIds,
   });
 
   const onSegmentClick = useCallback((stage: StageDef) => {
@@ -392,7 +430,9 @@ export default function PipelinePanel({
                       // force=true (a partial run may have written
                       // intermediates we want to overwrite).
                       if (latestTranscribe?.scope === "stage_audio_transcribe") {
-                        void audioTranscribe(song.slug, { force: true });
+                        void audioTranscribe(song.slug, { force: true }).then(result => {
+                          addObservedRunId(result?.run_id);
+                        }).catch(e => setError(formatApiError(e)));
                       } else {
                         void trigger("transcribe", true);
                       }

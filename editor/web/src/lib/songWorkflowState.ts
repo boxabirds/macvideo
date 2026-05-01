@@ -127,10 +127,11 @@ export function deriveSongWorkflowState(args: {
   regenRuns?: RegenRunSummary[];
   finishedCount: number;
   dismissedFailedTranscribeId?: number | null;
+  visibleFailedRunIds?: ReadonlySet<number>;
 }): Record<StageKey, WorkflowStageState> {
-  const { song, status, finishedCount, dismissedFailedTranscribeId = null } = args;
+  const { song, status, finishedCount, dismissedFailedTranscribeId = null, visibleFailedRunIds } = args;
   if (song.workflow?.stages) {
-    return deriveBackendWorkflowState(song, dismissedFailedTranscribeId);
+    return deriveBackendWorkflowState(song, dismissedFailedTranscribeId, visibleFailedRunIds);
   }
   const regenRuns = args.regenRuns ?? [];
   return STAGES.reduce((acc, stage) => {
@@ -140,6 +141,7 @@ export function deriveSongWorkflowState(args: {
     const latestTerm = stageRuns.find(run => run.status === "done" || run.status === "failed" || run.status === "cancelled");
     const failedRun = latestTerm?.status === "failed"
       && !(stage.key === "transcription" && latestTerm.id === dismissedFailedTranscribeId)
+      && shouldShowFailedRun(latestTerm.id, visibleFailedRunIds)
       ? latestTerm
       : undefined;
     const prereqsDone = STAGE_PREREQS[stage.key].every(pk => acc[pk].status === "done");
@@ -169,6 +171,7 @@ export function deriveSongWorkflowState(args: {
 function deriveBackendWorkflowState(
   song: SongDetail,
   dismissedFailedTranscribeId: number | null,
+  visibleFailedRunIds?: ReadonlySet<number>,
 ): Record<StageKey, WorkflowStageState> {
   return STAGES.reduce((acc, stage) => {
     const backend = song.workflow?.stages[stage.key] as BackendWorkflowStage | undefined;
@@ -178,9 +181,14 @@ function deriveBackendWorkflowState(
     const activeRun = backend.active_run ? runRefToSummary(backend.active_run) : undefined;
     const failedRun = backend.failed_run
       && !(stage.key === "transcription" && backend.failed_run.id === dismissedFailedTranscribeId)
+      && shouldShowFailedRun(backend.failed_run.id, visibleFailedRunIds)
       ? runRefToSummary(backend.failed_run)
       : undefined;
-    const actionState = failedRun ? backend.state : backend.state === "retryable" ? "available" : backend.state;
+    const actionState = failedRun
+      ? backend.state
+      : backend.state === "retryable"
+        ? backend.done ? "done" : "available"
+        : backend.state;
     const status = actionStateToSegmentStatus(actionState);
     const doneState: StageDoneState = backend.done
       ? "done"
@@ -208,6 +216,10 @@ function deriveBackendWorkflowState(
     };
     return acc;
   }, {} as Record<StageKey, WorkflowStageState>);
+}
+
+function shouldShowFailedRun(id: number, visibleFailedRunIds?: ReadonlySet<number>): boolean {
+  return visibleFailedRunIds == null || visibleFailedRunIds.has(id);
 }
 
 function actionStateToSegmentStatus(state: WorkflowActionState | "available"): SegmentStatus {
