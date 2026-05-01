@@ -78,3 +78,37 @@ def reset_song(body: ResetSongBody):
                 (sid,),
             )
     return {"ok": True}
+
+
+class EnvOverrideBody(BaseModel):
+    set: dict[str, str | None]
+
+
+_ALLOWED_ENV_KEYS = {
+    "EDITOR_FAKE_GEN_KEYFRAMES",
+    "EDITOR_FAKE_RENDER_CLIPS",
+    "EDITOR_FAKE_WHISPERX_ALIGN",
+    "EDITOR_FAKE_MAKE_SHOTS",
+    "EDITOR_FAKE_DEMUCS",
+    "EDITOR_FAKE_WHISPERX_TRANSCRIBE",
+    "GEMINI_API_KEY",
+}
+
+
+@router.post("/test-only/env")
+def set_env(body: EnvOverrideBody):
+    """Temporarily adjust backend process env for browser tests only."""
+    if not is_enabled():
+        raise HTTPException(status_code=404, detail="not found")
+    disallowed = sorted(set(body.set) - _ALLOWED_ENV_KEYS)
+    if disallowed:
+        raise HTTPException(status_code=422, detail={
+            "reason": "disallowed test env override",
+            "keys": disallowed,
+        })
+    for key, value in body.set.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+    return {"ok": True, "updated": sorted(body.set)}

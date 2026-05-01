@@ -92,18 +92,16 @@ Each `pocs/NN-name/` directory has a `README.md` (what we tried), `scripts/` (co
 - `.env` at repo root with `GEMINI_API_KEY=...`
 - `ffmpeg` on `PATH`
 
-### One-shot render (POC 29)
+### Product runtime boundary
 
-```sh
-# Place the song's .wav and .txt (one lyric line per row) under music/
-cp my-song.wav music/
-cp my-song.txt music/
+The editor is the product runtime. POCs under `pocs/` are reference material
+only; product behavior promoted from a POC must be re-designed into
+product-owned code under `editor/` rather than copied or executed directly.
 
-# Render at 1080p/30fps, stained-glass filter, 25% abstraction
-uv run python pocs/29-full-song/scripts/pipeline.sh my-song stained-glass 25
-```
-
-The pipeline transcribes, plans shots, writes the world brief + storyboard, generates keyframes, renders each clip with LTX-2.3, and concatenates. Outputs land in `pocs/29-full-song/outputs/<slug>/`.
+During the staged refactor, any temporary runtime dependency on POC-era scripts
+or POC-shaped output files must be listed in
+`docs/architecture/temporary-legacy-dependencies.json` with an owner story and
+removal condition. The architecture tests fail for new unlisted references.
 
 ### Storyboard editor
 
@@ -130,6 +128,7 @@ Tests:
 cd editor/web && bun run test       # vitest + jsdom
 cd editor/web && bun run test:e2e   # playwright + real Chromium
 cd .. && uv run pytest editor/server/tests/
+uv run pytest editor/server/tests/test_architecture_boundary.py
 ```
 
 ## Hard lessons baked in

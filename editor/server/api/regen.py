@@ -23,6 +23,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from .. import config as _cfg
+from ..pipeline.preflight import preflight_stage
 from ..pipeline.regen import regenerate_scene_clip, regenerate_scene_keyframe
 from ..regen.events import hub
 from ..regen.queue import clip_queue, keyframe_queue, RegenJob
@@ -99,6 +100,11 @@ async def trigger_take(slug: str, idx: int, body: TakeTriggerBody, conn=Depends(
             status_code=422,
             detail={"reason": "Please generate a keyframe first."},
         )
+
+    stage = "scene-keyframe" if body.artefact_kind == "keyframe" else "scene-clip"
+    preflight = preflight_stage(slug=slug, stage=stage)
+    if not preflight.ok:
+        raise HTTPException(status_code=422, detail=preflight.to_http_detail())
 
     scope = "scene_keyframe" if body.artefact_kind == "keyframe" else "scene_clip"
     quality_mode = row["quality_mode"] if body.artefact_kind == "clip" else None

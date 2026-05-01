@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from .. import config as _cfg
 from ..pipeline.final import render_final
+from ..pipeline.preflight import preflight_stage
 from ..pipeline.stages import run_gen_keyframes_for_stage
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import create_run, get_run
@@ -118,6 +119,10 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
         raise HTTPException(status_code=422,
                             detail={"stage": stage, "reason": deps[stage]["reason"]})
 
+    preflight = preflight_stage(slug=slug, stage=stage)  # type: ignore[arg-type]
+    if not preflight.ok:
+        raise HTTPException(status_code=422, detail=preflight.to_http_detail())
+
     conflict = conn.execute(
         "SELECT id FROM regen_runs WHERE song_id = ? AND scope = ? "
         "AND status IN ('pending', 'running') LIMIT 1",
@@ -219,27 +224,35 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
         if not deps["transcribe"].get("ok_to_start"):
             blocked_at = {"stage": "transcribe", "reason": deps["transcribe"]["reason"]}
         else:
-            run_id = create_run(conn, scope=_STAGE_SCOPES["transcribe"], song_id=song["id"])
-            run = get_run(conn, run_id)
-            assert run is not None
-            async def transcribe_handler(r):  # noqa: ANN001
-                import asyncio
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(
-                    None,
-                    lambda: run_gen_keyframes_for_stage(
-                        song_slug=slug_captured,
-                        song_filter=song_filter,
-                        song_abstraction=song_abstraction,
-                        song_quality_mode=song_quality_mode,
-                        source_run_id=r.id,
-                        stage="transcribe",
-                        redo=False,
-                        script_path=_override_gen_keyframes(),
-                    ),
-                )
-            keyframe_queue.submit(RegenJob(run=run, handler=transcribe_handler))
-            triggered.append({"stage": "transcribe", "run_id": run_id})
+            preflight = preflight_stage(slug=slug, stage="transcribe")
+            if not preflight.ok:
+                blocked_at = {
+                    "stage": "transcribe",
+                    "reason": preflight.first_reason,
+                    "detail": preflight.to_http_detail(),
+                }
+            else:
+                run_id = create_run(conn, scope=_STAGE_SCOPES["transcribe"], song_id=song["id"])
+                run = get_run(conn, run_id)
+                assert run is not None
+                async def transcribe_handler(r):  # noqa: ANN001
+                    import asyncio
+                    loop = asyncio.get_event_loop()
+                    return await loop.run_in_executor(
+                        None,
+                        lambda: run_gen_keyframes_for_stage(
+                            song_slug=slug_captured,
+                            song_filter=song_filter,
+                            song_abstraction=song_abstraction,
+                            song_quality_mode=song_quality_mode,
+                            source_run_id=r.id,
+                            stage="transcribe",
+                            redo=False,
+                            script_path=_override_gen_keyframes(),
+                        ),
+                    )
+                keyframe_queue.submit(RegenJob(run=run, handler=transcribe_handler))
+                triggered.append({"stage": "transcribe", "run_id": run_id})
 
     # Then a single gen_keyframes invocation that covers the remaining four
     # stages. We use stage='keyframes' since that's the farthest stage and
@@ -254,31 +267,39 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
                     "reason": deps["world-brief"]["reason"],
                 }
             else:
-                run_id = create_run(conn, scope=_STAGE_SCOPES["keyframes"], song_id=song["id"])
-                run = get_run(conn, run_id)
-                assert run is not None
-                async def chain_handler(r):  # noqa: ANN001
-                    import asyncio
-                    loop = asyncio.get_event_loop()
-                    return await loop.run_in_executor(
-                        None,
-                        lambda: run_gen_keyframes_for_stage(
-                            song_slug=slug_captured,
-                            song_filter=song_filter,
-                            song_abstraction=song_abstraction,
-                            song_quality_mode=song_quality_mode,
-                            source_run_id=r.id,
-                            stage="keyframes",
-                            redo=False,
-                            script_path=_override_gen_keyframes(),
-                        ),
-                    )
-                keyframe_queue.submit(RegenJob(run=run, handler=chain_handler))
-                # Report each stage as triggered — the single subprocess
-                # covers all four.
-                for s in ("world-brief", "storyboard", "image-prompts", "keyframes"):
-                    if not deps[s]["done"]:  # type: ignore[index]
-                        triggered.append({"stage": s, "run_id": run_id})
+                preflight = preflight_stage(slug=slug, stage="keyframes")
+                if not preflight.ok:
+                    blocked_at = {
+                        "stage": "keyframes",
+                        "reason": preflight.first_reason,
+                        "detail": preflight.to_http_detail(),
+                    }
+                else:
+                    run_id = create_run(conn, scope=_STAGE_SCOPES["keyframes"], song_id=song["id"])
+                    run = get_run(conn, run_id)
+                    assert run is not None
+                    async def chain_handler(r):  # noqa: ANN001
+                        import asyncio
+                        loop = asyncio.get_event_loop()
+                        return await loop.run_in_executor(
+                            None,
+                            lambda: run_gen_keyframes_for_stage(
+                                song_slug=slug_captured,
+                                song_filter=song_filter,
+                                song_abstraction=song_abstraction,
+                                song_quality_mode=song_quality_mode,
+                                source_run_id=r.id,
+                                stage="keyframes",
+                                redo=False,
+                                script_path=_override_gen_keyframes(),
+                            ),
+                        )
+                    keyframe_queue.submit(RegenJob(run=run, handler=chain_handler))
+                    # Report each stage as triggered — the single subprocess
+                    # covers all four.
+                    for s in ("world-brief", "storyboard", "image-prompts", "keyframes"):
+                        if not deps[s]["done"]:  # type: ignore[index]
+                            triggered.append({"stage": s, "run_id": run_id})
 
     return {
         "triggered": triggered,
@@ -306,6 +327,10 @@ async def render_final_route(slug: str, conn=Depends(get_db)):
             "reason": "missing keyframe takes",
             "affected_scenes": [r["scene_index"] for r in missing_kf],
         })
+
+    preflight = preflight_stage(slug=slug, stage="final-video")
+    if not preflight.ok:
+        raise HTTPException(status_code=422, detail=preflight.to_http_detail())
 
     conflict = conn.execute(
         "SELECT id FROM regen_runs WHERE song_id = ? AND scope = 'final_video' "

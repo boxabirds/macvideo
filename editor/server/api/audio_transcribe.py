@@ -27,6 +27,7 @@ from ..pipeline.audio_transcribe import (
     run_audio_transcribe,
 )
 from ..pipeline.paths import resolve_song_paths
+from ..pipeline.preflight import preflight_stage
 from ..pipeline.stages import StageResult
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import (
@@ -96,6 +97,10 @@ async def trigger_audio_transcribe(
             "code": "audio_too_short",
             "detail": f"audio is only {duration:.2f}s; need ≥ {_MIN_AUDIO_DURATION_S}s",
         })
+
+    preflight = preflight_stage(slug=slug, stage="audio-transcribe")
+    if not preflight.ok:
+        raise HTTPException(status_code=422, detail=preflight.to_http_detail())
 
     # Single-flight: refuse if either transcribe scope is already running.
     conflict_id = _conflict_run_id(conn, song["id"])

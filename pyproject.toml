@@ -30,7 +30,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-# No packages to build yet; the pipeline code lives under scripts/ and pocs/.
+# No packages to build yet; product runtime code lives under editor/.
 bypass-selection = true
 
 [tool.hatch.metadata]

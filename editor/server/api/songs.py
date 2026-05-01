@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from .. import config as _cfg
+from ..pipeline.preflight import preflight_stage
 from ..importer import import_all
 from ..pipeline.stages import run_gen_keyframes_for_stage
 from ..pipeline.transitions import ConflictError, FilterChangeTransition, NotFoundError
@@ -288,6 +289,9 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
     # Chain-triggering logic for filter/abstraction changes.
     chain_triggering = "filter" in patch_fields or "abstraction" in patch_fields
     if chain_triggering:
+        preflight = preflight_stage(slug=slug, stage="keyframes")
+        if not preflight.ok:
+            raise HTTPException(status_code=422, detail=preflight.to_http_detail())
         if "filter" in patch_fields:
             new_filter = patch_fields["filter"]
             try:
