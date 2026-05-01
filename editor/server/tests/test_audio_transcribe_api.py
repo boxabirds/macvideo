@@ -200,7 +200,8 @@ def test_post_writes_lyrics_after_run_completes(client_for, fresh_song_with_audi
             return row["cnt"] > 0
 
     assert _wait_until(scenes_exist, timeout=5.0)
-    # Verify the fake script's three segments were inserted.
+    # Verify the fake script's coarse segments were split into lossless lyric
+    # rows by the fake formatter.
     with connection(fresh_song_with_audio["tmp_env"]["db"]) as c:
         rows = c.execute(
             "SELECT scene_index, target_text, start_s, end_s FROM scenes "
@@ -208,10 +209,53 @@ def test_post_writes_lyrics_after_run_completes(client_for, fresh_song_with_audi
             "ORDER BY scene_index",
             (slug,),
         ).fetchall()
+    assert len(rows) == 5
+    assert [row["target_text"] for row in rows] == [
+        "this is a",
+        "fake segment produced",
+        "by the fake",
+        "whisperx script for",
+        "integration tests only",
+    ]
+    assert " ".join(row["target_text"] for row in rows) == (
+        "this is a fake segment produced by the fake whisperx script "
+        "for integration tests only"
+    )
+
+
+def test_post_falls_back_to_segments_when_line_formatter_fails(
+    client_for, fresh_song_with_audio, monkeypatch,
+):
+    slug = fresh_song_with_audio["slug"]
+    monkeypatch.setenv("EDITOR_FAKE_LYRIC_LINE_MODE", "changed")
+    from editor.server.store import connection
+
+    r = client_for.post(f"/api/songs/{slug}/audio-transcribe")
+    assert r.status_code == 200
+
+    def scenes_exist():
+        with connection(fresh_song_with_audio["tmp_env"]["db"]) as c:
+            row = c.execute(
+                "SELECT COUNT(*) as cnt FROM scenes WHERE song_id = "
+                "(SELECT id FROM songs WHERE slug = ?)",
+                (slug,),
+            ).fetchone()
+            return row["cnt"] > 0
+
+    assert _wait_until(scenes_exist, timeout=5.0)
+    with connection(fresh_song_with_audio["tmp_env"]["db"]) as c:
+        rows = c.execute(
+            "SELECT scene_index, target_text FROM scenes "
+            "WHERE song_id = (SELECT id FROM songs WHERE slug = ?) "
+            "ORDER BY scene_index",
+            (slug,),
+        ).fetchall()
     assert len(rows) == 3
-    assert rows[0]["target_text"] == "this is a fake segment"
-    assert rows[1]["target_text"] == "produced by the fake whisperx script"
-    assert rows[2]["target_text"] == "for integration tests only"
+    assert [row["target_text"] for row in rows] == [
+        "this is a fake segment",
+        "produced by the fake whisperx script",
+        "for integration tests only",
+    ]
 
 
 def test_audio_transcribe_persists_phase_and_progress(client_for, fresh_song_with_audio):

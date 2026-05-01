@@ -1,0 +1,274 @@
+{
+  "model": "gemini-2.5-flash",
+  "created_at": 1777656529.636008,
+  "latency_s": 9.34,
+  "valid": true,
+  "validation": {
+    "valid": true,
+    "input_char_count": 1451,
+    "output_char_count": 1451,
+    "line_count": 46
+  },
+  "source": {
+    "whisperx_json": "/Users/julian/expts/macvideo/pocs/lyrics-line-format/no-mans-land.whisperx.json",
+    "metadata": {
+      "method": "whisperx_transcribe",
+      "model": "large-v3",
+      "device": "cpu",
+      "compute_type": "float32",
+      "language": "en",
+      "transcribe_wall_s": 44.99,
+      "segment_count": 10,
+      "approx_word_count": 276
+    },
+    "segment_count": 10,
+    "segments": [
+      {
+        "segment_index": 0,
+        "start": 16.552,
+        "end": 40.531,
+        "text": " I left life on for years."
+      },
+      {
+        "segment_index": 1,
+        "start": 42.337,
+        "end": 70.248,
+        "text": " Warpath into the floor. Jawlock checking something that was never gonna show. Hand opens, hand closes on a screen that doesn't know my name. Neighbors Television."
+      },
+      {
+        "segment_index": 2,
+        "start": 75.833,
+        "end": 88.844,
+        "text": " No man's land where the warning doesn't stop Just the reason that it should"
+      },
+      {
+        "segment_index": 3,
+        "start": 91.713,
+        "end": 108.841,
+        "text": " They built the corridor and lined it with a thousand open doors. Each one a mouth that says, come closer, then swallow what it says."
+      },
+      {
+        "segment_index": 4,
+        "start": 108.841,
+        "end": 125.429,
+        "text": " Ghosting sits below the ribs, a kind of muscle now I smile at strangers on the platform Without knowing what my face is doing, how Got the nothing back so many times I learned to call it poi"
+      },
+      {
+        "segment_index": 5,
+        "start": 125.429,
+        "end": 150.387,
+        "text": " wore the disappointment in until it felt like choice they said the match was in the machinery the love was in the feed that connection was a product and the product met a need so who designed the architecture where every room's for one where you swipe through human eligibles until your thumb goes numb sit with it sit with it don't let me off not yet i"
+      },
+      {
+        "segment_index": 6,
+        "start": 150.387,
+        "end": 159.162,
+        "text": " I don't want to blame the whole arrangement before I Before I can"
+      },
+      {
+        "segment_index": 7,
+        "start": 162.284,
+        "end": 184.559,
+        "text": " I believe the specific lie that warning was enough, that if you stood there long enough, the world would answer up. But the world is buying dinner at a table I can't see, full restaurants and laughter pressing up against the glass of me, and I hate that I still look."
+      },
+      {
+        "segment_index": 8,
+        "start": 186.837,
+        "end": 209.787,
+        "text": " And I hate that I still count the chairs And I hate that every couple on the street is a subtraction And I know that isn't fair"
+      },
+      {
+        "segment_index": 9,
+        "start": 212.42,
+        "end": 225.245,
+        "text": " No man's land where the warning doesn't start."
+      }
+    ]
+  },
+  "lines": [
+    {
+      "line_index": 0,
+      "text": "I left life on for years."
+    },
+    {
+      "line_index": 1,
+      "text": "Warpath into the floor."
+    },
+    {
+      "line_index": 2,
+      "text": "Jawlock checking something that was never gonna show."
+    },
+    {
+      "line_index": 3,
+      "text": "Hand opens, hand closes"
+    },
+    {
+      "line_index": 4,
+      "text": "on a screen that doesn't know my name."
+    },
+    {
+      "line_index": 5,
+      "text": "Neighbors Television."
+    },
+    {
+      "line_index": 6,
+      "text": "No man's land where the warning doesn't stop"
+    },
+    {
+      "line_index": 7,
+      "text": "Just the reason that it should"
+    },
+    {
+      "line_index": 8,
+      "text": "They built the corridor and lined it"
+    },
+    {
+      "line_index": 9,
+      "text": "with a thousand open doors."
+    },
+    {
+      "line_index": 10,
+      "text": "Each one a mouth that says, come closer,"
+    },
+    {
+      "line_index": 11,
+      "text": "then swallow what it says."
+    },
+    {
+      "line_index": 12,
+      "text": "Ghosting sits below the ribs,"
+    },
+    {
+      "line_index": 13,
+      "text": "a kind of muscle now"
+    },
+    {
+      "line_index": 14,
+      "text": "I smile at strangers on the platform"
+    },
+    {
+      "line_index": 15,
+      "text": "Without knowing what my face is doing, how"
+    },
+    {
+      "line_index": 16,
+      "text": "Got the nothing back so many times"
+    },
+    {
+      "line_index": 17,
+      "text": "I learned to call it poi"
+    },
+    {
+      "line_index": 18,
+      "text": "wore the disappointment in"
+    },
+    {
+      "line_index": 19,
+      "text": "until it felt like choice"
+    },
+    {
+      "line_index": 20,
+      "text": "they said the match was in the machinery"
+    },
+    {
+      "line_index": 21,
+      "text": "the love was in the feed"
+    },
+    {
+      "line_index": 22,
+      "text": "that connection was a product"
+    },
+    {
+      "line_index": 23,
+      "text": "and the product met a need"
+    },
+    {
+      "line_index": 24,
+      "text": "so who designed the architecture"
+    },
+    {
+      "line_index": 25,
+      "text": "where every room's for one"
+    },
+    {
+      "line_index": 26,
+      "text": "where you swipe through human eligibles"
+    },
+    {
+      "line_index": 27,
+      "text": "until your thumb goes numb"
+    },
+    {
+      "line_index": 28,
+      "text": "sit with it sit with it"
+    },
+    {
+      "line_index": 29,
+      "text": "don't let me off not yet i"
+    },
+    {
+      "line_index": 30,
+      "text": "I don't want to blame the whole arrangement"
+    },
+    {
+      "line_index": 31,
+      "text": "before I"
+    },
+    {
+      "line_index": 32,
+      "text": "Before I can I believe the specific lie"
+    },
+    {
+      "line_index": 33,
+      "text": "that warning was enough,"
+    },
+    {
+      "line_index": 34,
+      "text": "that if you stood there long enough,"
+    },
+    {
+      "line_index": 35,
+      "text": "the world would answer up."
+    },
+    {
+      "line_index": 36,
+      "text": "But the world is buying dinner"
+    },
+    {
+      "line_index": 37,
+      "text": "at a table I can't see,"
+    },
+    {
+      "line_index": 38,
+      "text": "full restaurants and laughter"
+    },
+    {
+      "line_index": 39,
+      "text": "pressing up against the glass of me,"
+    },
+    {
+      "line_index": 40,
+      "text": "and I hate that I still look."
+    },
+    {
+      "line_index": 41,
+      "text": "And I hate that I still count the chairs"
+    },
+    {
+      "line_index": 42,
+      "text": "And I hate that every couple on the street"
+    },
+    {
+      "line_index": 43,
+      "text": "is a subtraction"
+    },
+    {
+      "line_index": 44,
+      "text": "And I know that isn't fair"
+    },
+    {
+      "line_index": 45,
+      "text": "No man's land where the warning doesn't start."
+    }
+  ]
+}

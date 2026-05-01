@@ -26,6 +26,7 @@ from ..pipeline.audio_transcribe import (
     PHASE_SEPARATING_VOCALS, PHASE_TRANSCRIBING,
     run_audio_transcribe,
 )
+from ..pipeline.lyric_lines import format_segments_for_scene_drafts
 from ..pipeline.paths import resolve_song_paths
 from ..pipeline.preflight import preflight_stage
 from ..pipeline.stages import StageResult
@@ -193,7 +194,10 @@ def _orchestrate(
             duration_s=audio_result.duration_s,
         )
 
-    # Insert scene rows from segments.
+    # Insert scene rows from lossless lyric-line formatting when available.
+    # If the formatter cannot prove it preserved the transcript, it falls back
+    # to the original WhisperX segment rows so transcription still completes.
+    scene_plan = format_segments_for_scene_drafts(audio_result.segments)
     with connection(db_path) as c:
         song = c.execute(
             "SELECT id FROM songs WHERE slug = ?", (slug,)
@@ -210,12 +214,7 @@ def _orchestrate(
             )
 
         now = time.time()
-        for scene_index, segment in enumerate(audio_result.segments):
-            target_text = segment.get("text", "")
-            start_s = segment.get("start", 0.0)
-            end_s = segment.get("end", 0.0)
-            duration_s = end_s - start_s if end_s > start_s else 0.0
-
+        for scene_index, scene in enumerate(scene_plan.scenes):
             c.execute(
                 """
                 INSERT INTO scenes (
@@ -228,10 +227,10 @@ def _orchestrate(
                     song["id"],
                     scene_index,
                     "lyric",
-                    target_text,
-                    start_s,
-                    end_s,
-                    duration_s,
+                    scene.target_text,
+                    scene.start_s,
+                    scene.end_s,
+                    scene.target_duration_s,
                     0,
                     now,
                     now,

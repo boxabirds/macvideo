@@ -9,12 +9,45 @@ import { test, expect } from "@playwright/test";
 //   4. the audio-transcribe run row lands.
 
 const FRESH = "fresh-song-nl";
+const FAKE_DEMUCS = new URL(
+  "../../../server/tests/fake_scripts/fake_demucs.py",
+  import.meta.url,
+).pathname;
+const FAKE_WHISPERX = new URL(
+  "../../../server/tests/fake_scripts/fake_whisperx_transcribe.py",
+  import.meta.url,
+).pathname;
 
 async function gotoEditor(page: import("@playwright/test").Page, slug: string) {
   await page.goto(`/songs/${slug}`);
   // For songs with audio but no scenes the .preview audio element appears
   // once SongDetail's SWR fetch resolves.
   await page.locator(".preview audio").waitFor({ state: "attached" });
+}
+
+async function configureFakeAudioTranscribe(
+  request: import("@playwright/test").APIRequestContext,
+  lyricLineMode = "split",
+) {
+  await request.post("/api/test-only/env", {
+    data: {
+      set: {
+        EDITOR_FAKE_DEMUCS: FAKE_DEMUCS,
+        EDITOR_FAKE_WHISPERX_TRANSCRIBE: FAKE_WHISPERX,
+        EDITOR_GENERATION_PROVIDER: "fake",
+        EDITOR_FAKE_LYRIC_LINE_MODE: lyricLineMode,
+      },
+    },
+  });
+}
+
+async function fetchSong(
+  request: import("@playwright/test").APIRequestContext,
+  slug: string,
+) {
+  const r = await request.get(`/api/songs/${slug}`);
+  expect(r.ok()).toBeTruthy();
+  return r.json();
 }
 
 test.describe("Audio transcribe (Story 14)", () => {
@@ -35,6 +68,15 @@ test.describe("Audio transcribe (Story 14)", () => {
     }
     await request.post("/api/test-only/reset-song", {
       data: { slug: FRESH },
+    });
+    await request.post("/api/test-only/env", {
+      data: {
+        set: {
+          EDITOR_FAKE_DEMUCS: null,
+          EDITOR_FAKE_WHISPERX_TRANSCRIBE: null,
+          EDITOR_FAKE_LYRIC_LINE_MODE: null,
+        },
+      },
     });
   });
 
@@ -120,5 +162,47 @@ test.describe("Audio transcribe (Story 14)", () => {
         .find(x => x.scope === "stage_audio_transcribe");
       return run?.status ?? "not-found";
     }, { timeout: 15000 }).not.toBe("not-found");
+  });
+
+  test("successful formatter output appears as lyric-line scene rows", async ({ page, request }) => {
+    await configureFakeAudioTranscribe(request);
+    await gotoEditor(page, FRESH);
+    await page.locator('[data-stage="transcription"]')
+      .getByRole("button", { name: /Transcribe from audio/i })
+      .click();
+    await page.getByRole("button", { name: /^Start$/ }).click();
+
+    await expect.poll(
+      async () => (await fetchSong(request, FRESH)).scenes.length,
+      { timeout: 15000, intervals: [500, 1000, 2000] },
+    ).toBe(5);
+    const song = await fetchSong(request, FRESH);
+    expect(song.scenes.map((scene: { target_text: string }) => scene.target_text)).toEqual([
+      "this is a",
+      "fake segment produced",
+      "by the fake",
+      "whisperx script for",
+      "integration tests only",
+    ]);
+  });
+
+  test("formatter validation failure falls back to original WhisperX segments", async ({ page, request }) => {
+    await configureFakeAudioTranscribe(request, "changed");
+    await gotoEditor(page, FRESH);
+    await page.locator('[data-stage="transcription"]')
+      .getByRole("button", { name: /Transcribe from audio/i })
+      .click();
+    await page.getByRole("button", { name: /^Start$/ }).click();
+
+    await expect.poll(
+      async () => (await fetchSong(request, FRESH)).scenes.length,
+      { timeout: 15000, intervals: [500, 1000, 2000] },
+    ).toBe(3);
+    const song = await fetchSong(request, FRESH);
+    expect(song.scenes.map((scene: { target_text: string }) => scene.target_text)).toEqual([
+      "this is a fake segment",
+      "produced by the fake whisperx script",
+      "for integration tests only",
+    ]);
   });
 });

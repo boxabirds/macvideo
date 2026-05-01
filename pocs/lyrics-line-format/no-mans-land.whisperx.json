@@ -1,0 +1,76 @@
+{
+  "method": "whisperx_transcribe",
+  "model": "large-v3",
+  "device": "cpu",
+  "compute_type": "float32",
+  "vad_options": {
+    "vad_onset": 0.35,
+    "vad_offset": 0.25
+  },
+  "language": "en",
+  "transcribe_wall_s": 44.99,
+  "segments": [
+    {
+      "text": " I left life on for years.",
+      "start": 16.552,
+      "end": 40.531,
+      "avg_logprob": -0.31402963399887085
+    },
+    {
+      "text": " Warpath into the floor. Jawlock checking something that was never gonna show. Hand opens, hand closes on a screen that doesn't know my name. Neighbors Television.",
+      "start": 42.337,
+      "end": 70.248,
+      "avg_logprob": -0.1654256904447401
+    },
+    {
+      "text": " No man's land where the warning doesn't stop Just the reason that it should",
+      "start": 75.833,
+      "end": 88.844,
+      "avg_logprob": -0.13249616061939912
+    },
+    {
+      "text": " They built the corridor and lined it with a thousand open doors. Each one a mouth that says, come closer, then swallow what it says.",
+      "start": 91.713,
+      "end": 108.841,
+      "avg_logprob": -0.16906177053848903
+    },
+    {
+      "text": " Ghosting sits below the ribs, a kind of muscle now I smile at strangers on the platform Without knowing what my face is doing, how Got the nothing back so many times I learned to call it poi",
+      "start": 108.841,
+      "end": 125.429,
+      "avg_logprob": -0.14152372983239947
+    },
+    {
+      "text": " wore the disappointment in until it felt like choice they said the match was in the machinery the love was in the feed that connection was a product and the product met a need so who designed the architecture where every room's for one where you swipe through human eligibles until your thumb goes numb sit with it sit with it don't let me off not yet i",
+      "start": 125.429,
+      "end": 150.387,
+      "avg_logprob": -0.08751955524914795
+    },
+    {
+      "text": " I don't want to blame the whole arrangement before I Before I can",
+      "start": 150.387,
+      "end": 159.162,
+      "avg_logprob": -0.29702078898747764
+    },
+    {
+      "text": " I believe the specific lie that warning was enough, that if you stood there long enough, the world would answer up. But the world is buying dinner at a table I can't see, full restaurants and laughter pressing up against the glass of me, and I hate that I still look.",
+      "start": 162.284,
+      "end": 184.559,
+      "avg_logprob": -0.07790813506659815
+    },
+    {
+      "text": " And I hate that I still count the chairs And I hate that every couple on the street is a subtraction And I know that isn't fair",
+      "start": 186.837,
+      "end": 209.787,
+      "avg_logprob": -0.09189494724075
+    },
+    {
+      "text": " No man's land where the warning doesn't start.",
+      "start": 212.42,
+      "end": 225.245,
+      "avg_logprob": -0.15795636052886644
+    }
+  ],
+  "segment_count": 10,
+  "approx_word_count": 276
+}
