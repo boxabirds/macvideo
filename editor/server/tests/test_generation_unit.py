@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import sqlite3
 import time
+import json
 from pathlib import Path
+from contextlib import contextmanager
 
 import pytest
 
@@ -82,6 +84,64 @@ def test_malformed_world_response_does_not_overwrite_existing_world(tmp_path):
     assert exc.value.code == "model_response_malformed"
     row = conn.execute("SELECT world_brief FROM songs WHERE id = ?", (song_id,)).fetchone()
     assert row["world_brief"] == "keep me"
+
+
+class WorldDescriptionAliasAdapter(services.FakeGenerationAdapter):
+    def generate(self, *, stage, prompt):  # noqa: ANN001
+        return {"world_description": "alias world"}
+
+
+def test_world_response_accepts_common_provider_alias_before_persistence(tmp_path):
+    conn = _db(tmp_path)
+    song_id = _song(conn)
+    _scene(conn, song_id, 1)
+
+    services.generate_world(conn, song_id, adapter=WorldDescriptionAliasAdapter())
+
+    row = conn.execute("SELECT world_brief FROM songs WHERE id = ?", (song_id,)).fetchone()
+    assert row["world_brief"] == "alias world"
+
+
+class _FakeHttpResponse:
+    def __init__(self, body: dict):
+        self.body = json.dumps(body).encode("utf-8")
+
+    def read(self):
+        return self.body
+
+
+@contextmanager
+def _fake_urlopen_response(body: dict):
+    yield _FakeHttpResponse(body)
+
+
+def test_gemini_adapter_sends_world_response_schema(monkeypatch):
+    captured: dict[str, object] = {}
+
+    def fake_urlopen(req, timeout):  # noqa: ANN001
+        captured["timeout"] = timeout
+        captured["payload"] = json.loads(req.data.decode("utf-8"))
+        return _fake_urlopen_response({
+            "candidates": [
+                {"content": {"parts": [{"text": json.dumps({"world_brief": "schema world"})}]}}
+            ],
+        })
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(services.urllib.request, "urlopen", fake_urlopen)
+
+    adapter = services.GeminiJsonAdapter()
+    result = adapter.generate(stage="world-brief", prompt={
+        "prompt_version": services.WORLD_PROMPT_VERSION,
+        "song": {"slug": "song"},
+        "scenes": [],
+    })
+
+    payload = captured["payload"]
+    assert result == {"world_brief": "schema world"}
+    assert payload["generationConfig"]["responseMimeType"] == "application/json"
+    assert payload["generationConfig"]["responseSchema"]["required"] == ["world_brief"]
+    assert "world_brief" in payload["contents"][0]["parts"][0]["text"]
 
 
 def test_image_prompt_input_uses_only_eligible_non_authored_storyboard_scenes(tmp_path):

@@ -15,6 +15,11 @@ def _wait_until(fn, timeout=5.0):
     return False
 
 
+def _no_active_runs(client_for, slug: str) -> bool:
+    runs = client_for.get(f"/api/songs/{slug}/regen").json()["runs"]
+    return not any(run["status"] in ("pending", "running") for run in runs)
+
+
 def _prepare_generation_song(client_for, tmp_env, fixture_song_one):
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")
@@ -55,6 +60,7 @@ def test_world_storyboard_and_prompts_generate_without_historical_files(
         (body := client_for.get("/api/songs/tiny-song").json())["sequence_arc"]
         and all(scene["beat"] for scene in body["scenes"])
     ))
+    assert _wait_until(lambda: _no_active_runs(client_for, "tiny-song"))
 
     r = client_for.post("/api/songs/tiny-song/stages/image-prompts")
     assert r.status_code == 200, r.text

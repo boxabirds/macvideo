@@ -267,12 +267,17 @@ class GeminiJsonAdapter:
             f"{self.model}:generateContent?key={self._api_key}"
         )
         instruction = (
-            "Return only JSON matching the requested product generation schema. "
-            f"Stage: {stage}. Input: {_canonical(prompt)}"
+            f"You are generating the '{stage}' stage for a music-video editor. "
+            "Return JSON only. Do not wrap it in markdown. "
+            f"Required response schema: {_canonical(_response_schema(stage))}. "
+            f"Input: {_canonical(prompt)}"
         )
         payload = {
             "contents": [{"parts": [{"text": instruction}]}],
-            "generationConfig": {"responseMimeType": "application/json"},
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": _response_schema(stage),
+            },
         }
         req = urllib.request.Request(
             url,
@@ -296,6 +301,58 @@ class GeminiJsonAdapter:
                 "model_response_malformed",
                 "Generation provider returned a malformed response.",
             ) from exc
+
+
+def _response_schema(stage: GenerationStage) -> dict[str, Any]:
+    if stage == "world-brief":
+        return {
+            "type": "OBJECT",
+            "properties": {
+                "world_brief": {
+                    "type": "STRING",
+                    "description": "A concise visual world description for the full song video.",
+                },
+            },
+            "required": ["world_brief"],
+        }
+    if stage == "storyboard":
+        scene_schema = {
+            "type": "OBJECT",
+            "properties": {
+                "scene_index": {"type": "INTEGER"},
+                "beat": {"type": "STRING"},
+                "camera_intent": {"type": "STRING"},
+                "subject_focus": {"type": "STRING"},
+                "prev_link": {"type": "STRING", "nullable": True},
+                "next_link": {"type": "STRING", "nullable": True},
+            },
+            "required": ["scene_index", "beat", "camera_intent", "subject_focus"],
+        }
+        return {
+            "type": "OBJECT",
+            "properties": {
+                "sequence_arc": {"type": "STRING"},
+                "scenes": {"type": "ARRAY", "items": scene_schema},
+            },
+            "required": ["sequence_arc", "scenes"],
+        }
+    return {
+        "type": "OBJECT",
+        "properties": {
+            "prompts": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "scene_index": {"type": "INTEGER"},
+                        "image_prompt": {"type": "STRING"},
+                    },
+                    "required": ["scene_index", "image_prompt"],
+                },
+            },
+        },
+        "required": ["prompts"],
+    }
 
 
 def adapter_from_env() -> ModelAdapter:
@@ -322,7 +379,14 @@ def _non_empty_str(value: Any, field: str) -> str:
 
 
 def _validate_world(raw: dict[str, Any]) -> str:
-    return _non_empty_str(raw.get("world_brief"), "world description")
+    for key in ("world_brief", "world_description", "description", "brief"):
+        value = raw.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    raise GenerationError(
+        "model_response_malformed",
+        "Generation provider returned no world description. Expected JSON field 'world_brief'.",
+    )
 
 
 def _validate_storyboard(raw: dict[str, Any], expected_indices: set[int]) -> tuple[str, list[dict[str, Any]]]:
