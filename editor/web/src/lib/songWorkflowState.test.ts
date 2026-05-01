@@ -104,4 +104,68 @@ describe("deriveSongWorkflowState", () => {
     expect(state.world_brief.status).toBe("running");
     expect(state.world_brief.activeRun?.id).toBe(2);
   });
+
+  it("uses serialized backend workflow state instead of frontend prereq rules", () => {
+    const state = deriveSongWorkflowState({
+      song: song({
+        workflow: {
+          stages: {
+            transcription: {
+              key: "transcription", label: "transcription", stage_name: "transcribe",
+              scope: "stage_transcribe", history_model: "replace", state: "done",
+              done: true, available: true, can_start: true, can_retry: false,
+              blocked_reason: null, failed_reason: null, stale_reasons: [],
+              invalidates: [], summary: "", active_run: null, failed_run: null, progress: null,
+            },
+            world_brief: {
+              key: "world_brief", label: "world description", stage_name: "world-brief",
+              scope: "stage_world_brief", history_model: "replace", state: "blocked",
+              done: false, available: false, can_start: false, can_retry: false,
+              blocked_reason: "Choose a filter and abstraction first.",
+              failed_reason: null, stale_reasons: [], invalidates: [], summary: "",
+              active_run: null, failed_run: null, progress: null,
+            },
+            storyboard: {
+              key: "storyboard", label: "storyboard", stage_name: "storyboard",
+              scope: "stage_storyboard", history_model: "replace", state: "blocked",
+              done: false, available: false, can_start: false, can_retry: false,
+              blocked_reason: "Complete world description first.",
+              failed_reason: null, stale_reasons: [], invalidates: [], summary: "",
+              active_run: null, failed_run: null, progress: null,
+            },
+            image_prompts: {
+              key: "image_prompts", label: "image prompts", stage_name: "image-prompts",
+              scope: "stage_image_prompts", history_model: "replace", state: "blocked",
+              done: false, available: false, can_start: false, can_retry: false,
+              blocked_reason: "Please generate the world and storyboard first.",
+              failed_reason: null, stale_reasons: [], invalidates: [], summary: "",
+              active_run: null, failed_run: null, progress: null,
+            },
+            keyframes: {
+              key: "keyframes", label: "keyframes", stage_name: "keyframes",
+              scope: "stage_keyframes", history_model: "take", state: "blocked",
+              done: false, available: false, can_start: false, can_retry: false,
+              blocked_reason: "Please generate the world and storyboard first.",
+              failed_reason: null, stale_reasons: [], invalidates: [], summary: " (0/1)",
+              active_run: null, failed_run: null, progress: null,
+            },
+            final_video: {
+              key: "final_video", label: "final video", stage_name: "render-final",
+              scope: "final_video", history_model: "replace", state: "blocked",
+              done: false, available: false, can_start: false, can_retry: false,
+              blocked_reason: "Please generate the world and storyboard first.",
+              failed_reason: null, stale_reasons: [], invalidates: [], summary: "",
+              active_run: null, failed_run: null, progress: null,
+            },
+          },
+        },
+      }),
+      status: status({ world_brief: "done" }),
+      finishedCount: 0,
+    });
+
+    expect(state.world_brief.status).toBe("blocked");
+    expect(state.world_brief.blockedReason).toBe("Choose a filter and abstraction first.");
+    expect(state.keyframes.blockedReason).toBe("Please generate the world and storyboard first.");
+  });
 });

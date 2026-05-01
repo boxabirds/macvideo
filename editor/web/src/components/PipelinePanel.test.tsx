@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PipelinePanel from "./PipelinePanel";
-import type { Scene, SongDetail, StageStatus } from "../types";
+import type { BackendWorkflowStage, Scene, SongDetail, StageStatus, WorkflowActionState } from "../types";
 import type { RegenRunSummary } from "../api";
 
 function transcribeRun(overrides: Partial<RegenRunSummary> = {}): RegenRunSummary {
@@ -54,6 +54,51 @@ function status(overrides: Partial<StageStatus> = {}): StageStatus {
     keyframes_done: 2, keyframes_total: 2, clips_done: 0, clips_total: 2,
     final: "empty", ...overrides,
   };
+}
+
+function backendStage(
+  key: string,
+  label: string,
+  state: WorkflowActionState,
+  overrides: Partial<BackendWorkflowStage> = {},
+): BackendWorkflowStage {
+  const scope = key === "final_video" ? "final_video" : `stage_${key}`;
+  return {
+    key,
+    label,
+    stage_name: key.replace("_", "-"),
+    scope,
+    history_model: key === "keyframes" ? "take" : "replace",
+    state,
+    done: state === "done",
+    available: !["blocked", "running"].includes(state),
+    can_start: ["available", "done", "stale"].includes(state),
+    can_retry: state === "retryable",
+    blocked_reason: state === "blocked" ? "Blocked by backend" : null,
+    failed_reason: null,
+    stale_reasons: [],
+    invalidates: [],
+    summary: "",
+    active_run: null,
+    failed_run: null,
+    progress: null,
+    ...overrides,
+  };
+}
+
+function backendWorkflow(overrides: Partial<Record<string, Partial<BackendWorkflowStage>>> = {}) {
+  const base = {
+    transcription: backendStage("transcription", "transcription", "done", { scope: "stage_transcribe", stage_name: "transcribe" }),
+    world_brief: backendStage("world_brief", "world description", "done", { stage_name: "world-brief" }),
+    storyboard: backendStage("storyboard", "storyboard", "done"),
+    image_prompts: backendStage("image_prompts", "image prompts", "done", { stage_name: "image-prompts", summary: " (1/1)" }),
+    keyframes: backendStage("keyframes", "keyframes", "done", { summary: " (1/1)" }),
+    final_video: backendStage("final_video", "final video", "available", { stage_name: "render-final", scope: "final_video" }),
+  };
+  for (const [key, value] of Object.entries(overrides)) {
+    base[key as keyof typeof base] = { ...base[key as keyof typeof base], ...value };
+  }
+  return { stages: base };
 }
 
 describe("PipelinePanel", () => {
@@ -648,6 +693,84 @@ describe("PipelinePanel", () => {
     const selects = screen.getAllByRole("combobox") as HTMLSelectElement[];
     expect(selects[1]!.value).toBe("0");
     expect(screen.getByText(/Concrete, recognisable scenes/i)).toBeInTheDocument();
+  });
+
+  it("Story 29: renders blocked reason from backend workflow state", async () => {
+    const song = makeSong({
+      workflow: backendWorkflow({
+        keyframes: {
+          state: "blocked",
+          done: false,
+          available: false,
+          can_start: false,
+          blocked_reason: "Please generate the world and storyboard first.",
+          summary: " (0/1)",
+        },
+      }),
+    });
+    const { container } = render(
+      <PipelinePanel song={song} status={status({ keyframes_done: 0, keyframes_total: 1 })} />,
+    );
+
+    const keyframes = container.querySelector('[data-stage="keyframes"]')!;
+    expect(keyframes).toHaveAttribute("data-status", "blocked");
+    await userEvent.click(keyframes.querySelector("button")!);
+    expect(screen.getByRole("tooltip").textContent).toContain(
+      "Please generate the world and storyboard first.",
+    );
+  });
+
+  it("Story 29: renders operation-specific backend progress without mixed labels", () => {
+    const song = makeSong({
+      duration_s: 228,
+      workflow: backendWorkflow({
+        transcription: {
+          state: "running",
+          done: false,
+          active_run: {
+            id: 42,
+            scope: "stage_audio_transcribe",
+            status: "running",
+            error: null,
+            progress_pct: 50,
+            phase: "transcribing",
+            started_at: 1,
+            ended_at: null,
+            created_at: 1,
+          },
+          progress: {
+            operation: "Transcribing",
+            detail: "audio time processed",
+            progress_pct: 50,
+            processed_seconds: 114,
+            total_seconds: 228,
+          },
+        },
+      }),
+    });
+    render(<PipelinePanel song={song} status={status()} />);
+
+    expect(document.body.textContent).toContain("Transcribing · 1:54 / 3:48 processed");
+    expect(document.body.textContent).not.toContain("Aligning lyrics");
+  });
+
+  it("Story 29: stale backend actions show the stale reason and remain actionable", () => {
+    const song = makeSong({
+      workflow: backendWorkflow({
+        keyframes: {
+          state: "stale",
+          done: false,
+          stale_reasons: ["Scene prompts changed; regenerate stale keyframes."],
+          summary: " (1/1)",
+        },
+      }),
+    });
+    const { container } = render(<PipelinePanel song={song} status={status()} />);
+
+    const keyframes = container.querySelector('[data-stage="keyframes"]')!;
+    expect(keyframes).toHaveAttribute("data-status", "pending");
+    expect(keyframes.textContent).toContain("Scene prompts changed; regenerate stale keyframes.");
+    expect(keyframes.querySelector("button")).not.toBeDisabled();
   });
 });
 

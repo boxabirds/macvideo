@@ -27,6 +27,7 @@ from ..pipeline.transitions import ConflictError, FilterChangeTransition, NotFou
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import create_run, get_run
 from ..store.schema import QualityMode
+from ..workflow import evaluate_song_workflow
 from .common import get_db, parse_dirty_flags, scene_asset_paths
 
 
@@ -98,6 +99,7 @@ class SongDetailResponse(BaseModel):
     world_brief: str | None
     sequence_arc: str | None
     scenes: list[SceneSummary]
+    workflow: dict
 
 
 class SongPatchBody(BaseModel):
@@ -213,6 +215,7 @@ def get_song(slug: str, conn=Depends(get_db)):
             dirty_flags=parse_dirty_flags(r["dirty_flags"]),
         ))
 
+    workflow = evaluate_song_workflow(conn, song["id"]).to_dict()
     return SongDetailResponse(
         slug=song["slug"],
         audio_path=song["audio_path"],
@@ -224,6 +227,7 @@ def get_song(slug: str, conn=Depends(get_db)):
         world_brief=song["world_brief"],
         sequence_arc=song["sequence_arc"],
         scenes=scene_payload,
+        workflow=workflow,
     )
 
 

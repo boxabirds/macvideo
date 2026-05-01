@@ -8,6 +8,9 @@ recover-from-failed flow). NOT mounted in production.
 from __future__ import annotations
 
 import os
+import json
+import time
+import wave
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -112,3 +115,92 @@ def set_env(body: EnvOverrideBody):
         else:
             os.environ[key] = value
     return {"ok": True, "updated": sorted(body.set)}
+
+
+class WorkflowFixtureBody(BaseModel):
+    slug: str = "workflow-e2e"
+
+
+def _write_fixture_wav(path: Path) -> None:
+    framerate = 8000
+    frames = int(2 * framerate)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(framerate)
+        wav.writeframes(b"\x00\x00" * frames)
+
+
+@router.post("/test-only/workflow-fixture")
+def create_workflow_fixture(body: WorkflowFixtureBody):
+    """Create an isolated browser fixture for centralized workflow-state tests."""
+    if not is_enabled():
+        raise HTTPException(status_code=404, detail="not found")
+    from ..store import connection
+
+    wav_path = Path(_cfg.MUSIC_DIR) / f"{body.slug}.wav"
+    _write_fixture_wav(wav_path)
+    now = time.time()
+    with connection(_cfg.DB_PATH) as c:
+        existing = c.execute("SELECT id FROM songs WHERE slug = ?", (body.slug,)).fetchone()
+        if existing:
+            c.execute("DELETE FROM songs WHERE id = ?", (existing["id"],))
+        cur = c.execute(
+            """
+            INSERT INTO songs (
+                slug, audio_path, duration_s, size_bytes, filter, abstraction,
+                quality_mode, world_brief, sequence_arc, created_at, updated_at
+            ) VALUES (?, ?, 2, ?, 'charcoal', 0, 'draft', 'world', 'arc', ?, ?)
+            """,
+            (body.slug, str(wav_path), wav_path.stat().st_size, now, now),
+        )
+        song_id = cur.lastrowid
+        for idx in (1, 2):
+            scene = c.execute(
+                """
+                INSERT INTO scenes (
+                    song_id, scene_index, kind, target_text, start_s, end_s,
+                    target_duration_s, num_frames, beat, image_prompt,
+                    dirty_flags, created_at, updated_at
+                ) VALUES (?, ?, 'lyric', ?, ?, ?, 1, 24, ?, ?, ?, ?, ?)
+                """,
+                (
+                    song_id, idx, f"line {idx}", idx - 1, idx,
+                    f"beat {idx}", f"prompt {idx}",
+                    json.dumps(["keyframe_stale", "clip_stale"]) if idx == 1 else "[]",
+                    now, now,
+                ),
+            )
+            scene_id = scene.lastrowid
+            keyframe = c.execute(
+                "INSERT INTO takes (scene_id, artefact_kind, asset_path, created_by, created_at) "
+                "VALUES (?, 'keyframe', ?, 'editor', ?)",
+                (scene_id, f"{body.slug}/keyframe-{idx}.png", now),
+            )
+            clip = c.execute(
+                "INSERT INTO takes (scene_id, artefact_kind, asset_path, created_by, created_at) "
+                "VALUES (?, 'clip', ?, 'editor', ?)",
+                (scene_id, f"{body.slug}/clip-{idx}.mp4", now),
+            )
+            c.execute(
+                "UPDATE scenes SET selected_keyframe_take_id = ?, selected_clip_take_id = ? WHERE id = ?",
+                (keyframe.lastrowid, clip.lastrowid, scene_id),
+            )
+        c.execute(
+            """
+            INSERT INTO regen_runs (
+                scope, song_id, status, error, started_at, ended_at, created_at
+            ) VALUES ('stage_world_brief', ?, 'failed', 'world generation failed', ?, ?, ?)
+            """,
+            (song_id, now - 20, now - 10, now - 10),
+        )
+        c.execute(
+            """
+            INSERT INTO regen_runs (
+                scope, song_id, status, phase, progress_pct, started_at, created_at
+            ) VALUES ('stage_audio_transcribe', ?, 'running', 'transcribing', 50, ?, ?)
+            """,
+            (song_id, now - 5, now),
+        )
+    return {"ok": True, "slug": body.slug}

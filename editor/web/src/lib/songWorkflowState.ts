@@ -1,5 +1,12 @@
 import type { RegenRunSummary } from "../api";
-import type { SongDetail, StageStatus } from "../types";
+import type {
+  BackendWorkflowStage,
+  SongDetail,
+  StageProgressView,
+  StageStatus,
+  WorkflowActionState,
+  WorkflowRunRef,
+} from "../types";
 
 export type StageKey =
   | "transcription" | "world_brief" | "storyboard"
@@ -27,11 +34,15 @@ export type StageDoneState = "done" | "progress" | "empty" | "error";
 export type WorkflowStageState = {
   def: StageDef;
   status: SegmentStatus;
+  actionState: WorkflowActionState | "legacy";
   doneState: StageDoneState;
   summary: string;
   activeRun: RegenRunSummary | undefined;
   failedRun: RegenRunSummary | undefined;
   tooltipPrereqs: string[];
+  blockedReason: string | null;
+  staleReasons: string[];
+  progress: StageProgressView | null;
 };
 
 export const STAGES: readonly StageDef[] = [
@@ -118,6 +129,9 @@ export function deriveSongWorkflowState(args: {
   dismissedFailedTranscribeId?: number | null;
 }): Record<StageKey, WorkflowStageState> {
   const { song, status, finishedCount, dismissedFailedTranscribeId = null } = args;
+  if (song.workflow?.stages) {
+    return deriveBackendWorkflowState(song, dismissedFailedTranscribeId);
+  }
   const regenRuns = args.regenRuns ?? [];
   return STAGES.reduce((acc, stage) => {
     const { doneState, summary } = deriveDoneState(stage, song, status, finishedCount);
@@ -138,12 +152,88 @@ export function deriveSongWorkflowState(args: {
     acc[stage.key] = {
       def: stage,
       status: stageStatus,
+      actionState: "legacy",
       doneState,
       summary,
       activeRun,
       failedRun,
       tooltipPrereqs,
+      blockedReason: tooltipPrereqs.length ? `Complete ${tooltipPrereqs.join(", ")} first.` : null,
+      staleReasons: [],
+      progress: null,
     };
     return acc;
   }, {} as Record<StageKey, WorkflowStageState>);
+}
+
+function deriveBackendWorkflowState(
+  song: SongDetail,
+  dismissedFailedTranscribeId: number | null,
+): Record<StageKey, WorkflowStageState> {
+  return STAGES.reduce((acc, stage) => {
+    const backend = song.workflow?.stages[stage.key] as BackendWorkflowStage | undefined;
+    if (!backend) {
+      return acc;
+    }
+    const activeRun = backend.active_run ? runRefToSummary(backend.active_run) : undefined;
+    const failedRun = backend.failed_run
+      && !(stage.key === "transcription" && backend.failed_run.id === dismissedFailedTranscribeId)
+      ? runRefToSummary(backend.failed_run)
+      : undefined;
+    const actionState = failedRun ? backend.state : backend.state === "retryable" ? "available" : backend.state;
+    const status = actionStateToSegmentStatus(actionState);
+    const doneState: StageDoneState = backend.done
+      ? "done"
+      : backend.summary && !backend.summary.includes("(0/")
+        ? "progress"
+        : "empty";
+    acc[stage.key] = {
+      def: {
+        ...stage,
+        label: backend.label,
+        stageName: backend.stage_name,
+        scope: backend.scope as StageScope,
+        historyModel: backend.history_model,
+      },
+      status,
+      actionState,
+      doneState,
+      summary: backend.summary,
+      activeRun,
+      failedRun,
+      tooltipPrereqs: backend.blocked_reason ? [backend.blocked_reason] : [],
+      blockedReason: backend.blocked_reason,
+      staleReasons: backend.stale_reasons,
+      progress: backend.progress,
+    };
+    return acc;
+  }, {} as Record<StageKey, WorkflowStageState>);
+}
+
+function actionStateToSegmentStatus(state: WorkflowActionState | "available"): SegmentStatus {
+  if (state === "running") return "running";
+  if (state === "blocked") return "blocked";
+  if (state === "retryable") return "failed";
+  if (state === "done") return "done";
+  return "pending";
+}
+
+function runRefToSummary(run: WorkflowRunRef): RegenRunSummary {
+  return {
+    id: run.id,
+    scope: run.scope,
+    song_id: 0,
+    scene_id: null,
+    scene_index: null,
+    artefact_kind: null,
+    status: run.status as RegenRunSummary["status"],
+    quality_mode: null,
+    cost_estimate_usd: null,
+    started_at: run.started_at,
+    ended_at: run.ended_at,
+    error: run.error,
+    progress_pct: run.progress_pct,
+    phase: run.phase,
+    created_at: run.created_at,
+  };
 }

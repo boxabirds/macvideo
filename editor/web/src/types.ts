@@ -69,4 +69,58 @@ export type SongDetail = {
   world_brief: string | null;
   sequence_arc: string | null;
   scenes: Scene[];
+  workflow?: SongWorkflowView;
+};
+
+export type WorkflowActionState =
+  | "done"
+  | "available"
+  | "blocked"
+  | "running"
+  | "retryable"
+  | "stale";
+
+export type WorkflowRunRef = {
+  id: number;
+  scope: string;
+  status: string;
+  error: string | null;
+  progress_pct: number | null;
+  phase: string | null;
+  started_at: number | null;
+  ended_at: number | null;
+  created_at: number;
+};
+
+export type StageProgressView = {
+  operation: string;
+  detail: string | null;
+  progress_pct: number | null;
+  processed_seconds: number | null;
+  total_seconds: number | null;
+};
+
+export type BackendWorkflowStage = {
+  key: string;
+  label: string;
+  stage_name: string;
+  scope: string;
+  history_model: "replace" | "take";
+  state: WorkflowActionState;
+  done: boolean;
+  available: boolean;
+  can_start: boolean;
+  can_retry: boolean;
+  blocked_reason: string | null;
+  failed_reason: string | null;
+  stale_reasons: string[];
+  invalidates: string[];
+  summary: string;
+  active_run: WorkflowRunRef | null;
+  failed_run: WorkflowRunRef | null;
+  progress: StageProgressView | null;
+};
+
+export type SongWorkflowView = {
+  stages: Record<string, BackendWorkflowStage>;
 };

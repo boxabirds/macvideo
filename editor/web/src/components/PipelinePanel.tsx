@@ -81,6 +81,19 @@ function audioProgressDetail(song: SongDetail, activeRun: RegenRunSummary): stri
   return phaseLabel;
 }
 
+function workflowProgressDetail(
+  progress: { operation: string; processed_seconds: number | null; total_seconds: number | null; progress_pct: number | null; detail: string | null } | null,
+): string | null {
+  if (!progress) return null;
+  if (progress.processed_seconds != null && progress.total_seconds != null) {
+    return `${progress.operation} · ${formatClock(progress.processed_seconds)} / ${formatClock(progress.total_seconds)} processed`;
+  }
+  if (progress.progress_pct != null) {
+    return `${progress.operation} · ${progress.progress_pct}%`;
+  }
+  return progress.operation;
+}
+
 const STATUS_LABEL_BACKUP: Record<SegmentStatus, string> = {
   done: "done", running: "running", failed: "failed",
   pending: "ready", blocked: "blocked",
@@ -261,6 +274,7 @@ export default function PipelinePanel({
           const isTranscribeRunning = stage.key === "transcription" && segStatus === "running";
           const isTranscribeFailed = stage.key === "transcription" && segStatus === "failed";
           const isStageFailed = stage.key !== "transcription" && segStatus === "failed";
+          const progressText = workflowProgressDetail(stageState.progress);
           // .pipeline-stage class kept for back-compat with story-9 tests; the
           // doneState class (.done / .progress / .empty) is also kept so older
           // assertions don't regress. The new stage-indicator is the visual
@@ -280,7 +294,8 @@ export default function PipelinePanel({
                 title={stage.key === "transcription" && song.scenes.length === 0
                   ? "Transcribe from audio first"
                   : segStatus === "blocked"
-                  ? `Complete ${tooltipPrereqs.join(", ")} first`
+                  ? (stageState.blockedReason ?? `Complete ${tooltipPrereqs.join(", ")} first`)
+                  : stageState.actionState === "stale" ? `Regenerate stale ${stage.label}`
                   : segStatus === "done" ? `Regenerate ${stage.label}`
                   : segStatus === "failed" ? `Retry ${stage.label}`
                   : `Run ${stage.label}`}
@@ -295,12 +310,18 @@ export default function PipelinePanel({
                 <span className="label">
                   {stage.label}{summary}
                 </span>
-                {segStatus === "running" && stage.key === "transcription" && activeTranscribe ? (
+                {segStatus === "running" && progressText ? (
+                  <span className="stage-running-detail">
+                    {progressText}
+                  </span>
+                ) : segStatus === "running" && stage.key === "transcription" && activeTranscribe ? (
                   <span className="stage-running-detail transcribe-phase">
                     {audioProgressDetail(song, activeTranscribe)}
                   </span>
                 ) : segStatus === "running" ? (
                   <span className="stage-running-detail">running…</span>
+                ) : stageState.actionState === "stale" && stageState.staleReasons.length ? (
+                  <span className="stage-running-detail">{stageState.staleReasons[0]}</span>
                 ) : null}
                 <span className="stage-status-label sr-only">
                   {STATUS_LABEL_BACKUP[segStatus]}
@@ -323,7 +344,7 @@ export default function PipelinePanel({
               ) : null}
               {tooltipKey === stage.key && segStatus === "blocked" ? (
                 <div className="pipeline-tooltip" role="tooltip">
-                  Complete {tooltipPrereqs.join(", ")} first.
+                  {stageState.blockedReason ?? `Complete ${tooltipPrereqs.join(", ")} first.`}
                 </div>
               ) : null}
               {isTranscribeFailed ? (

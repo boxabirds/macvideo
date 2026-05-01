@@ -19,6 +19,7 @@ from ..pipeline.preflight import preflight_stage
 from ..pipeline.stages import run_gen_keyframes_for_stage
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import create_run, get_run
+from ..workflow import evaluate_song_workflow
 from .common import get_db
 
 
@@ -58,47 +59,29 @@ def _override_render_clips() -> Optional[Path]:
 def _stage_deps(conn, song_id: int) -> dict[StageKey, dict]:
     """Compute stage state for a song: each stage's status + whether its
     upstream prerequisite is met."""
-    song = conn.execute(
-        "SELECT filter, abstraction, world_brief, sequence_arc FROM songs WHERE id = ?",
-        (song_id,),
-    ).fetchone()
-    total_scenes = conn.execute(
-        "SELECT COUNT(*) FROM scenes WHERE song_id = ?", (song_id,),
-    ).fetchone()[0]
-    with_beat = conn.execute(
-        "SELECT COUNT(*) FROM scenes WHERE song_id = ? AND beat IS NOT NULL", (song_id,),
-    ).fetchone()[0]
-    with_prompt = conn.execute(
-        "SELECT COUNT(*) FROM scenes WHERE song_id = ? AND image_prompt IS NOT NULL",
-        (song_id,),
-    ).fetchone()[0]
-    with_kf = conn.execute(
-        "SELECT COUNT(*) FROM scenes WHERE song_id = ? AND selected_keyframe_take_id IS NOT NULL",
-        (song_id,),
-    ).fetchone()[0]
+    workflow = evaluate_song_workflow(conn, song_id)
+    stages = workflow.stages
     return {
-        "transcribe": {"done": total_scenes > 0, "reason": "need a song",
-                        "ok_to_start": True},
-        "world-brief": {
-            "done": bool(song["world_brief"]),
-            "reason": "need transcribe done, filter + abstraction set",
-            "ok_to_start": total_scenes > 0 and song["filter"] is not None and song["abstraction"] is not None,
+        "transcribe": {
+            "done": stages["transcription"].done,
+            "reason": stages["transcription"].blocked_reason or "need a song",
+            "ok_to_start": stages["transcription"].state != "blocked",
         },
-        "storyboard": {
-            "done": bool(song["sequence_arc"]),
-            "reason": "need world-brief done",
-            "ok_to_start": bool(song["world_brief"]),
-        },
-        "image-prompts": {
-            "done": with_prompt == total_scenes and total_scenes > 0,
-            "reason": "need storyboard done",
-            "ok_to_start": with_beat > 0,
-        },
-        "keyframes": {
-            "done": with_kf == total_scenes and total_scenes > 0,
-            "reason": "need image-prompts done",
-            "ok_to_start": with_prompt > 0,
-        },
+        "world-brief": _legacy_dep(stages["world_brief"]),
+        "storyboard": _legacy_dep(stages["storyboard"]),
+        "image-prompts": _legacy_dep(stages["image_prompts"]),
+        "keyframes": _legacy_dep(stages["keyframes"]),
+    }
+
+
+def _legacy_dep(stage) -> dict:
+    return {
+        "done": stage.done,
+        "reason": stage.blocked_reason or "This action is not available yet.",
+        "ok_to_start": stage.state != "blocked",
+        "state": stage.state,
+        "can_retry": stage.can_retry,
+        "stale_reasons": stage.stale_reasons,
     }
 
 
@@ -114,10 +97,13 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
     if not song:
         raise HTTPException(status_code=404, detail=f"song '{slug}' not found")
 
+    workflow = evaluate_song_workflow(conn, song["id"])
     deps = _stage_deps(conn, song["id"])
-    if stage != "transcribe" and not deps[stage].get("ok_to_start"):
+    workflow_key = "transcription" if stage == "transcribe" else stage.replace("-", "_")
+    action = workflow.stages[workflow_key]  # type: ignore[index]
+    if stage != "transcribe" and not action.can_start and not action.can_retry:
         raise HTTPException(status_code=422,
-                            detail={"stage": stage, "reason": deps[stage]["reason"]})
+                            detail={"stage": stage, "reason": action.blocked_reason})
 
     preflight = preflight_stage(slug=slug, stage=stage)  # type: ignore[arg-type]
     if not preflight.ok:
@@ -204,6 +190,7 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
         )
 
     deps = _stage_deps(conn, song["id"])
+    workflow = evaluate_song_workflow(conn, song["id"])
     # transcribe is a separate subprocess (make_shots.py). Everything from
     # world-brief onwards is handled by a single gen_keyframes.py invocation
     # because that script internally chains Pass A → Pass C → Pass B → Gemini
@@ -221,8 +208,9 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
 
     # Transcribe first if needed.
     if not deps["transcribe"]["done"]:
-        if not deps["transcribe"].get("ok_to_start"):
-            blocked_at = {"stage": "transcribe", "reason": deps["transcribe"]["reason"]}
+        transcribe_action = workflow.stages["transcription"]
+        if not transcribe_action.can_start:
+            blocked_at = {"stage": "transcribe", "reason": transcribe_action.blocked_reason}
         else:
             preflight = preflight_stage(slug=slug, stage="transcribe")
             if not preflight.ok:
@@ -259,12 +247,13 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
     # gen_keyframes.py runs through every preceding stage it needs.
     if blocked_at is None:
         any_missing = any(not deps[s]["done"] for s in ("world-brief", "storyboard", "image-prompts", "keyframes"))  # type: ignore[index]
-        world_brief_blocked = not deps["world-brief"].get("ok_to_start")
+        world_action = workflow.stages["world_brief"]
+        world_brief_blocked = not world_action.can_start and not world_action.can_retry
         if any_missing:
             if world_brief_blocked:
                 blocked_at = {
                     "stage": "world-brief",
-                    "reason": deps["world-brief"]["reason"],
+                    "reason": world_action.blocked_reason,
                 }
             else:
                 preflight = preflight_stage(slug=slug, stage="keyframes")
