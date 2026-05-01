@@ -704,7 +704,11 @@ describe("PipelinePanel", () => {
     expect(retryCall).toContain("redo=true");
   });
 
-  it("does not show a previous world-generation failure as the current page result", () => {
+  it("does not show a previous world-generation failure as the current page result", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: async () => ({ run_id: 45, status: "pending" }),
+    } as Response);
+    globalThis.fetch = fetchSpy;
     const previousError = "Generation provider returned no world description.";
     const song = makeSong({
       world_brief: null,
@@ -749,6 +753,13 @@ describe("PipelinePanel", () => {
     expect(world).toHaveAttribute("data-status", "pending");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByText(previousError)).not.toBeInTheDocument();
+
+    await userEvent.click(world.querySelector("button")!);
+    await new Promise(r => setTimeout(r, 10));
+    const retryCall = fetchSpy.mock.calls
+      .map(c => String(c[0]))
+      .find(url => url.includes("/stages/world-brief"));
+    expect(retryCall).toContain("redo=true");
   });
 
   it("setup picker uses approved filter descriptions and abstraction defaults to 0", async () => {

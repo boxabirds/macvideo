@@ -184,12 +184,9 @@ function deriveBackendWorkflowState(
       && shouldShowFailedRun(backend.failed_run.id, visibleFailedRunIds)
       ? runRefToSummary(backend.failed_run)
       : undefined;
-    const actionState = failedRun
-      ? backend.state
-      : backend.state === "retryable"
-        ? backend.done ? "done" : "available"
-        : backend.state;
-    const status = actionStateToSegmentStatus(actionState);
+    const hiddenRetryableWithoutOutput = backend.state === "retryable" && !failedRun && !backend.done;
+    const actionState = backend.state === "retryable" && !failedRun && backend.done ? "done" : backend.state;
+    const status = hiddenRetryableWithoutOutput ? "pending" : actionStateToSegmentStatus(actionState);
     const doneState: StageDoneState = backend.done
       ? "done"
       : backend.summary && !backend.summary.includes("(0/")

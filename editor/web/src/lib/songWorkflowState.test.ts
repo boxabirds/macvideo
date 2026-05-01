@@ -231,6 +231,7 @@ describe("deriveSongWorkflowState", () => {
     });
 
     expect(state.world_brief.status).toBe("pending");
+    expect(state.world_brief.actionState).toBe("retryable");
     expect(state.world_brief.failedRun).toBeUndefined();
   });
 

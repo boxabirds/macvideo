@@ -300,7 +300,7 @@ export default function PipelinePanel({
         setRenderConfirm(true);
         return;
       }
-      void trigger(stage.stageName, false);
+      void trigger(stage.stageName, stageState.actionState === "retryable");
       return;
     }
 
