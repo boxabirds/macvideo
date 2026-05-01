@@ -315,8 +315,6 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
         if chain_noop:
             return get_song(slug, conn)
         preflight = preflight_stage(slug=slug, stage="world-brief")
-        if not preflight.ok:
-            raise HTTPException(status_code=422, detail=preflight.to_http_detail())
         if "filter" in patch_fields:
             new_filter = patch_fields["filter"]
             try:
@@ -326,11 +324,15 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
                     new_filter,
                     new_abstraction=patch_fields.get("abstraction"),  # type: ignore[arg-type]
                 )
-                transition.apply()
+                transition.apply(enqueue=preflight.ok)
             except NotFoundError as e:
                 raise HTTPException(status_code=404, detail=str(e)) from e
             except ConflictError as e:
                 raise HTTPException(status_code=409, detail=str(e)) from e
+            if not preflight.ok:
+                detail = preflight.to_http_detail()
+                detail["configuration_saved"] = True
+                raise HTTPException(status_code=422, detail=detail)
             return get_song(slug, conn)
         else:
             # Abstraction change.
@@ -342,6 +344,26 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
             scope = "song_abstraction"
             enqueued_filter = song["filter"] or "charcoal"
             enqueued_abstraction = new_abstraction
+            if not preflight.ok:
+                rows = conn.execute(
+                    "SELECT id, dirty_flags FROM scenes WHERE song_id = ? "
+                    "AND selected_clip_take_id IS NOT NULL",
+                    (song["id"],),
+                ).fetchall()
+                for r in rows:
+                    flags = set(parse_dirty_flags(r["dirty_flags"]))
+                    flags.add("clip_stale")
+                    conn.execute(
+                        "UPDATE scenes SET dirty_flags = ?, updated_at = ? WHERE id = ?",
+                        (json.dumps(sorted(flags)), time.time(), r["id"]),
+                    )
+                conn.execute(
+                    "UPDATE songs SET world_brief = NULL, sequence_arc = NULL, updated_at = ? "
+                    "WHERE id = ?", (time.time(), song["id"]),
+                )
+                detail = preflight.to_http_detail()
+                detail["configuration_saved"] = True
+                raise HTTPException(status_code=422, detail=detail)
 
         # Mark clips stale and null out world_brief/storyboard.
         rows = conn.execute(

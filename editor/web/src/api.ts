@@ -11,6 +11,35 @@ export class ApiError extends Error {
   }
 }
 
+export function formatApiError(error: unknown): string {
+  if (error instanceof ApiError) {
+    const detail = error.detail as { detail?: unknown } | null;
+    const payload = detail && typeof detail === "object" && "detail" in detail
+      ? detail.detail
+      : error.detail;
+    if (typeof payload === "string") return payload;
+    if (payload && typeof payload === "object") {
+      const body = payload as { reason?: unknown; message?: unknown; detail?: unknown; code?: unknown };
+      const message = body.reason ?? body.message ?? body.detail;
+      if (typeof message === "string") return message;
+      if (typeof body.code === "string") return body.code;
+    }
+    return `Request failed with status ${error.status}`;
+  }
+  return String(error);
+}
+
+export function isSavedConfigurationPreflightError(error: unknown): boolean {
+  if (!(error instanceof ApiError)) return false;
+  const detail = error.detail as { detail?: unknown } | null;
+  const payload = detail && typeof detail === "object" && "detail" in detail
+    ? detail.detail
+    : error.detail;
+  if (!payload || typeof payload !== "object") return false;
+  const body = payload as { code?: unknown; configuration_saved?: unknown };
+  return body.code === "dependency_preflight_failed" && body.configuration_saved === true;
+}
+
 async function handle<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail: unknown = null;

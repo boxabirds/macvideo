@@ -89,6 +89,34 @@ def test_visual_language_patch_does_not_preflight_downstream_keyframes(
     assert patch_res.json()["filter"] == "cyanotype"
 
 
+def test_visual_language_patch_persists_inputs_when_generation_provider_missing(
+    client_for, tmp_env, monkeypatch,
+):
+    monkeypatch.delenv("EDITOR_GENERATION_PROVIDER", raising=False)
+    song_id = _insert_song(
+        tmp_env["db"],
+        "world-inputs-no-provider",
+        filter=None,
+        abstraction=None,
+        world_brief=None,
+    )
+    _insert_scene(tmp_env["db"], song_id, scene_index=0, has_clip=False)
+
+    patch_res = client_for.patch(
+        "/api/songs/world-inputs-no-provider",
+        json={"filter": "charcoal", "abstraction": 0},
+    )
+
+    assert patch_res.status_code == 422, patch_res.text
+    body = patch_res.json()["detail"]
+    assert body["code"] == "dependency_preflight_failed"
+    assert body["configuration_saved"] is True
+
+    persisted = client_for.get("/api/songs/world-inputs-no-provider").json()
+    assert persisted["filter"] == "charcoal"
+    assert persisted["abstraction"] == 0
+
+
 def test_combined_visual_language_patch_applies_abstraction_when_filter_is_unchanged(
     client_for, tmp_env,
 ):

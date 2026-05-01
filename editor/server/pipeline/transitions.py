@@ -183,7 +183,7 @@ class FilterChangeTransition:
             "would_conflict_with": would_conflict,
         }
 
-    def apply(self) -> dict:
+    def apply(self, *, enqueue: bool = True) -> dict:
         """Apply the filter change and enqueue the filter regeneration chain.
 
         Returns a small result dict containing the resolved kind and run id.
@@ -222,6 +222,9 @@ class FilterChangeTransition:
             "WHERE id = ?",
             (time.time(), self.song_id),
         )
+
+        if not enqueue:
+            return {"kind": kind, "run_id": None}
 
         from ..generation import run_generation_stage
         from ..regen.queue import RegenJob, keyframe_queue

@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("World-owned visual language", () => {
+  test.afterEach(async ({ request }) => {
+    await request.post("http://localhost:8000/api/test-only/env", {
+      data: { set: { EDITOR_GENERATION_PROVIDER: "fake" } },
+    });
+  });
+
   test("top bar does not expose separate filter or abstraction controls", async ({ page }) => {
     await page.goto("/songs/tiny-song");
     await page.locator(".preview audio").waitFor({ state: "attached" });
@@ -72,5 +78,38 @@ test.describe("World-owned visual language", () => {
       const body = await response.json();
       return body.filter;
     }).toBe("cyanotype");
+  });
+
+  test("confirm and run persists visual language when generation provider is missing", async ({ page, request }) => {
+    const slug = "visual-language-missing-provider";
+    await request.post("http://localhost:8000/api/test-only/env", {
+      data: { set: { EDITOR_GENERATION_PROVIDER: null } },
+    });
+    await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
+      data: {
+        slug,
+        filter: null,
+        abstraction: null,
+        world_brief: null,
+        sequence_arc: null,
+        include_prompts: false,
+        include_takes: false,
+        include_failed_runs: false,
+      },
+    });
+
+    await page.goto(`/songs/${slug}`);
+    await page.locator(".preview audio").waitFor({ state: "attached" });
+    await page.locator('[data-stage="world_brief"] button').click();
+    await page.getByRole("button", { name: /confirm and run/i }).click();
+
+    const error = page.locator(".pipeline-error").first();
+    await expect(error).toContainText(/generation requires GEMINI_API_KEY|generation provider/i);
+    await expect(error).not.toContainText(/HTTP 422/i);
+    await expect.poll(async () => {
+      const response = await request.get(`http://localhost:8000/api/songs/${slug}`);
+      const body = await response.json();
+      return `${body.filter}:${body.abstraction}`;
+    }).toBe("oil impasto:0");
   });
 });

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PipelinePanel from "./PipelinePanel";
@@ -752,6 +752,57 @@ describe("PipelinePanel", () => {
     expect(JSON.parse(String(patchCalls[0]!.init?.body))).toEqual({ filter: "cyanotype", abstraction: 0 });
     expect(calls.some(call => call.url.includes("/stages/world-brief"))).toBe(false);
     expect(onSongUpdate).toHaveBeenCalledWith(updated);
+  });
+
+  it("visual-language setup persists saved configuration preflight failures without raw HTTP text", async () => {
+    const updated = makeSong({ filter: "charcoal", abstraction: 0, world_brief: null, scenes: [makeScene()] });
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/songs/tiny" && init?.method === "PATCH") {
+        return {
+          ok: false,
+          status: 422,
+          json: async () => ({
+            detail: {
+              code: "dependency_preflight_failed",
+              reason: "generation requires GEMINI_API_KEY or a configured product generation provider before it can start.",
+              configuration_saved: true,
+            },
+          }),
+        } as Response;
+      }
+      if (url === "/api/songs/tiny") {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => updated,
+        } as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ finished: [] }),
+      } as Response;
+    });
+    globalThis.fetch = fetchSpy;
+    const onSongUpdate = vi.fn();
+
+    render(<PipelinePanel
+      song={makeSong({ filter: null, abstraction: null, world_brief: null, scenes: [makeScene()] })}
+      status={status({
+        transcription: "done", world_brief: "empty", storyboard: "empty",
+        keyframes_done: 0, keyframes_total: 1,
+      })}
+      onSongUpdate={onSongUpdate}
+    />);
+
+    await userEvent.click(screen.getByText(/world description/).closest("button")!);
+    await userEvent.click(screen.getByRole("button", { name: /Confirm and run/i }));
+
+    await waitFor(() => expect(onSongUpdate).toHaveBeenCalledWith(updated));
+    expect(screen.getByText(/generation requires GEMINI_API_KEY/i)).toBeInTheDocument();
+    expect(screen.queryByText(/HTTP 422/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("existing world exposes confirmed visual-language change from the world dialog", async () => {

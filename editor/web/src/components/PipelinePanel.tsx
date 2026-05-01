@@ -6,7 +6,14 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SongDetail, StageStatus } from "../types";
 import type { RegenRunSummary } from "../api";
-import { audioTranscribe, ApiError, patchSong } from "../api";
+import {
+  audioTranscribe,
+  ApiError,
+  formatApiError,
+  getSong,
+  isSavedConfigurationPreflightError,
+  patchSong,
+} from "../api";
 import {
   ABSTRACTION_OPTIONS,
   FILTER_OPTIONS,
@@ -110,7 +117,7 @@ async function runStage(slug: string, stageName: string, redo: boolean) {
   );
   if (!r.ok) {
     const body = await r.json().catch(() => ({}));
-    throw new Error(`${stageName} failed: ${r.status} ${JSON.stringify(body)}`);
+    throw new ApiError(r.status, body, `${stageName} failed`);
   }
   return r.json();
 }
@@ -180,7 +187,7 @@ export default function PipelinePanel({
     try {
       await runStage(song.slug, stageName, isRedo);
     } catch (e) {
-      setError(String(e));
+      setError(formatApiError(e));
     } finally {
       setBusy(null);
     }
@@ -446,7 +453,12 @@ export default function PipelinePanel({
               onSongUpdate?.(updated);
               setFilterPicker(null);
             } catch (e) {
-              setError(String(e));
+              if (isSavedConfigurationPreflightError(e)) {
+                const updated = await getSong(song.slug);
+                onSongUpdate?.(updated);
+                setFilterPicker(null);
+              }
+              setError(formatApiError(e));
             }
           }}
         />
