@@ -44,6 +44,9 @@ def main() -> int:
         while time.time() < end:
             time.sleep(0.05)
 
+    for pct in (25, 50, 75):
+        print(f"[align] {pct}%", flush=True)
+
     segments = DEFAULT_SEGMENTS
     payload = {
         "method": "fake_whisperx",
@@ -51,6 +54,7 @@ def main() -> int:
         "segment_count": len(segments),
     }
     out.write_text(json.dumps(payload, indent=2))
+    print("[align] 100%", flush=True)
     print("[fake-whisperx] wrote json with segments", flush=True)
     return 0
 

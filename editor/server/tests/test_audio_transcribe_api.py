@@ -197,3 +197,28 @@ def test_post_writes_lyrics_after_run_completes(client_for, fresh_song_with_audi
     assert rows[0]["target_text"] == "this is a fake segment"
     assert rows[1]["target_text"] == "produced by the fake whisperx script"
     assert rows[2]["target_text"] == "for integration tests only"
+
+
+def test_audio_transcribe_persists_phase_and_progress(client_for, fresh_song_with_audio):
+    slug = fresh_song_with_audio["slug"]
+    from editor.server.store import connection
+
+    r = client_for.post(f"/api/songs/{slug}/audio-transcribe")
+    assert r.status_code == 200, r.text
+    run_id = r.json()["run_id"]
+
+    def run_done():
+        with connection(fresh_song_with_audio["tmp_env"]["db"]) as c:
+            row = c.execute(
+                "SELECT status FROM regen_runs WHERE id = ?", (run_id,),
+            ).fetchone()
+            return row["status"] == "done"
+
+    assert _wait_until(run_done, timeout=5.0)
+    with connection(fresh_song_with_audio["tmp_env"]["db"]) as c:
+        row = c.execute(
+            "SELECT phase, progress_pct FROM regen_runs WHERE id = ?",
+            (run_id,),
+        ).fetchone()
+    assert row["phase"] == "transcribing"
+    assert row["progress_pct"] == 100

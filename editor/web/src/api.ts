@@ -1,5 +1,5 @@
 // Thin fetch wrapper + SWR fetcher + mutation helpers.
-import type { Scene, Song, SongDetail, QualityMode } from "./types";
+import type { Scene, Song, SongDetail, QualityMode, TranscriptWord } from "./types";
 
 export class ApiError extends Error {
   status: number;
@@ -167,6 +167,58 @@ export type RegenRunSummary = {
   phase: string | null;
   created_at: number;
 };
+
+export type TranscriptResponse = {
+  scene_index: number;
+  target_text: string;
+  words: TranscriptWord[];
+};
+
+export async function getSceneTranscript(slug: string, idx: number): Promise<TranscriptResponse> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/scenes/${idx}/transcript`,
+  ));
+}
+
+export async function applyTranscriptCorrection(
+  slug: string,
+  idx: number,
+  body: { start_word_index: number; end_word_index: number; text: string },
+): Promise<TranscriptResponse> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/scenes/${idx}/transcript/corrections`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  ));
+}
+
+export async function revertTranscriptCorrection(
+  slug: string,
+  idx: number,
+  correctionId: number,
+): Promise<TranscriptResponse> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/scenes/${idx}/transcript/corrections/${correctionId}/revert`,
+    { method: "POST" },
+  ));
+}
+
+export async function undoTranscriptCorrection(slug: string): Promise<TranscriptResponse> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/transcript/undo`,
+    { method: "POST" },
+  ));
+}
+
+export async function redoTranscriptCorrection(slug: string): Promise<TranscriptResponse> {
+  return handle(await fetch(
+    `/api/songs/${encodeURIComponent(slug)}/transcript/redo`,
+    { method: "POST" },
+  ));
+}
 
 export async function listActiveRegens(slug: string): Promise<{ runs: RegenRunSummary[] }> {
   return handle(await fetch(

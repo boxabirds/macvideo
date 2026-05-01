@@ -10,9 +10,9 @@ import { audioTranscribe, ApiError, patchSong } from "../api";
 
 // Story 14: phase strings emitted by the audio-transcribe orchestrator.
 const PHASE_LABEL: Record<string, string> = {
-  "separating-vocals": "Separating vocals…",
-  "transcribing":      "Transcribing…",
-  "aligning":          "Aligning timings…",
+  "separating-vocals": "Separating vocals",
+  "transcribing":      "Transcribing",
+  "aligning":          "Aligning timings",
 };
 
 const ETA_FALLBACK_RATIO = 0.5;
@@ -40,6 +40,34 @@ function transcribeEtaSeconds(
   return roundToFiveSeconds(ETA_FALLBACK_RATIO * dur);
 }
 
+function formatClock(totalSeconds: number): string {
+  const safe = Math.max(0, Math.round(totalSeconds));
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function audioProgressDetail(song: SongDetail, activeRun: RegenRunSummary): string {
+  const phase = activeRun.phase ?? "preparing";
+  const phaseLabel = PHASE_LABEL[phase] ?? "Preparing";
+  if (activeRun.scope !== "stage_audio_transcribe") {
+    return `Aligning lyrics · about ${transcribeEtaSeconds(song, activeRun)} seconds left`;
+  }
+
+  if (phase === "transcribing" && activeRun.progress_pct != null && song.duration_s) {
+    const pct = Math.max(0, Math.min(100, activeRun.progress_pct));
+    const processed = (pct / PCT_TO_FRACTION) * song.duration_s;
+    return `${phaseLabel} · ${formatClock(processed)} / ${formatClock(song.duration_s)} processed`;
+  }
+
+  if (activeRun.started_at != null) {
+    const elapsed = Math.max(0, Date.now() / 1000 - activeRun.started_at);
+    return `${phaseLabel} · ${formatClock(elapsed)} elapsed`;
+  }
+
+  return phaseLabel;
+}
+
 type StageKey =
   | "transcription" | "world_brief" | "storyboard"
   | "image_prompts" | "keyframes" | "final_video";
@@ -60,7 +88,7 @@ type StageDef = {
 type SegmentStatus = "done" | "running" | "failed" | "pending" | "blocked";
 
 const STAGES: readonly StageDef[] = [
-  { key: "transcription",  label: "lyric alignment",   stageName: "transcribe",    scope: "stage_transcribe",         historyModel: "replace" },
+  { key: "transcription",  label: "transcription",     stageName: "transcribe",    scope: "stage_transcribe",         historyModel: "replace" },
   { key: "world_brief",    label: "world description", stageName: "world-brief",   scope: "stage_world_brief",       historyModel: "replace" },
   { key: "storyboard",     label: "storyboard",        stageName: "storyboard",    scope: "stage_storyboard",         historyModel: "replace" },
   { key: "image_prompts",  label: "image prompts",     stageName: "image-prompts", scope: "stage_image_prompts",      historyModel: "replace" },
@@ -366,22 +394,14 @@ export default function PipelinePanel({
                 <span className="label">
                   {stage.label}{summary}
                 </span>
-                {segStatus === "running" && stage.key === "transcription" ? (
-                  // Story 14: phase-aware label for stage_audio_transcribe;
-                  // null/unknown phase falls back to Story 12's ETA label.
-                  activeTranscribe?.phase && PHASE_LABEL[activeTranscribe.phase] ? (
-                    <span className="stage-running-detail transcribe-phase">
-                      {PHASE_LABEL[activeTranscribe.phase]}
-                    </span>
-                  ) : (
-                    <span className="stage-running-detail transcribe-eta">
-                      Aligning lyrics — about {transcribeEtaSeconds(song, activeTranscribe)} seconds left
-                    </span>
-                  )
+                {segStatus === "running" && stage.key === "transcription" && activeTranscribe ? (
+                  <span className="stage-running-detail transcribe-phase">
+                    {audioProgressDetail(song, activeTranscribe)}
+                  </span>
                 ) : segStatus === "running" ? (
                   <span className="stage-running-detail">running…</span>
                 ) : null}
-                <span className="stage-status-label" aria-hidden="true">
+                <span className="stage-status-label sr-only">
                   {STATUS_LABEL_BACKUP[segStatus]}
                 </span>
               </button>

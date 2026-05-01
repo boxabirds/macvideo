@@ -30,7 +30,7 @@ from ..pipeline.paths import resolve_song_paths
 from ..pipeline.stages import StageResult
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import (
-    create_run, get_run, update_run_phase,
+    create_run, get_run, update_run_phase, update_run_progress,
 )
 from ..store import connection
 from .common import get_db
@@ -146,12 +146,13 @@ def _orchestrate(
         outputs_root=outputs_root, music_root=music_root, slug=slug,
     )
 
-    def _set_phase(phase: str) -> None:
+    def _set_progress(phase: str, pct: float) -> None:
         with connection(db_path) as c:
             update_run_phase(c, run_id, phase)
+            update_run_progress(c, run_id, int(pct))
 
-    def _progress_cb(phase: str, _pct: float) -> None:
-        _set_phase(phase)
+    def _progress_cb(phase: str, pct: float) -> None:
+        _set_progress(phase, pct)
 
     cancel = threading.Event()
     audio_result = run_audio_transcribe(

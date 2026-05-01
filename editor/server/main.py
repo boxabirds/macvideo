@@ -17,6 +17,7 @@ from .api import (
     songs,
     stages as stages_api,
     test_only as test_only_api,
+    transcript as transcript_api,
 )
 from .importer import import_all
 from .regen.queue import configure_queues
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
 
     app.include_router(songs.router, prefix="/api")
     app.include_router(scenes.router, prefix="/api")
+    app.include_router(transcript_api.router, prefix="/api")
     app.include_router(preview_change_api.router, prefix="/api")
     app.include_router(regen_api.router, prefix="/api")
     app.include_router(regen_api.events_router)  # /events/regen

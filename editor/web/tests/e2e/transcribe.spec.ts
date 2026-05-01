@@ -12,7 +12,7 @@ async function gotoEditor(page: import("@playwright/test").Page, slug: string) {
 }
 
 function transcribeRow(page: import("@playwright/test").Page) {
-  return page.locator(".pipeline-stage").filter({ hasText: /lyric alignment/ });
+  return page.locator(".pipeline-stage").filter({ hasText: /transcription/ });
 }
 
 function transcribeRunButton(page: import("@playwright/test").Page) {

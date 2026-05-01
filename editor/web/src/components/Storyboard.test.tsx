@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Storyboard from "./Storyboard";
@@ -46,6 +46,27 @@ function stubFetchEcho() {
   const spy = vi.fn();
   globalThis.fetch = spy;
   return spy;
+}
+
+function transcriptPayload(scene: Scene) {
+  const tokens = scene.target_text.split(/\s+/).filter(Boolean);
+  const step = (scene.end_s - scene.start_s) / Math.max(1, tokens.length);
+  return {
+    scene_index: scene.index,
+    target_text: scene.target_text,
+    words: tokens.map((text, i) => ({
+      id: i + 1,
+      word_index: i,
+      text,
+      start_s: scene.start_s + step * i,
+      end_s: i === tokens.length - 1 ? scene.end_s : scene.start_s + step * (i + 1),
+      original_text: text,
+      original_start_s: scene.start_s + step * i,
+      original_end_s: i === tokens.length - 1 ? scene.end_s : scene.start_s + step * (i + 1),
+      correction_id: null,
+      warning: null,
+    })),
+  };
 }
 
 async function expandAll(container: HTMLElement) {
@@ -101,33 +122,66 @@ describe("Storyboard", () => {
     );
   });
 
-  it("editable target_text: click swaps span for input and blur PATCHes", async () => {
+  it("transcript correction: selecting words opens modal and posts correction", async () => {
     const song = makeSong([makeScene({ index: 1, target_text: "old lyric" })]);
+    const scene = song.scenes[0]!;
     const onPatch = vi.fn();
-    const fetchSpy = vi.fn().mockResolvedValue({
-      ok: true, status: 200,
-      json: async () => ({ ...song.scenes[0], target_text: "new lyric" }),
-    } as Response);
+    const corrected = {
+      ...transcriptPayload({ ...scene, target_text: "new lyric" }),
+      target_text: "new lyric",
+    };
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/transcript") && !init?.method) {
+        return { ok: true, status: 200, json: async () => transcriptPayload(scene) } as Response;
+      }
+      if (url.endsWith("/transcript/corrections")) {
+        return { ok: true, status: 200, json: async () => corrected } as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}) } as Response;
+    });
     globalThis.fetch = fetchSpy;
 
     const { container } = render(
       <Storyboard song={song} cameraIntents={["static hold"]}
         playingSceneIdx={null} onSeekToScene={() => {}} onPatch={onPatch} />,
     );
-    const titleSpan = container.querySelector<HTMLElement>(".scene-title-text")!;
-    await userEvent.click(titleSpan);
-    const input = container.querySelector<HTMLInputElement>(".scene-title-input")!;
-    expect(input).toBeInTheDocument();
-    await userEvent.tripleClick(input);
-    await userEvent.keyboard("new lyric");
-    input.blur();
-    await new Promise(r => setTimeout(r, 10));
+    await expandAll(container);
+    expect(screen.getByText("Transcript")).toBeInTheDocument();
+    expect(screen.getByText("Visual beat")).toBeInTheDocument();
+    const word = await screen.findByRole("button", { name: "old" });
+    await userEvent.click(word);
+    await userEvent.click(screen.getByRole("button", { name: /Edit/i }));
+    const input = screen.getByDisplayValue("old");
+    await userEvent.clear(input);
+    await userEvent.type(input, "new lyric");
+    await userEvent.click(screen.getByRole("button", { name: /Make Correction/i }));
+    await new Promise(r => setTimeout(r, 20));
     const patchCall = fetchSpy.mock.calls.find(c =>
-      (c[1] as RequestInit)?.method === "PATCH",
+      String(c[0]).endsWith("/transcript/corrections"),
     );
     expect(patchCall).toBeTruthy();
     expect(JSON.parse((patchCall![1] as RequestInit).body as string))
-      .toEqual({ target_text: "new lyric" });
+      .toEqual({ start_word_index: 0, end_word_index: 0, text: "new lyric" });
+    expect(onPatch).toHaveBeenCalledWith(1, expect.objectContaining({ target_text: "new lyric" }));
+  });
+
+  it("renders an empty transcript separately from a populated visual beat", async () => {
+    const song = makeSong([makeScene({ index: 1, target_text: "", beat: "camera finds the empty room" })]);
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ scene_index: 1, target_text: "", words: [] }),
+    } as Response);
+    const { container } = render(
+      <Storyboard song={song} cameraIntents={["static hold"]}
+        playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />,
+    );
+    expect(screen.getByText("(empty phrase)")).toBeInTheDocument();
+    await expandAll(container);
+    expect(screen.getByText("Transcript")).toBeInTheDocument();
+    expect(screen.getByText("Visual beat")).toBeInTheDocument();
+    expect(await screen.findByText("No transcript words")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("camera finds the empty room")).toBeInTheDocument();
   });
 
   it("saves on blur via PATCH and calls onPatch", async () => {
@@ -252,6 +306,66 @@ describe("Storyboard", () => {
     expect((beatField as HTMLTextAreaElement).value).toBe("new value");
   });
 
+  it("failed transcript correction keeps the typed correction and does not overwrite visual beat", async () => {
+    const song = makeSong([makeScene({ index: 1, target_text: "old phrase", beat: "visual plan" })]);
+    const scene = song.scenes[0]!;
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/transcript") && !init?.method) {
+        return { ok: true, status: 200, json: async () => transcriptPayload(scene) } as Response;
+      }
+      return {
+        ok: false, status: 500,
+        json: async () => ({ detail: "boom" }),
+      } as Response;
+    });
+    globalThis.fetch = fetchSpy;
+
+    const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
+    await expandAll(container);
+    await userEvent.click(await screen.findByRole("button", { name: "old" }));
+    await userEvent.click(screen.getByRole("button", { name: /Edit/i }));
+    const phraseField = screen.getByDisplayValue("old");
+    await userEvent.clear(phraseField);
+    await userEvent.type(phraseField, "corrected phrase");
+    await userEvent.click(screen.getByRole("button", { name: /Make Correction/i }));
+    await new Promise(r => setTimeout(r, 20));
+
+    expect((phraseField as HTMLInputElement).value).toBe("corrected phrase");
+    expect(screen.getByDisplayValue("visual plan")).toBeInTheDocument();
+    expect(screen.getByText(/HTTP 500/)).toBeInTheDocument();
+  });
+
+  it("undo shortcut restores transcript history without editing timestamps directly", async () => {
+    const song = makeSong([makeScene({ index: 1, target_text: "new lyric" })]);
+    const scene = song.scenes[0]!;
+    const onPatch = vi.fn();
+    const restored = transcriptPayload({ ...scene, target_text: "old lyric" });
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/transcript") && !init?.method) {
+        return { ok: true, status: 200, json: async () => transcriptPayload(scene) } as Response;
+      }
+      if (url.endsWith("/transcript/undo")) {
+        return { ok: true, status: 200, json: async () => restored } as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}) } as Response;
+    });
+    globalThis.fetch = fetchSpy;
+
+    const { container } = render(<Storyboard song={song} cameraIntents={["static hold"]}
+      playingSceneIdx={1} onSeekToScene={() => {}} onPatch={onPatch} />);
+    await expandAll(container);
+    await screen.findByRole("button", { name: "new" });
+    fireEvent.keyDown(window, { key: "z", metaKey: true });
+    await new Promise(r => setTimeout(r, 20));
+
+    expect(fetchSpy.mock.calls.some(c => String(c[0]).endsWith("/transcript/undo"))).toBe(true);
+    expect(onPatch).toHaveBeenCalledWith(1, expect.objectContaining({ target_text: "old lyric" }));
+    expect(await screen.findByRole("button", { name: "old" })).toBeInTheDocument();
+  });
+
   it("does not re-fire PATCH on blur when value is unchanged", async () => {
     const song = makeSong([makeScene({ index: 1, beat: "stable" })]);
     const fetchSpy = stubFetchEcho();
@@ -262,7 +376,7 @@ describe("Storyboard", () => {
     beatField.focus();
     beatField.blur();
     await new Promise(r => setTimeout(r, 0));
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(fetchSpy.mock.calls.some(c => (c[1] as RequestInit | undefined)?.method === "PATCH")).toBe(false);
   });
 
   it("queues edit on network failure and shows offline error", async () => {
@@ -295,6 +409,18 @@ describe("Storyboard", () => {
     const headers = container.querySelectorAll<HTMLElement>(".scene-header");
     await userEvent.click(headers[1]!);
     expect(onSeekToScene).toHaveBeenCalledWith(2);
+  });
+
+  it("clicking inside the expanded editor body does not retrigger scene playback", async () => {
+    const song = makeSong([makeScene({ index: 1 })]);
+    const onSeekToScene = vi.fn();
+    const { container } = render(
+      <Storyboard song={song} cameraIntents={["static hold"]}
+        playingSceneIdx={1} onSeekToScene={onSeekToScene} onPatch={() => {}} />,
+    );
+    await expandAll(container);
+    await userEvent.click(screen.getByDisplayValue("original beat"));
+    expect(onSeekToScene).not.toHaveBeenCalled();
   });
 
   it("scrolls the currently-selected scene into view", () => {

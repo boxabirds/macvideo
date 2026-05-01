@@ -50,11 +50,11 @@ test.describe("PipelinePanel stages", () => {
 
     await gotoEditor(page);
     // image-prompts is still done (we set a prompt) but we'll exercise a
-    // real run by clicking lyric alignment — it's 'done' when scenes > 0
+    // real run by clicking transcription — it's 'done' when scenes > 0
     // which tiny-song always has, so this isn't quite a not-done case.
-    // Instead assert the stage button for lyric-alignment at least fires
+    // Instead assert the stage button for transcription at least fires
     // a confirm dialog (since scenes>0 → done).
-    const row = page.locator(".pipeline-stage").filter({ hasText: /lyric alignment/ });
+    const row = page.locator(".pipeline-stage").filter({ hasText: /transcription/ });
     await row.locator("button").click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.getByRole("button", { name: /Cancel/i }).click();

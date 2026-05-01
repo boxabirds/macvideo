@@ -29,6 +29,7 @@ async function gotoEditor(page: import("@playwright/test").Page) {
 test.describe("Playback (story 13)", () => {
   test("playback.monotonic — natural play + synthetic boundary jump never rewinds audio", async ({ page }) => {
     await gotoEditor(page);
+    await page.getByRole("button", { name: /Loop selected scene/i }).click();
     // Kick natural play. Sample currentTime; assert non-decreasing.
     const samples: number[] = await page.evaluate(async (windowMs: number) => {
       const a = document.querySelector(".preview audio") as HTMLAudioElement;
@@ -95,5 +96,37 @@ test.describe("Playback (story 13)", () => {
     await expect(page.locator('.scene-row[data-scene-index="2"]')).toHaveClass(/current/);
     await expect(page.locator(".preview .timeline .thumb").nth(1)).toHaveClass(/current/);
     await expect(page.locator(".preview .caption")).toContainText(/#2|oh oh oh/);
+  });
+
+  test("playback.loop-control — loop is on by default and same-scene click does not restart", async ({ page }) => {
+    await gotoEditor(page);
+    const loop = page.getByRole("button", { name: /Loop selected scene/i });
+    await expect(loop).toHaveAttribute("aria-pressed", "true");
+
+    await page.evaluate(() => {
+      const a = document.querySelector(".preview audio") as HTMLAudioElement;
+      Object.defineProperty(a, "paused", { value: false, configurable: true });
+      Object.defineProperty(a, "currentTime", { value: 0.18, writable: true, configurable: true });
+      a.dispatchEvent(new Event("timeupdate"));
+    });
+    await page.locator('.scene-row[data-scene-index="1"] .scene-header').click();
+    const t = await page.evaluate(() => {
+      return (document.querySelector(".preview audio") as HTMLAudioElement).currentTime;
+    });
+    expect(t).toBeGreaterThan(0.15);
+  });
+
+  test("playback.option-space — toggles play without stealing from text fields", async ({ page }) => {
+    await gotoEditor(page);
+    const calls = await page.evaluate(async () => {
+      const a = document.querySelector(".preview audio") as HTMLAudioElement;
+      let playCount = 0;
+      a.play = async () => { playCount += 1; };
+      Object.defineProperty(a, "paused", { value: true, configurable: true });
+      window.dispatchEvent(new KeyboardEvent("keydown", { altKey: true, code: "Space" }));
+      await new Promise(r => setTimeout(r, 0));
+      return playCount;
+    });
+    expect(calls).toBe(1);
   });
 });

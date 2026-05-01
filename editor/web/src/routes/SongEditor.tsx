@@ -76,7 +76,13 @@ function SongEditorInner({
   // Single source of truth for "what scene is playing" — the audio element.
   // useAudioPlayback owns the audio events and exposes playingSceneIdx +
   // seekToScene. Storyboard click → seekToScene; no separate currentIdx state.
-  const { audioRef, playingSceneIdx, seekToScene } = useAudioPlayback({
+  const {
+    audioRef,
+    playingSceneIdx,
+    loopEnabled,
+    setLoopEnabled,
+    seekToScene,
+  } = useAudioPlayback({
     scenes: song.scenes,
   });
 
@@ -125,6 +131,8 @@ function SongEditorInner({
             song={song}
             audioRef={audioRef}
             playingSceneIdx={playingSceneIdx}
+            loopEnabled={loopEnabled}
+            onLoopEnabledChange={setLoopEnabled}
             onSeekToScene={seekToScene}
           />
         }

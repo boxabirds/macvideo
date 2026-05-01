@@ -59,7 +59,7 @@ function status(overrides: Partial<StageStatus> = {}): StageStatus {
 describe("PipelinePanel", () => {
   it("renders 6 breadcrumb segments and shows 'done' for completed ones", () => {
     const { container } = render(<PipelinePanel song={makeSong()} status={status()} />);
-    expect(screen.getByText(/lyric alignment/)).toBeInTheDocument();
+    expect(screen.getByText(/transcription/)).toBeInTheDocument();
     expect(screen.getByText(/world description/)).toBeInTheDocument();
     expect(screen.getByText(/storyboard/)).toBeInTheDocument();
     expect(screen.getByText(/image prompts/)).toBeInTheDocument();
@@ -139,7 +139,7 @@ describe("PipelinePanel", () => {
         regenRuns={[transcribeRun({ status: "running" })]}
       />,
     );
-    const row = screen.getByText(/lyric alignment/).closest(".pipeline-stage")!;
+    const row = screen.getByText(/transcription/).closest(".pipeline-stage")!;
     expect(row).toHaveClass("running");
     expect(row.textContent).toContain("about 90 seconds left");
     // Run button is disabled (showing the ellipsis) so the user can't double-click.
@@ -225,7 +225,8 @@ describe("PipelinePanel", () => {
         })]}
       />,
     );
-    const row = screen.getByText(/lyric alignment/).closest(".pipeline-stage")!;
+    const row = screen.getByText(/transcription/).closest(".pipeline-stage")!;
+    expect(row.textContent).toContain("Aligning lyrics");
     expect(row.textContent).toContain("about 25 seconds left");
   });
 
@@ -241,7 +242,7 @@ describe("PipelinePanel", () => {
       />,
     );
     // Spinner is visible…
-    const row = screen.getByText(/lyric alignment/).closest(".pipeline-stage")!;
+    const row = screen.getByText(/transcription/).closest(".pipeline-stage")!;
     expect(row).toHaveClass("running");
     // …and the failed banner is NOT — even though a failed run exists.
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -299,11 +300,13 @@ describe("PipelinePanel", () => {
     const { container } = render(
       <PipelinePanel song={makeSong()} status={status()} />,
     );
-    // Done stages carry the ✓ glyph and the 'done' status label.
+    // Done stages carry the ✓ glyph and an accessible status label backup.
     const transcribe = container.querySelector('[data-stage="transcription"]')!;
     expect(transcribe.querySelector(".stage-indicator--done")).not.toBeNull();
     expect(transcribe.querySelector(".stage-indicator-glyph")?.textContent).toBe("✓");
-    expect(transcribe.querySelector(".stage-status-label")?.textContent).toBe("done");
+    const statusLabel = transcribe.querySelector(".stage-status-label");
+    expect(statusLabel?.textContent).toBe("done");
+    expect(statusLabel).toHaveClass("sr-only");
   });
 
   it("clicking a blocked segment opens a tooltip naming the prereq", async () => {
@@ -480,7 +483,7 @@ describe("PipelinePanel", () => {
         })]}
       />,
     );
-    expect(document.body.textContent).toMatch(/Separating vocals…/);
+    expect(document.body.textContent).toMatch(/Separating vocals/);
   });
 
   it("Story 14: phase label 'Transcribing…' renders during the WhisperX phase", () => {
@@ -494,7 +497,35 @@ describe("PipelinePanel", () => {
         })]}
       />,
     );
-    expect(document.body.textContent).toMatch(/^.*Transcribing….*$/);
+    expect(document.body.textContent).toMatch(/^.*Transcribing.*$/);
+  });
+
+  it("Story 21: audio transcription shows processed time against total duration", () => {
+    render(
+      <PipelinePanel
+        song={makeSong({ scenes: [], duration_s: 228 })}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({
+          scope: "stage_audio_transcribe", status: "running",
+          phase: "transcribing", progress_pct: 50,
+        })]}
+      />,
+    );
+    expect(document.body.textContent).toContain("Transcribing · 1:54 / 3:48 processed");
+  });
+
+  it("Story 21: stage status words are visually hidden rather than shown in pills", () => {
+    const { container } = render(
+      <PipelinePanel
+        song={makeSong({ scenes: [] })}
+        status={status({ transcription: "empty" })}
+        regenRuns={[transcribeRun({ scope: "stage_audio_transcribe", status: "running" })]}
+      />,
+    );
+    const label = container.querySelector('[data-stage="transcription"] .stage-status-label');
+    expect(label).toHaveClass("sr-only");
+    expect(container.querySelector('[data-stage="transcription"] .stage-indicator'))
+      ?.toHaveAttribute("aria-label", "running");
   });
 
   it("Story 14: phase=null falls back to Story 12 ETA copy", () => {

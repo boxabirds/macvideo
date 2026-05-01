@@ -39,11 +39,14 @@ type PreviewProps = {
   song: SongDetail;
   audioRef: React.RefObject<HTMLAudioElement | null>;
   playingSceneIdx: number | null;
+  loopEnabled: boolean;
+  onLoopEnabledChange: (enabled: boolean) => void;
   onSeekToScene: (idx: number) => void;
 };
 
 export default function Preview({
-  song, audioRef, playingSceneIdx, onSeekToScene,
+  song, audioRef, playingSceneIdx, loopEnabled, onLoopEnabledChange,
+  onSeekToScene,
 }: PreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -178,12 +181,22 @@ export default function Preview({
               [{viewerScene.start_s.toFixed(1)}s – {viewerScene.end_s.toFixed(1)}s] · {viewerScene.kind}
               {viewerScene.camera_intent ? ` · ${viewerScene.camera_intent}` : ""}
             </div>
-            {viewerScene.beat ? <div className="meta">{viewerScene.beat}</div> : null}
+            {viewerScene.beat ? <div className="meta">Visual beat: {viewerScene.beat}</div> : null}
           </div>
         ) : null}
       </div>
 
       <div className="audio-bar">
+        <button
+          type="button"
+          className={`audio-control-btn loop-toggle${loopEnabled ? " pressed" : ""}`}
+          onClick={() => onLoopEnabledChange(!loopEnabled)}
+          aria-label="Loop selected scene"
+          aria-pressed={loopEnabled}
+          title="Loop selected scene"
+        >
+          ↻
+        </button>
         <audio ref={audioRef} src={audioSrc} controls preload="auto" />
       </div>
 

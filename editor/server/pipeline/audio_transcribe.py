@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from .paths import SongPaths
-from .subprocess_runner import RunResult, cancel_run, run_script
+from .subprocess_runner import ProgressEvent, RunResult, cancel_run, run_script
 
 
 # ---------- public types ----------------------------------------------------
@@ -85,11 +85,12 @@ def _start_cancel_watcher(
 def _run_phase(
     *, script: Path, args: list[str], run_id: int,
     cancel_event: threading.Event,
+    progress_cb: Optional[Callable[[ProgressEvent], None]] = None,
 ) -> RunResult:
     stop = threading.Event()
     watcher = _start_cancel_watcher(cancel_event, run_id, stop)
     try:
-        return run_script(script, args, run_id=run_id)
+        return run_script(script, args, run_id=run_id, progress_cb=progress_cb)
     finally:
         stop.set()
         watcher.join(timeout=1.0)
@@ -208,6 +209,7 @@ def run_audio_transcribe(
             phase_durations=phase_durations,
             failing_phase=PHASE_SEPARATING_VOCALS,
         )
+    cb(PHASE_SEPARATING_VOCALS, 100.0)
 
     # ---------- phase 2: WhisperX transcription (JSON with segments) --------
     tmp_dir = Path(tempfile.mkdtemp(prefix="audio-transcribe-", dir=str(paths.run_dir)))
@@ -224,11 +226,16 @@ def run_audio_transcribe(
         )
     cb(PHASE_TRANSCRIBING, 0.0)
     p2_start = time.time()
+    def _transcribe_progress(event: ProgressEvent) -> None:
+        if event.kind == "progress" and event.progress_pct is not None:
+            cb(PHASE_TRANSCRIBING, float(event.progress_pct))
+
     wx_result = _run_phase(
         script=wx_script,
         args=wx_args,
         run_id=run_id,
         cancel_event=cancel_event,
+        progress_cb=_transcribe_progress,
     )
     phase_durations[PHASE_TRANSCRIBING] = time.time() - p2_start
     if cancel_event.is_set():
@@ -251,6 +258,7 @@ def run_audio_transcribe(
             phase_durations=phase_durations,
             failing_phase=PHASE_TRANSCRIBING,
         )
+    cb(PHASE_TRANSCRIBING, 100.0)
     if not tmp_json.exists():
         shutil.rmtree(tmp_dir, ignore_errors=True)
         return AudioTranscribeResult(

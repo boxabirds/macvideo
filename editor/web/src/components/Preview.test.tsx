@@ -52,6 +52,8 @@ function PreviewHarness({
       song={song}
       audioRef={audioRef}
       playingSceneIdx={playingSceneIdx}
+      loopEnabled={true}
+      onLoopEnabledChange={() => {}}
       onSeekToScene={onSeekToScene}
     />
   );
@@ -144,5 +146,35 @@ describe("Preview", () => {
     const button = screen.getByRole("button", { name: /full-screen/i });
     button.click();
     expect(requestSpy).toHaveBeenCalled();
+  });
+
+  it("renders the loop toggle pressed by default next to the audio controls", () => {
+    render(<PreviewHarness song={makeSong([makeScene(1)])} playingSceneIdx={1} />);
+    const loop = screen.getByRole("button", { name: /loop selected scene/i });
+    expect(loop).toHaveAttribute("aria-pressed", "true");
+    expect(loop).toHaveClass("pressed");
+  });
+
+  it("wires only the loop control next to the native audio controller", () => {
+    const onSeekToScene = vi.fn();
+    const onLoopEnabledChange = vi.fn();
+    function Harness() {
+      const audioRef = useRef<HTMLAudioElement | null>(null);
+      return (
+        <Preview
+          song={makeSong([makeScene(1)])}
+          audioRef={audioRef}
+          playingSceneIdx={1}
+          loopEnabled={true}
+          onLoopEnabledChange={onLoopEnabledChange}
+          onSeekToScene={onSeekToScene}
+        />
+      );
+    }
+    render(<Harness />);
+    screen.getByRole("button", { name: /loop selected scene/i }).click();
+    expect(onLoopEnabledChange).toHaveBeenCalledWith(false);
+    expect(screen.queryByRole("button", { name: /play or pause/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^stop$/i })).not.toBeInTheDocument();
   });
 });

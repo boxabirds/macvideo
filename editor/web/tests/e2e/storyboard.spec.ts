@@ -47,8 +47,7 @@ test.describe("Storyboard", () => {
     await gotoEditor(page);
     await expandRow(page, 2);
     const row = page.locator('.scene-row[data-scene-index="2"]');
-    // Fourth textarea block on this row = image prompt (beat first, then
-    // subject input, then camera select, then prompt textarea).
+    // Second textarea on this row = image prompt (visual beat, prompt).
     const prompt = row.locator("textarea").nth(1);
     await prompt.click();
     await prompt.fill("hand-written prompt for scene 2");
@@ -65,10 +64,7 @@ test.describe("Storyboard", () => {
 
   test("clicking a scene row seeks the preview to that scene", async ({ page }) => {
     await gotoEditor(page);
-    // Click scene 2 row's header, which should fire onSelect → parent sets
-    // currentIdx → Preview seeks audio.currentTime to scene 2's start_s
-    // (0.3s in the tiny-song fixture). Click in a whitespace region of the
-    // header so we don't accidentally open the editable target_text input.
+    // Click scene 2 row's header, which should fire onSelect and seek audio.
     await page.locator('.scene-row[data-scene-index="2"] .scene-time').click();
     const t = await page.evaluate(() => {
       const a = document.querySelector(".preview audio") as HTMLAudioElement;
@@ -104,5 +100,30 @@ test.describe("Storyboard", () => {
     // (but NOT scene 2 clip — identity chain doesn't affect clips).
     const row2kf = page.locator('.scene-row[data-scene-index="2"] .chip.keyframe');
     await expect(row2kf).toHaveClass(/pending|error/, { timeout: 2000 });
+  });
+
+  test("edit transcript words through correction modal, reload, phrase persists separately from visual beat", async ({ page }) => {
+    await gotoEditor(page);
+    await expandRow(page, 1);
+    const row = page.locator('.scene-row[data-scene-index="1"]');
+    await expect(row).toContainText("Transcript");
+    await expect(row).toContainText("Visual beat");
+    const visualBeatBefore = await row.locator("textarea").first().inputValue();
+
+    await row.locator(".transcript-word").first().click();
+    await row.getByRole("button", { name: /Edit/i }).click();
+    const corrected = `corrected ${Date.now()}`;
+    await page.getByRole("dialog").locator("input").fill(corrected);
+    await page.getByRole("button", { name: /Make Correction/i }).click();
+    await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 3000 });
+
+    await page.reload();
+    await page.locator(".preview audio").waitFor({ state: "attached" });
+    await expandRow(page, 1);
+    const reloadedRow = page.locator('.scene-row[data-scene-index="1"]');
+    for (const token of corrected.split(/\s+/)) {
+      await expect(reloadedRow.locator(".transcript-word", { hasText: token })).toBeVisible();
+    }
+    await expect(reloadedRow.locator("textarea").first()).toHaveValue(visualBeatBefore);
   });
 });

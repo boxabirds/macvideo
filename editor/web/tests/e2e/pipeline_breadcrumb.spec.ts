@@ -24,7 +24,7 @@ test.describe("Pipeline breadcrumb (Story 17)", () => {
     // Stage labels render in order.
     const labels = await segments.locator(".label").allInnerTexts();
     expect(labels.map(s => s.trim())).toEqual([
-      "lyric alignment",
+      "transcription",
       "world description",
       "storyboard",
       expect.stringMatching(/^image prompts/),
@@ -43,10 +43,13 @@ test.describe("Pipeline breadcrumb (Story 17)", () => {
     await expect(
       page.locator('[data-stage="transcription"] .stage-indicator--done'),
     ).toBeVisible();
-    // Status label backup is rendered for color-blind users.
+    // Status label backup is present for assistive tech but visually hidden.
     await expect(
       page.locator('[data-stage="transcription"] .stage-status-label'),
     ).toHaveText("done");
+    await expect(
+      page.locator('[data-stage="transcription"] .stage-status-label'),
+    ).toHaveClass(/sr-only/);
   });
 
   test("fresh song: storyboard segment is blocked and click opens a tooltip", async ({ page }) => {
@@ -88,7 +91,7 @@ test.describe("Pipeline breadcrumb (Story 17)", () => {
   });
 
   test("running-detail: triggering transcribe on a fresh song surfaces the .stage-running-detail label", async ({ page }) => {
-    // Covers ui.stage-running-detail. fresh-song-nl has lyric alignment pending
+    // Covers ui.stage-running-detail. fresh-song-nl has transcription pending
     // (no scenes yet); clicking the audio-transcribe action fires the stage,
     // and the running window is short but observable before completion.
     await gotoEditor(page, FRESH);

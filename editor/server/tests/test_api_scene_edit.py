@@ -107,3 +107,24 @@ def test_reset_user_authored_flag_to_false(client_for, tmp_env, fixture_song_one
     )
     assert r.status_code == 200
     assert r.json()["prompt_is_user_authored"] is False
+
+
+def test_patch_target_text_persists_phrase_without_overwriting_beat(client_for, tmp_env, fixture_song_one):
+    fixture_song_one(tmp_env["music"], tmp_env["outputs"])
+    client_for.post("/api/import")
+
+    before = client_for.get("/api/songs/tiny-song/scenes/1").json()
+    r = client_for.patch(
+        "/api/songs/tiny-song/scenes/1",
+        json={"target_text": "corrected transcript phrase"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["target_text"] == "corrected transcript phrase"
+    assert body["beat"] == before["beat"]
+    assert "keyframe_stale" in body["dirty_flags"]
+    assert "clip_stale" in body["dirty_flags"]
+
+    reloaded = client_for.get("/api/songs/tiny-song/scenes/1").json()
+    assert reloaded["target_text"] == "corrected transcript phrase"
+    assert reloaded["beat"] == before["beat"]

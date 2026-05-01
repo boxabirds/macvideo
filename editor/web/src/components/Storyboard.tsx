@@ -6,17 +6,23 @@
 //
 // Presentation layer additions (post-Story 3):
 //   - Collapsible rows: header-only by default; expando toggles the body.
-//   - target_text inline editable (widens Story 3 PRD — see SongEditor).
+//   - target_text is corrected through selectable transcript word tokens.
 //   - Status chips show icons: ● (done), ● amber (pending/stale), ↻ (in-flight), ⚠ (error).
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { Scene, SongDetail } from "../types";
 import {
   ApiError,
   type SceneTake,
+  type TranscriptResponse,
+  applyTranscriptCorrection,
+  getSceneTranscript,
   listTakes,
   patchScene,
+  redoTranscriptCorrection,
   regenerateScene,
+  revertTranscriptCorrection,
   selectTake,
+  undoTranscriptCorrection,
 } from "../api";
 
 // Module-scoped retry queue. A queued retry is a field edit whose PATCH
@@ -42,13 +48,13 @@ function isNetworkFailure(e: unknown): boolean {
 // How long a row stays "auto-scroll-followable" after a user scroll gesture.
 // After this we resume auto-scrolling the current scene into view.
 const SCROLL_OVERRIDE_MS = 3000;
+const SUMMARY_WORDS = 5;
 
 type EditableField =
   | "beat"
   | "subject_focus"
   | "camera_intent"
-  | "image_prompt"
-  | "target_text";
+  | "image_prompt";
 
 type ActiveArtefacts = "keyframe" | "clip";
 type ActiveRegensMap = Record<number, Set<ActiveArtefacts>>;
@@ -108,6 +114,12 @@ function chipStateFor(
   return "done";
 }
 
+function sceneSummary(text: string | null | undefined): string {
+  const words = (text ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "(empty phrase)";
+  return words.slice(0, SUMMARY_WORDS).join(" ");
+}
+
 type Props = {
   song: SongDetail;
   cameraIntents: string[];
@@ -140,8 +152,10 @@ const SceneRow = memo(function SceneRow({
   const [subject, setSubject] = useState(scene.subject_focus ?? "");
   const [prompt, setPrompt] = useState(scene.image_prompt ?? "");
   const [camera, setCamera] = useState(scene.camera_intent ?? "");
-  const [targetText, setTargetText] = useState(scene.target_text ?? "");
-  const [editingTargetText, setEditingTargetText] = useState(false);
+  const [transcriptWords, setTranscriptWords] = useState<TranscriptResponse["words"] | null>(null);
+  const [transcriptLoading, setTranscriptLoading] = useState(false);
+  const [selection, setSelection] = useState<null | { start: number; end: number }>(null);
+  const [correctionModal, setCorrectionModal] = useState<null | { text: string; error: string | null; busy: boolean }>(null);
 
   // Per-field saving + error state. `saving` is the set of fields with an
   // in-flight PATCH; `errors` is { field -> message } when PATCH failed and
@@ -156,7 +170,21 @@ const SceneRow = memo(function SceneRow({
   useEffect(() => { setSubject(scene.subject_focus ?? ""); }, [scene.subject_focus]);
   useEffect(() => { setPrompt(scene.image_prompt ?? ""); }, [scene.image_prompt]);
   useEffect(() => { setCamera(scene.camera_intent ?? ""); }, [scene.camera_intent]);
-  useEffect(() => { setTargetText(scene.target_text ?? ""); }, [scene.target_text]);
+  useEffect(() => {
+    if (!expanded || transcriptWords !== null || transcriptLoading) return;
+    setTranscriptLoading(true);
+    getSceneTranscript(slug, scene.index)
+      .then(resp => {
+        setTranscriptWords(Array.isArray(resp.words) ? resp.words : []);
+        if (typeof resp.target_text === "string" && resp.target_text !== scene.target_text) {
+          onPatch({ ...scene, target_text: resp.target_text });
+        }
+      })
+      .catch(e => {
+        console.error("Transcript load failed", e);
+      })
+      .finally(() => setTranscriptLoading(false));
+  }, [expanded, transcriptWords, transcriptLoading, slug, scene, onPatch]);
 
   const kfState = chipStateFor(scene, "keyframe", activeArtefacts.has("keyframe"));
   const clipState = chipStateFor(scene, "clip", activeArtefacts.has("clip"));
@@ -166,14 +194,12 @@ const SceneRow = memo(function SceneRow({
     subject_focus: subject,
     camera_intent: camera,
     image_prompt: prompt,
-    target_text: targetText,
   };
   const savedValues: Record<EditableField, string> = {
     beat: scene.beat ?? "",
     subject_focus: scene.subject_focus ?? "",
     camera_intent: scene.camera_intent ?? "",
     image_prompt: scene.image_prompt ?? "",
-    target_text: scene.target_text ?? "",
   };
   const isDirty = (f: EditableField) => currentBuffers[f] !== savedValues[f];
 
@@ -221,6 +247,76 @@ const SceneRow = memo(function SceneRow({
   };
 
   const timeRange = `[${scene.start_s.toFixed(1)}s – ${scene.end_s.toFixed(1)}s]`;
+  const selectedWords = selection && transcriptWords
+    ? transcriptWords.slice(selection.start, selection.end + 1)
+    : [];
+  const selectedText = selectedWords.map(w => w.text).join(" ");
+  const selectedCorrectionId = selectedWords.find(w => w.correction_id != null)?.correction_id ?? null;
+  const canEditTranscript = selectedWords.length > 0;
+
+  const applyTranscriptResponse = useCallback((resp: TranscriptResponse) => {
+    setTranscriptWords(resp.words);
+    setSelection(null);
+    onPatch({ ...scene, target_text: resp.target_text });
+  }, [onPatch, scene]);
+
+  useEffect(() => {
+    if (!current) return;
+    const onKeyDown = async (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z") return;
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName?.toLowerCase();
+      if (tagName === "input" || tagName === "textarea" || tagName === "select" || target?.isContentEditable) {
+        return;
+      }
+      event.preventDefault();
+      try {
+        const resp = event.shiftKey
+          ? await redoTranscriptCorrection(slug)
+          : await undoTranscriptCorrection(slug);
+        if (resp.scene_index === scene.index) {
+          applyTranscriptResponse(resp);
+        }
+      } catch (e) {
+        if (e instanceof ApiError && (e.detail as { code?: string })?.code?.startsWith("no_")) {
+          return;
+        }
+        console.error("Transcript history update failed", e);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [applyTranscriptResponse, current, scene.index, slug]);
+
+  const submitCorrection = async () => {
+    if (!selection || !correctionModal) return;
+    setCorrectionModal(prev => prev ? { ...prev, busy: true, error: null } : prev);
+    try {
+      const resp = await applyTranscriptCorrection(slug, scene.index, {
+        start_word_index: selection.start,
+        end_word_index: selection.end,
+        text: correctionModal.text,
+      });
+      applyTranscriptResponse(resp);
+      setCorrectionModal(null);
+    } catch (e) {
+      const msg = e instanceof ApiError ? `HTTP ${e.status}` : String(e);
+      setCorrectionModal(prev => prev ? { ...prev, busy: false, error: msg } : prev);
+    }
+  };
+
+  const revertSelection = async () => {
+    if (selectedCorrectionId == null || !correctionModal) return;
+    setCorrectionModal(prev => prev ? { ...prev, busy: true, error: null } : prev);
+    try {
+      const resp = await revertTranscriptCorrection(slug, scene.index, selectedCorrectionId);
+      applyTranscriptResponse(resp);
+      setCorrectionModal(null);
+    } catch (e) {
+      const msg = e instanceof ApiError ? `HTTP ${e.status}` : String(e);
+      setCorrectionModal(prev => prev ? { ...prev, busy: false, error: msg } : prev);
+    }
+  };
 
   return (
     <div
@@ -247,41 +343,7 @@ const SceneRow = memo(function SceneRow({
         </button>
         <h3 className="scene-title">
           <span className="scene-num">#{scene.index}</span>
-          {editingTargetText ? (
-            <input
-              type="text"
-              className="scene-title-input"
-              autoFocus
-              value={targetText}
-              onChange={e => setTargetText(e.target.value)}
-              onClick={e => e.stopPropagation()}
-              onBlur={() => {
-                setEditingTargetText(false);
-                void commit("target_text", targetText);
-              }}
-              onKeyDown={e => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  (e.target as HTMLInputElement).blur();
-                } else if (e.key === "Escape") {
-                  setTargetText(scene.target_text ?? "");
-                  setEditingTargetText(false);
-                }
-              }}
-            />
-          ) : (
-            <span
-              className={`scene-title-text editable${errors.target_text ? " field-error" : ""}`}
-              title="click to edit lyric"
-              onClick={e => {
-                e.stopPropagation();
-                setEditingTargetText(true);
-              }}
-            >
-              {scene.target_text}
-            </span>
-          )}
-          {badgeFor("target_text")}
+          <span className="scene-title-text">{sceneSummary(scene.target_text)}</span>
         </h3>
         <div className="scene-header-chips">
           <StatusChip label="keyframe" state={kfState} />
@@ -291,8 +353,54 @@ const SceneRow = memo(function SceneRow({
       </div>
 
       {expanded ? (
-        <div className="scene-body" onClick={onClick}>
-          <label>Beat{badgeFor("beat")}</label>
+        <div className="scene-body">
+          <div className="transcript-editor">
+            <div className="transcript-editor-header">
+              <label>Transcript</label>
+              {transcriptWords && transcriptWords.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setCorrectionModal({ text: selectedText, error: null, busy: false })}
+                  disabled={!canEditTranscript}
+                  title={canEditTranscript ? "Edit selected transcript words" : "Select transcript words first"}
+                >
+                  Edit…
+                </button>
+              ) : null}
+            </div>
+            <div className="transcript-words" aria-label="Transcript words">
+              {transcriptLoading ? <span className="transcript-empty">Loading transcript…</span> : null}
+              {!transcriptLoading && transcriptWords && transcriptWords.length === 0 ? (
+                <span className="transcript-empty">No transcript words</span>
+              ) : null}
+              {(transcriptWords ?? []).map(word => {
+                const selected = selection
+                  ? word.word_index >= selection.start && word.word_index <= selection.end
+                  : false;
+                return (
+                  <button
+                    key={word.id}
+                    type="button"
+                    className={`transcript-word${selected ? " selected" : ""}${word.correction_id ? " corrected" : ""}${word.warning ? " warning" : ""}`}
+                    title={`${word.start_s.toFixed(2)}s – ${word.end_s.toFixed(2)}s${word.correction_id ? `\nOriginal: ${word.original_text}` : ""}${word.warning ? `\nWarning: ${word.warning}` : ""}`}
+                    onMouseDown={() => setSelection({ start: word.word_index, end: word.word_index })}
+                    onMouseEnter={e => {
+                      if (e.buttons !== 1) return;
+                      setSelection(prev => prev ? {
+                        start: Math.min(prev.start, word.word_index),
+                        end: Math.max(prev.start, word.word_index),
+                      } : prev);
+                    }}
+                    onClick={() => setSelection({ start: word.word_index, end: word.word_index })}
+                  >
+                    {word.text}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <label>Visual beat{badgeFor("beat")}</label>
           <textarea
             value={beat}
             onChange={e => setBeat(e.target.value)}
@@ -336,6 +444,39 @@ const SceneRow = memo(function SceneRow({
             slug={slug} sceneIndex={scene.index}
             onPatched={onPatch}
           />
+        </div>
+      ) : null}
+
+      {correctionModal ? (
+        <div className="dialog-backdrop" role="dialog" aria-modal="true">
+          <div className="dialog transcript-correction-dialog">
+            <h2>Edit transcript</h2>
+            <label>Selected words</label>
+            <input
+              value={correctionModal.text}
+              onChange={e => setCorrectionModal(prev => prev ? { ...prev, text: e.target.value } : prev)}
+              autoFocus
+            />
+            {correctionModal.busy ? (
+              <p className="dialog-status">Re-aligning words against the audio…</p>
+            ) : null}
+            {correctionModal.error ? (
+              <p className="dialog-error">{correctionModal.error}</p>
+            ) : null}
+            <div className="actions">
+              <button onClick={() => setCorrectionModal(null)} disabled={correctionModal.busy}>
+                Cancel
+              </button>
+              {selectedCorrectionId != null ? (
+                <button onClick={revertSelection} disabled={correctionModal.busy}>
+                  Revert to original
+                </button>
+              ) : null}
+              <button className="primary" onClick={submitCorrection} disabled={correctionModal.busy}>
+                {correctionModal.busy ? "Working…" : "Make Correction"}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
@@ -546,7 +687,9 @@ export default function Storyboard({
     const now = Date.now();
     if (now - lastUserScrollAt.current < SCROLL_OVERRIDE_MS) return;
     const row = rowRefs.current.get(playingSceneIdx);
-    if (row) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (row && typeof row.scrollIntoView === "function") {
+      row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
   }, [playingSceneIdx]);
 
   const emptyActive = useRef<Set<ActiveArtefacts>>(new Set());

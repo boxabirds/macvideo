@@ -42,6 +42,20 @@ export type Scene = {
   selected_clip_path: string | null;
   missing_assets: string[];
   dirty_flags: string[];
+  transcript_words?: TranscriptWord[];
+};
+
+export type TranscriptWord = {
+  id: number;
+  word_index: number;
+  text: string;
+  start_s: number;
+  end_s: number;
+  original_text: string;
+  original_start_s: number;
+  original_end_s: number;
+  correction_id: number | null;
+  warning: string | null;
 };
 
 export type SongDetail = {

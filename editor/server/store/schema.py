@@ -160,6 +160,41 @@ CREATE INDEX IF NOT EXISTS idx_regen_runs_song_scope_status
 
 CREATE INDEX IF NOT EXISTS idx_finished_videos_song_created
     ON finished_videos (song_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS transcript_words (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    scene_id            INTEGER NOT NULL REFERENCES scenes(id) ON DELETE CASCADE,
+    word_index          INTEGER NOT NULL,
+    text                TEXT NOT NULL,
+    start_s             REAL NOT NULL,
+    end_s               REAL NOT NULL,
+    original_text       TEXT NOT NULL,
+    original_start_s    REAL NOT NULL,
+    original_end_s      REAL NOT NULL,
+    correction_id       INTEGER,
+    warning             TEXT,
+    created_at          REAL NOT NULL,
+    updated_at          REAL NOT NULL,
+    UNIQUE (scene_id, word_index)
+);
+
+CREATE TABLE IF NOT EXISTS transcript_corrections (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    song_id                 INTEGER NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+    scene_id                INTEGER NOT NULL REFERENCES scenes(id) ON DELETE CASCADE,
+    original_words_json     TEXT NOT NULL,
+    corrected_words_json    TEXT NOT NULL,
+    status                  TEXT NOT NULL DEFAULT 'applied'
+                                CHECK (status IN ('applied', 'undone')),
+    created_at              REAL NOT NULL,
+    updated_at              REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_transcript_words_scene_idx
+    ON transcript_words (scene_id, word_index);
+
+CREATE INDEX IF NOT EXISTS idx_transcript_corrections_song_created
+    ON transcript_corrections (song_id, created_at DESC);
 """
 
 
