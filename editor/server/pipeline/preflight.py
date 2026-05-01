@@ -72,6 +72,24 @@ def _missing_script(path: Path, code: str, action: str) -> MissingDependency | N
     )
 
 
+def _generation_provider_ready() -> bool:
+    provider = os.environ.get("EDITOR_GENERATION_PROVIDER", "").strip().lower()
+    return provider in {"fake", "malformed"} or bool(os.environ.get("GEMINI_API_KEY"))
+
+
+def _missing_text_generation_provider(action: str) -> MissingDependency | None:
+    if _generation_provider_ready():
+        return None
+    return MissingDependency(
+        code="model_credentials_missing",
+        detail=(
+            f"{action} requires GEMINI_API_KEY or a configured product "
+            "generation provider before it can start."
+        ),
+        affected_action=action,
+    )
+
+
 def _missing_gemini(action: str) -> MissingDependency | None:
     if os.environ.get("GEMINI_API_KEY") or _is_fake_override("EDITOR_FAKE_GEN_KEYFRAMES"):
         return None
@@ -152,7 +170,9 @@ def preflight_stage(*, slug: str, stage: StageName) -> PreflightResult:
                 detail="legacy transcription requires a song audio file before it can start.",
                 affected_action="legacy transcription",
             ))
-    elif stage in {"world-brief", "storyboard", "image-prompts", "keyframes", "scene-keyframe"}:
+    elif stage in {"world-brief", "storyboard", "image-prompts"}:
+        _append_if_missing(missing, _missing_text_generation_provider("generation"))
+    elif stage in {"keyframes", "scene-keyframe"}:
         _append_if_missing(
             missing,
             _missing_script(

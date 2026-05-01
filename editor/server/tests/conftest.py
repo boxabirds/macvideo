@@ -42,6 +42,7 @@ def tmp_env(monkeypatch):
         "EDITOR_FAKE_RENDER_CLIPS",
         str(_FAKE_SCRIPTS / "fake_render_clips.py"),
     )
+    monkeypatch.setenv("EDITOR_GENERATION_PROVIDER", "fake")
     from importlib import reload
     import editor.server.config as cfg
     reload(cfg)

@@ -1,9 +1,10 @@
 // The storyboard editor for one song. Composes preview (story 2), storyboard
 // (story 3), pipeline panel (story 9), top bar (stories 4, 8, 10), and split
 // pane (story 6).
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import useSWR from "swr";
+import type { KeyedMutator } from "swr";
 import { fetcher } from "../api";
 import type { Scene, SongDetail } from "../types";
 import type { RegenRunSummary } from "../api";
@@ -42,7 +43,7 @@ function SongEditorInner({
   song, mutate, onBack,
 }: {
   song: SongDetail;
-  mutate: (next: SongDetail, opts?: { revalidate?: boolean }) => void;
+  mutate: KeyedMutator<SongDetail>;
   onBack: () => void;
 }) {
   const { data: intents } = useSWR<{ values: string[] }>(
@@ -59,6 +60,16 @@ function SongEditorInner({
   );
 
   const regenRuns = regenRunsResponse?.runs ?? [];
+  const regenRunSignature = useMemo(
+    () => regenRuns
+      .map(r => `${r.id}:${r.status}:${r.started_at ?? ""}:${r.ended_at ?? ""}:${r.error ?? ""}`)
+      .join("|"),
+    [regenRuns],
+  );
+  useEffect(() => {
+    if (regenRuns.length === 0) return;
+    void mutate();
+  }, [regenRunSignature, mutate, regenRuns.length]);
 
   const activeRegens = useMemo<ActiveRegensMap>(() => {
     const map: ActiveRegensMap = {};

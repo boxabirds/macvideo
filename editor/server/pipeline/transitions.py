@@ -218,6 +218,7 @@ class FilterChangeTransition:
             (time.time(), self.song_id),
         )
 
+        from ..generation import run_generation_stage
         from ..regen.queue import RegenJob, keyframe_queue
         from ..regen.runs import create_run, get_run
         from .stages import run_gen_keyframes_for_stage
@@ -234,9 +235,16 @@ class FilterChangeTransition:
         async def handler(r):  # noqa: ANN001
             import asyncio
             loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(
-                None,
-                lambda: run_gen_keyframes_for_stage(
+            def run_chain():
+                for generation_stage in ("world-brief", "storyboard", "image-prompts"):
+                    result = run_generation_stage(
+                        song_slug=slug,
+                        stage=generation_stage,  # type: ignore[arg-type]
+                        source_run_id=r.id,
+                    )
+                    if not result.ok:
+                        return result
+                return run_gen_keyframes_for_stage(
                     song_slug=slug,
                     song_filter=song_filter,
                     song_abstraction=song_abstraction,
@@ -245,7 +253,10 @@ class FilterChangeTransition:
                     stage="keyframes",
                     redo=True,
                     script_path=script_path,
-                ),
+                )
+            return await loop.run_in_executor(
+                None,
+                run_chain,
             )
 
         keyframe_queue.submit(RegenJob(run=run, handler=handler))

@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from .. import config as _cfg
+from ..generation import run_generation_stage
 from ..pipeline.preflight import preflight_stage
 from ..importer import import_all
 from ..pipeline.stages import run_gen_keyframes_for_stage
@@ -347,21 +348,46 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(
                 None,
-                lambda: run_gen_keyframes_for_stage(
-                    song_slug=slug_captured,
+                lambda: _run_generation_chain_then_keyframes(
+                    slug=slug_captured,
+                    source_run_id=r.id,
                     song_filter=enqueued_filter,
                     song_abstraction=enqueued_abstraction,
                     song_quality_mode=quality_mode,
-                    source_run_id=r.id,
-                    stage="keyframes",
-                    redo=True,
-                    script_path=_override_gen_keyframes(),
                 ),
             )
 
         keyframe_queue.submit(RegenJob(run=run, handler=handler))
 
     return get_song(slug, conn)
+
+
+def _run_generation_chain_then_keyframes(
+    *,
+    slug: str,
+    source_run_id: int,
+    song_filter: str,
+    song_abstraction: int,
+    song_quality_mode: str,
+):
+    for generation_stage in ("world-brief", "storyboard", "image-prompts"):
+        result = run_generation_stage(
+            song_slug=slug,
+            stage=generation_stage,  # type: ignore[arg-type]
+            source_run_id=source_run_id,
+        )
+        if not result.ok:
+            return result
+    return run_gen_keyframes_for_stage(
+        song_slug=slug,
+        song_filter=song_filter,
+        song_abstraction=song_abstraction,
+        song_quality_mode=song_quality_mode,
+        source_run_id=source_run_id,
+        stage="keyframes",
+        redo=True,
+        script_path=_override_gen_keyframes(),
+    )
 
 
 @router.post("/import")

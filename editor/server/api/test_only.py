@@ -94,6 +94,8 @@ _ALLOWED_ENV_KEYS = {
     "EDITOR_FAKE_MAKE_SHOTS",
     "EDITOR_FAKE_DEMUCS",
     "EDITOR_FAKE_WHISPERX_TRANSCRIBE",
+    "EDITOR_GENERATION_PROVIDER",
+    "EDITOR_GENERATION_MODEL",
     "GEMINI_API_KEY",
 }
 
@@ -119,6 +121,10 @@ def set_env(body: EnvOverrideBody):
 
 class WorkflowFixtureBody(BaseModel):
     slug: str = "workflow-e2e"
+    world_brief: str | None = "world"
+    sequence_arc: str | None = "arc"
+    include_prompts: bool = True
+    include_failed_runs: bool = True
 
 
 def _write_fixture_wav(path: Path) -> None:
@@ -151,9 +157,12 @@ def create_workflow_fixture(body: WorkflowFixtureBody):
             INSERT INTO songs (
                 slug, audio_path, duration_s, size_bytes, filter, abstraction,
                 quality_mode, world_brief, sequence_arc, created_at, updated_at
-            ) VALUES (?, ?, 2, ?, 'charcoal', 0, 'draft', 'world', 'arc', ?, ?)
+            ) VALUES (?, ?, 2, ?, 'charcoal', 0, 'draft', ?, ?, ?, ?)
             """,
-            (body.slug, str(wav_path), wav_path.stat().st_size, now, now),
+            (
+                body.slug, str(wav_path), wav_path.stat().st_size,
+                body.world_brief, body.sequence_arc, now, now,
+            ),
         )
         song_id = cur.lastrowid
         for idx in (1, 2):
@@ -167,7 +176,8 @@ def create_workflow_fixture(body: WorkflowFixtureBody):
                 """,
                 (
                     song_id, idx, f"line {idx}", idx - 1, idx,
-                    f"beat {idx}", f"prompt {idx}",
+                    f"beat {idx}" if body.sequence_arc else None,
+                    f"prompt {idx}" if body.include_prompts else None,
                     json.dumps(["keyframe_stale", "clip_stale"]) if idx == 1 else "[]",
                     now, now,
                 ),
@@ -187,20 +197,21 @@ def create_workflow_fixture(body: WorkflowFixtureBody):
                 "UPDATE scenes SET selected_keyframe_take_id = ?, selected_clip_take_id = ? WHERE id = ?",
                 (keyframe.lastrowid, clip.lastrowid, scene_id),
             )
-        c.execute(
-            """
-            INSERT INTO regen_runs (
-                scope, song_id, status, error, started_at, ended_at, created_at
-            ) VALUES ('stage_world_brief', ?, 'failed', 'world generation failed', ?, ?, ?)
-            """,
-            (song_id, now - 20, now - 10, now - 10),
-        )
-        c.execute(
-            """
-            INSERT INTO regen_runs (
-                scope, song_id, status, phase, progress_pct, started_at, created_at
-            ) VALUES ('stage_audio_transcribe', ?, 'running', 'transcribing', 50, ?, ?)
-            """,
-            (song_id, now - 5, now),
-        )
+        if body.include_failed_runs:
+            c.execute(
+                """
+                INSERT INTO regen_runs (
+                    scope, song_id, status, error, started_at, ended_at, created_at
+                ) VALUES ('stage_world_brief', ?, 'failed', 'world generation failed', ?, ?, ?)
+                """,
+                (song_id, now - 20, now - 10, now - 10),
+            )
+            c.execute(
+                """
+                INSERT INTO regen_runs (
+                    scope, song_id, status, phase, progress_pct, started_at, created_at
+                ) VALUES ('stage_audio_transcribe', ?, 'running', 'transcribing', 50, ?, ?)
+                """,
+                (song_id, now - 5, now),
+            )
     return {"ok": True, "slug": body.slug}

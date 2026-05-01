@@ -195,6 +195,24 @@ CREATE INDEX IF NOT EXISTS idx_transcript_words_scene_idx
 
 CREATE INDEX IF NOT EXISTS idx_transcript_corrections_song_created
     ON transcript_corrections (song_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS generation_provenance (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    song_id                 INTEGER NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+    stage                   TEXT NOT NULL
+                                CHECK (stage IN ('world-brief', 'storyboard', 'image-prompts')),
+    prompt_version          TEXT NOT NULL,
+    provider                TEXT NOT NULL,
+    model                   TEXT NOT NULL,
+    input_fingerprint       TEXT NOT NULL,
+    input_summary_json      TEXT NOT NULL,
+    response_metadata_json  TEXT NOT NULL,
+    source_run_id           INTEGER REFERENCES regen_runs(id) ON DELETE SET NULL,
+    created_at              REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_generation_provenance_song_stage_created
+    ON generation_provenance (song_id, stage, created_at DESC);
 """
 
 

@@ -36,4 +36,5 @@ exec env \
   EDITOR_MUSIC_DIR="${E2E_ROOT}/music" \
   EDITOR_OUTPUTS_DIR="${E2E_ROOT}/outputs" \
   EDITOR_TEST_ENDPOINTS=1 \
+  EDITOR_GENERATION_PROVIDER=fake \
   uv run uvicorn editor.server.main:app --port 8000 --log-level warning

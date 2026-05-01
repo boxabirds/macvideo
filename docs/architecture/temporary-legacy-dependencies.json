@@ -25,10 +25,10 @@
     },
     {
       "path": "editor/server/pipeline/stages.py",
-      "owner_story": 30,
-      "workflow": "world, storyboard, prompt, and keyframe generation",
-      "reason_remaining": "World, storyboard, prompt, and keyframe generation are still delegated to the legacy full-song stage runner until product-owned generation services exist.",
-      "removal_condition": "World, storyboard, prompt, and keyframe stages run through product-owned services and adapters."
+      "owner_story": 28,
+      "workflow": "keyframe generation",
+      "reason_remaining": "Keyframe creation still uses the temporary full-song stage runner until product-owned visual rendering services exist.",
+      "removal_condition": "Keyframe creation runs through product-owned rendering services and adapters."
     },
     {
       "path": "editor/server/pipeline/regen.py",
@@ -81,10 +81,10 @@
     },
     {
       "path": "editor/server/api/songs.py",
-      "owner_story": 29,
+      "owner_story": 28,
       "workflow": "song update chain regeneration",
-      "reason_remaining": "Filter and abstraction changes still enqueue legacy generation until workflow state and product generation services exist.",
-      "removal_condition": "Song updates enqueue product-owned services through centralized workflow state."
+      "reason_remaining": "Filter and abstraction changes now use product-owned written generation services but still enqueue temporary keyframe creation.",
+      "removal_condition": "Song updates enqueue product-owned rendering services for keyframes."
     },
     {
       "path": "editor/server/regen/stages.py",
