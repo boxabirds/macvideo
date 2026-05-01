@@ -178,6 +178,71 @@ describe("Storyboard", () => {
     expect(onPatch).toHaveBeenCalledWith(1, expect.objectContaining({ target_text: "new lyric" }));
   });
 
+  it("Story 27: correction controls preserve playback anchors from timed words", async () => {
+    const song = makeSong([makeScene({ index: 1, target_text: "alpha beta", start_s: 10, end_s: 14 })]);
+    const scene = song.scenes[0]!;
+    const onSeekToTime = vi.fn();
+    const corrected = {
+      scene_index: 1,
+      target_text: "alpha gamma delta",
+      words: [
+        ...transcriptPayload(scene).words.slice(0, 1),
+        {
+          id: 10,
+          word_index: 1,
+          text: "gamma",
+          start_s: 12,
+          end_s: 13,
+          original_text: "beta",
+          original_start_s: 12,
+          original_end_s: 14,
+          correction_id: 99,
+          warning: null,
+        },
+        {
+          id: 11,
+          word_index: 2,
+          text: "delta",
+          start_s: 13,
+          end_s: 14,
+          original_text: "beta",
+          original_start_s: 12,
+          original_end_s: 14,
+          correction_id: 99,
+          warning: null,
+        },
+      ],
+    };
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.endsWith("/transcript") && !init?.method) {
+        return { ok: true, status: 200, json: async () => transcriptPayload(scene) } as Response;
+      }
+      if (url.endsWith("/transcript/corrections")) {
+        return { ok: true, status: 200, json: async () => corrected } as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}) } as Response;
+    });
+
+    const { container } = render(
+      <Storyboard song={song} cameraIntents={["static hold"]}
+        playingSceneIdx={null} onSeekToScene={() => {}} onSeekToTime={onSeekToTime} onPatch={() => {}} />,
+    );
+    await expandAll(container);
+    await userEvent.click(await screen.findByRole("button", { name: "beta" }));
+    await userEvent.click(screen.getByRole("button", { name: /Edit/i }));
+    const input = screen.getByDisplayValue("beta");
+    await userEvent.clear(input);
+    await userEvent.type(input, "gamma delta");
+    await userEvent.click(screen.getByRole("button", { name: /Make Correction/i }));
+    await screen.findByRole("button", { name: "gamma" });
+
+    await userEvent.click(screen.getByRole("button", { name: "gamma" }));
+    expect(onSeekToTime).toHaveBeenLastCalledWith(12);
+    await userEvent.click(screen.getByRole("button", { name: "delta" }));
+    expect(onSeekToTime).toHaveBeenLastCalledWith(13);
+  });
+
   it("clicking a transcript word seeks playback to that word start", async () => {
     const song = makeSong([makeScene({ index: 1, target_text: "first second", start_s: 10, end_s: 14 })]);
     const scene = song.scenes[0]!;

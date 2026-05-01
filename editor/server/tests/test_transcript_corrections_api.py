@@ -40,14 +40,28 @@ def test_correction_preserves_untouched_word_timestamps(client_for, tmp_env, fix
     assert scene["target_text"] == "la gravid bag la"
 
 
-def test_empty_correction_deletes_selected_words(client_for, tmp_env, fixture_song_one):
+def test_empty_correction_is_rejected_to_preserve_timing_anchors(client_for, tmp_env, fixture_song_one):
     _setup(client_for, tmp_env, fixture_song_one)
     r = client_for.post(
         "/api/songs/tiny-song/scenes/1/transcript/corrections",
         json={"start_word_index": 1, "end_word_index": 1, "text": ""},
     )
+    assert r.status_code == 422
+    assert r.json()["detail"]["code"] == "empty_correction"
+
+
+def test_correction_marks_downstream_outputs_stale(client_for, tmp_env, fixture_song_one):
+    _setup(client_for, tmp_env, fixture_song_one)
+    r = client_for.post(
+        "/api/songs/tiny-song/scenes/1/transcript/corrections",
+        json={"start_word_index": 0, "end_word_index": 0, "text": "gravid"},
+    )
     assert r.status_code == 200, r.text
-    assert [w["text"] for w in r.json()["words"]] == ["la", "la"]
+    scene1 = client_for.get("/api/songs/tiny-song/scenes/1").json()
+    scene2 = client_for.get("/api/songs/tiny-song/scenes/2").json()
+    assert "keyframe_stale" in scene1["dirty_flags"]
+    assert "clip_stale" in scene1["dirty_flags"]
+    assert "keyframe_stale" in scene2["dirty_flags"]
 
 
 def test_undo_and_redo_survive_reload_path(client_for, tmp_env, fixture_song_one):

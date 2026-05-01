@@ -10,6 +10,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from ..store.staleness import SceneFieldEdit, flags_after_scene_edit
 from .common import get_db
 
 
@@ -115,13 +116,52 @@ def _word_payload(row) -> dict:
     }
 
 
-def _sync_scene_text(conn, scene_id: int) -> str:
+def _scene_count(conn, song_id: int) -> int:
+    return conn.execute(
+        "SELECT COUNT(*) FROM scenes WHERE song_id = ?", (song_id,),
+    ).fetchone()[0]
+
+
+def _mark_text_dependents_stale(conn, scene) -> None:
+    current = conn.execute(
+        "SELECT dirty_flags FROM scenes WHERE id = ?",
+        (scene["id"],),
+    ).fetchone()
+    flags = json.loads(current["dirty_flags"] or "[]") if current else []
+    own_flags, neighbours = flags_after_scene_edit(
+        flags,
+        SceneFieldEdit(scene_index=scene["scene_index"], field_name="target_text"),
+        _scene_count(conn, scene["song_id"]),
+    )
+    conn.execute(
+        "UPDATE scenes SET dirty_flags = ?, updated_at = ? WHERE id = ?",
+        (json.dumps(sorted(own_flags)), time.time(), scene["id"]),
+    )
+    for idx, nb_flags in neighbours.items():
+        nb = conn.execute(
+            "SELECT id, dirty_flags FROM scenes WHERE song_id = ? AND scene_index = ?",
+            (scene["song_id"], idx),
+        ).fetchone()
+        if nb is None:
+            continue
+        merged = set(json.loads(nb["dirty_flags"] or "[]"))
+        merged.update(nb_flags)
+        conn.execute(
+            "UPDATE scenes SET dirty_flags = ?, updated_at = ? WHERE id = ?",
+            (json.dumps(sorted(merged)), time.time(), nb["id"]),
+        )
+
+
+def _sync_scene_text(conn, scene_id: int, *, mark_stale: bool = False) -> str:
     words = _words(conn, scene_id)
     text = " ".join(w["text"] for w in words)
     conn.execute(
         "UPDATE scenes SET target_text = ?, updated_at = ? WHERE id = ?",
         (text, time.time(), scene_id),
     )
+    if mark_stale:
+        scene = conn.execute("SELECT * FROM scenes WHERE id = ?", (scene_id,)).fetchone()
+        _mark_text_dependents_stale(conn, scene)
     return text
 
 
@@ -184,7 +224,7 @@ def _replace_interval(conn, *, scene, start_idx: int, end_idx: int, replacement_
             w["original_text"], w["original_start_s"], w["original_end_s"],
             w["correction_id"], w["warning"], now, now,
         ))
-    _sync_scene_text(conn, scene["id"])
+    _sync_scene_text(conn, scene["id"], mark_stale=True)
 
 
 def _apply_correction(conn, *, scene, start_idx: int, end_idx: int, text: str) -> int | None:
@@ -197,6 +237,8 @@ def _apply_correction(conn, *, scene, start_idx: int, end_idx: int, text: str) -
 
     selected = [w for w in words if start_idx <= w["word_index"] <= end_idx]
     original_text = " ".join(w["text"] for w in selected)
+    if not _tokenize(text):
+        raise _coded_error(422, "empty_correction", "replacement text must contain at least one word")
     if original_text == text:
         return None
 
@@ -265,7 +307,7 @@ def _restore_words(conn, *, scene_id: int, words_payload: list[dict], correction
             w.get("original_end_s", w["end_s"]),
             w.get("correction_id", correction_id), w.get("warning"), now, now,
         ))
-    _sync_scene_text(conn, scene_id)
+    _sync_scene_text(conn, scene_id, mark_stale=True)
 
 
 @router.post("/songs/{slug}/transcript/undo", response_model=TranscriptResponse)

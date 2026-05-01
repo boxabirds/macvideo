@@ -181,16 +181,11 @@ def _insert_scenes(conn, song_id: int, shots: list[dict],
             (song_id, idx),
         ).fetchone()
         if existing:
-            # Don't overwrite user-authored prompts or user-edited fields
+            # Saved scene records are authoritative after first import. Old
+            # generated files may fill optional gaps, but they must not replace
+            # saved text/timing/plan fields during startup refresh.
             conn.execute("""
                 UPDATE scenes SET
-                    kind              = COALESCE(?, kind),
-                    target_text       = COALESCE(?, target_text),
-                    start_s           = COALESCE(?, start_s),
-                    end_s             = COALESCE(?, end_s),
-                    target_duration_s = COALESCE(?, target_duration_s),
-                    num_frames        = COALESCE(?, num_frames),
-                    lyric_line_idx    = COALESCE(?, lyric_line_idx),
                     beat              = COALESCE(beat, ?),
                     camera_intent     = COALESCE(camera_intent, ?),
                     subject_focus     = COALESCE(subject_focus, ?),
@@ -202,13 +197,6 @@ def _insert_scenes(conn, song_id: int, shots: list[dict],
                     updated_at        = ?
                 WHERE id = ?
             """, (
-                shot.get("kind"),
-                shot.get("target_text"),
-                shot.get("start_s"),
-                shot.get("end_s"),
-                shot.get("target_duration_s", shot.get("duration_s")),
-                shot.get("num_frames"),
-                shot.get("lyric_line_idx"),
                 sb.get("beat"),
                 sb.get("camera_intent"),
                 sb.get("subject_focus"),

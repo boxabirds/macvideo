@@ -22,6 +22,7 @@ verify the orchestration layer without Gemini calls.
 from __future__ import annotations
 
 import importlib.util
+import sqlite3
 import os
 import shutil
 import time
@@ -37,6 +38,7 @@ from .rescan import (
 )
 from .subprocess_runner import ProgressEvent, RunResult, run_script
 from ..store import connection
+from ..store.scene_plan import load_song_scene_plan
 from .. import config as _cfg
 
 
@@ -80,6 +82,36 @@ def _invalidate_cache(run_dir: Path, stage: StageKey) -> None:
 
 def _tail(s: str, n: int = 4000) -> str:
     return s[-n:] if len(s) > n else s
+
+
+def _ensure_legacy_shots_from_saved_records(
+    *, db_path: Path, song_slug: str, paths: SongPaths,
+) -> bool:
+    """Materialize temporary legacy shots input from saved scene records.
+
+    The saved database scene plan remains authoritative. This compatibility
+    file only feeds the remaining legacy generation script until Story 30
+    replaces that runtime.
+    """
+    if paths.shots_json.exists():
+        return True
+    try:
+        with connection(db_path) as conn:
+            song = conn.execute(
+                "SELECT id FROM songs WHERE slug = ?",
+                (song_slug,),
+            ).fetchone()
+            if song is None:
+                return False
+            plan = load_song_scene_plan(conn, song["id"])
+    except sqlite3.OperationalError:
+        return False
+    if plan.empty:
+        return False
+    paths.run_dir.mkdir(parents=True, exist_ok=True)
+    import json
+    paths.shots_json.write_text(json.dumps(plan.to_legacy_shots(), indent=2))
+    return True
 
 
 def run_gen_keyframes_for_stage(
@@ -131,11 +163,15 @@ def run_gen_keyframes_for_stage(
             music_root=Path(music_root), outputs_root=Path(outputs_root),
         )
 
-    # shots.json must exist before gen_keyframes can run.
-    if not paths.shots_json.exists():
+    # Legacy gen_keyframes.py still needs a shots-shaped input, but the
+    # product source of truth is the saved scene plan. Build the temporary
+    # compatibility file from saved records when old output files are gone.
+    if not _ensure_legacy_shots_from_saved_records(
+        db_path=Path(db_path), song_slug=song_slug, paths=paths,
+    ):
         return StageResult(
             ok=False, returncode=126, new_keyframes=0, new_prompts=0,
-            stdout_tail="", stderr_tail=f"shots.json missing at {paths.shots_json}",
+            stdout_tail="", stderr_tail="No saved scenes are available for generation.",
             duration_s=0.0,
         )
 

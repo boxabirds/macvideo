@@ -140,7 +140,7 @@ def test_missing_shots_json_returns_non_zero_without_raising(tmp_env):
         script_path=_fake_script(),
     )
     assert not result.ok
-    assert "shots.json missing" in result.stderr_tail
+    assert "No saved scenes are available" in result.stderr_tail
 
 
 def _run_transcribe_via_public_entrypoint(slug: str):

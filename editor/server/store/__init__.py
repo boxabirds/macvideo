@@ -14,6 +14,7 @@ from .schema import (
     connection,
     init_db,
 )
+from .scene_plan import ScenePlan, ScenePlanRow, load_song_scene_plan
 
 __all__ = [
     "ArtefactKind",
@@ -22,4 +23,7 @@ __all__ = [
     "QualityMode",
     "connection",
     "init_db",
+    "ScenePlan",
+    "ScenePlanRow",
+    "load_song_scene_plan",
 ]
