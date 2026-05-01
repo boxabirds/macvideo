@@ -46,10 +46,11 @@ CONFLICT_SCOPES = {
 class FilterChangeTransition:
     """Stateless model of a proposed filter change."""
 
-    def __init__(self, conn, slug: str, new_filter: str | None) -> None:
+    def __init__(self, conn, slug: str, new_filter: str | None, new_abstraction: int | None = None) -> None:
         self.conn = conn
         self.slug = slug
         self.new_filter = new_filter
+        self.new_abstraction = new_abstraction
 
         # Fetch song row: filter, abstraction, world_brief, and scene count.
         song = self.conn.execute(
@@ -160,7 +161,10 @@ class FilterChangeTransition:
         return {
             "kind": self.kind(),
             "from": {"filter": self.current_filter, "abstraction": self.current_abstraction},
-            "to": {"filter": self.new_filter, "abstraction": self.current_abstraction if self.current_abstraction is not None else 0},
+            "to": {
+                "filter": self.new_filter,
+                "abstraction": self._resolved_abstraction(),
+            },
             "scope": {
                 "will_regen_world_brief": est.will_regen_world_brief,
                 "will_regen_storyboard": est.will_regen_storyboard,
@@ -192,7 +196,7 @@ class FilterChangeTransition:
         if reason is not None:
             raise ConflictError(reason)
 
-        resolved_abstraction = self.current_abstraction if self.current_abstraction is not None else 0
+        resolved_abstraction = self._resolved_abstraction()
         self.conn.execute(
             "UPDATE songs SET filter = ?, abstraction = ?, updated_at = ? WHERE id = ?",
             (self.new_filter, resolved_abstraction, time.time(), self.song_id),
@@ -252,3 +256,10 @@ class FilterChangeTransition:
 
         keyframe_queue.submit(RegenJob(run=run, handler=handler))
         return {"kind": kind, "run_id": run_id}
+
+    def _resolved_abstraction(self) -> int:
+        if self.new_abstraction is not None:
+            return self.new_abstraction
+        if self.current_abstraction is not None:
+            return self.current_abstraction
+        return 0

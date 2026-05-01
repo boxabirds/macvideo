@@ -26,6 +26,31 @@ def test_stage_request_boundary_uses_workflow_blocked_reason(client_for, tmp_env
 
     assert r.status_code == 422
     assert r.json()["detail"]["reason"] == "Please generate the world and storyboard first."
+    from editor.server.store import connection
+    with connection(tmp_env["db"]) as c:
+        count = c.execute("SELECT COUNT(*) FROM regen_runs").fetchone()[0]
+    assert count == 0
+
+
+def test_stage_request_boundary_blocks_when_another_stage_is_running(client_for, tmp_env, fixture_song_one):
+    fixture_song_one(tmp_env["music"], tmp_env["outputs"])
+    client_for.post("/api/import")
+    from editor.server.store import connection
+    with connection(tmp_env["db"]) as c:
+        c.execute(
+            """
+            INSERT INTO regen_runs (
+                scope, song_id, status, progress_pct, phase,
+                started_at, ended_at, created_at
+            ) VALUES ('stage_world_brief', (SELECT id FROM songs WHERE slug = 'tiny-song'),
+                      'running', NULL, NULL, 1, NULL, 2)
+            """
+        )
+
+    r = client_for.post("/api/songs/tiny-song/stages/keyframes")
+
+    assert r.status_code == 409
+    assert r.json()["detail"]["reason_code"] == "workflow_busy"
 
 
 def test_workflow_serializes_retryable_failure_and_progress(client_for, tmp_env, fixture_song_one):

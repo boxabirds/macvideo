@@ -67,6 +67,28 @@ def test_preview_apply_parity_destructive(client_for, tmp_env):
     assert "clip_stale" not in patched["scenes"][1]["dirty_flags"]
 
 
+def test_visual_language_patch_does_not_preflight_downstream_keyframes(
+    client_for, tmp_env, monkeypatch,
+):
+    monkeypatch.setenv("EDITOR_GENERATION_PROVIDER", "fake")
+    monkeypatch.delenv("EDITOR_RENDER_PROVIDER", raising=False)
+    song_id = _insert_song(
+        tmp_env["db"],
+        "world-inputs",
+        filter=None,
+        world_brief=None,
+    )
+    _insert_scene(tmp_env["db"], song_id, scene_index=0, has_clip=False)
+
+    patch_res = client_for.patch(
+        "/api/songs/world-inputs",
+        json={"filter": "cyanotype", "abstraction": 0},
+    )
+
+    assert patch_res.status_code == 200, patch_res.text
+    assert patch_res.json()["filter"] == "cyanotype"
+
+
 def test_apply_refuses_in_flight_chain(client_for, tmp_env):
     song_id = _insert_song(tmp_env["db"], "blocked-filter", filter="oil impasto")
     _insert_regen_run(tmp_env["db"], song_id, scope="stage_world_brief", status="running")

@@ -17,7 +17,14 @@ from ..pipeline.stages import run_gen_keyframes_for_stage
 from ..rendering import run_render_stage
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import create_run, get_run
-from ..workflow import evaluate_song_workflow
+from ..workflow import (
+    WorkflowActionRequest,
+    WorkflowTransitionRejection,
+    evaluate_song_workflow,
+    plan_workflow_transition,
+    stage_key_from_name,
+    transition_rejection_status,
+)
 from .common import get_db
 
 
@@ -65,6 +72,30 @@ def _legacy_dep(stage) -> dict:
     }
 
 
+def _workflow_rejection(detail: WorkflowTransitionRejection) -> HTTPException:
+    return HTTPException(
+        status_code=transition_rejection_status(detail),
+        detail=detail.to_http_detail(),
+    )
+
+
+def _plan_stage_transition(conn, *, song_id: int, stage_name: str, redo: bool = False):
+    workflow_key = stage_key_from_name(stage_name)
+    if workflow_key is None:
+        raise HTTPException(status_code=404, detail=f"unknown stage '{stage_name}'")
+    if redo:
+        workflow = evaluate_song_workflow(conn, song_id)
+        state = workflow.stages[workflow_key].state
+        action = "retry" if state == "retryable" else "regenerate"
+    else:
+        action = "start"
+    return plan_workflow_transition(
+        conn,
+        song_id=song_id,
+        request=WorkflowActionRequest(stage=workflow_key, action=action),
+    )
+
+
 @router.post("/songs/{slug}/stages/{stage}")
 async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_db)):
     if stage not in _STAGE_SCOPES:
@@ -77,28 +108,17 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
     if not song:
         raise HTTPException(status_code=404, detail=f"song '{slug}' not found")
 
-    workflow = evaluate_song_workflow(conn, song["id"])
-    deps = _stage_deps(conn, song["id"])
-    workflow_key = "transcription" if stage == "transcribe" else stage.replace("-", "_")
-    action = workflow.stages[workflow_key]  # type: ignore[index]
-    if stage != "transcribe" and not action.can_start and not action.can_retry:
-        raise HTTPException(status_code=422,
-                            detail={"stage": stage, "reason": action.blocked_reason})
+    plan = _plan_stage_transition(conn, song_id=song["id"], stage_name=stage, redo=redo)
+    if isinstance(plan, WorkflowTransitionRejection):
+        raise _workflow_rejection(plan)
+    if plan.outcome == "accept_noop":
+        return {"run_id": None, "status": "done", "stage": stage}
 
     preflight = preflight_stage(slug=slug, stage=stage)  # type: ignore[arg-type]
     if not preflight.ok:
         raise HTTPException(status_code=422, detail=preflight.to_http_detail())
 
-    conflict = conn.execute(
-        "SELECT id FROM regen_runs WHERE song_id = ? AND scope = ? "
-        "AND status IN ('pending', 'running') LIMIT 1",
-        (song["id"], _STAGE_SCOPES[stage]),
-    ).fetchone()
-    if conflict:
-        raise HTTPException(status_code=409,
-                            detail=f"stage '{stage}' already running (run {conflict['id']})")
-
-    run_id = create_run(conn, scope=_STAGE_SCOPES[stage], song_id=song["id"])
+    run_id = create_run(conn, scope=plan.scope, song_id=song["id"])
     run = get_run(conn, run_id)
     assert run is not None
 
@@ -183,7 +203,6 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
         )
 
     deps = _stage_deps(conn, song["id"])
-    workflow = evaluate_song_workflow(conn, song["id"])
     # Transcription still uses the temporary alignment wrapper. Written
     # planning and rendering stages use product services and are queued only
     # when their saved-state prerequisites are already committed.
@@ -195,9 +214,13 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
 
     # Transcribe first if needed.
     if not deps["transcribe"]["done"]:
-        transcribe_action = workflow.stages["transcription"]
-        if not transcribe_action.can_start:
-            blocked_at = {"stage": "transcribe", "reason": transcribe_action.blocked_reason}
+        plan = _plan_stage_transition(conn, song_id=song["id"], stage_name="transcribe")
+        if isinstance(plan, WorkflowTransitionRejection):
+            blocked_at = {
+                "stage": "transcribe",
+                "reason": plan.message,
+                "detail": plan.to_http_detail(),
+            }
         else:
             preflight = preflight_stage(slug=slug, stage="transcribe")
             if not preflight.ok:
@@ -207,7 +230,7 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
                     "detail": preflight.to_http_detail(),
                 }
             else:
-                run_id = create_run(conn, scope=_STAGE_SCOPES["transcribe"], song_id=song["id"])
+                run_id = create_run(conn, scope=plan.scope, song_id=song["id"])
                 run = get_run(conn, run_id)
                 assert run is not None
                 async def transcribe_handler(r):  # noqa: ANN001
@@ -230,17 +253,16 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
 
     # Then queue product generation and rendering stages independently.
     if blocked_at is None:
-        for stage_name, workflow_name in (
-            ("world-brief", "world_brief"),
-            ("storyboard", "storyboard"),
-            ("image-prompts", "image_prompts"),
-            ("keyframes", "keyframes"),
-        ):
+        for stage_name in ("world-brief", "storyboard", "image-prompts", "keyframes"):
             if deps[stage_name]["done"]:  # type: ignore[index]
                 continue
-            action = workflow.stages[workflow_name]  # type: ignore[index]
-            if not action.can_start and not action.can_retry:
-                blocked_at = {"stage": stage_name, "reason": action.blocked_reason}
+            plan = _plan_stage_transition(conn, song_id=song["id"], stage_name=stage_name)
+            if isinstance(plan, WorkflowTransitionRejection):
+                blocked_at = {
+                    "stage": stage_name,
+                    "reason": plan.message,
+                    "detail": plan.to_http_detail(),
+                }
                 break
             preflight = preflight_stage(slug=slug, stage=stage_name)  # type: ignore[arg-type]
             if not preflight.ok:
@@ -250,7 +272,7 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
                     "detail": preflight.to_http_detail(),
                 }
                 break
-            run_id = create_run(conn, scope=_STAGE_SCOPES[stage_name], song_id=song["id"])  # type: ignore[index]
+            run_id = create_run(conn, scope=plan.scope, song_id=song["id"])
             run = get_run(conn, run_id)
             assert run is not None
             stage_captured = stage_name
@@ -278,10 +300,8 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
                 raise RuntimeError(f"unsupported product stage {stage_captured}")
             keyframe_queue.submit(RegenJob(run=run, handler=chain_handler))
             triggered.append({"stage": stage_name, "run_id": run_id})
-            if stage_name != "world-brief":
-                continue
-            # Later stages depend on the new world text, so a second call to
-            # run-all will continue the chain after this background run commits.
+            # Later stages depend on committed output from the queued run, so a
+            # second call to run-all continues after this background run commits.
             break
 
     return {
@@ -300,6 +320,24 @@ async def render_final_route(slug: str, conn=Depends(get_db)):
     if not song:
         raise HTTPException(status_code=404, detail=f"song '{slug}' not found")
 
+    final_state = evaluate_song_workflow(conn, song["id"]).stages["final_video"].state
+    final_action = "regenerate" if final_state in ("done", "stale") else "start"
+    plan = plan_workflow_transition(
+        conn,
+        song_id=song["id"],
+        request=WorkflowActionRequest(stage="final_video", action=final_action),
+    )
+    if isinstance(plan, WorkflowTransitionRejection):
+        detail = plan.to_http_detail()
+        if plan.message == "Render clips for every scene first.":
+            missing_rows = conn.execute("""
+                SELECT scene_index FROM scenes
+                WHERE song_id = ? AND selected_clip_take_id IS NULL
+                ORDER BY scene_index
+            """, (song["id"],)).fetchall()
+            detail["affected_scenes"] = [r["scene_index"] for r in missing_rows]
+        raise HTTPException(status_code=transition_rejection_status(plan), detail=detail)
+
     missing_clips = conn.execute("""
         SELECT scene_index FROM scenes
         WHERE song_id = ? AND selected_clip_take_id IS NULL
@@ -315,14 +353,6 @@ async def render_final_route(slug: str, conn=Depends(get_db)):
     if not preflight.ok:
         raise HTTPException(status_code=422, detail=preflight.to_http_detail())
 
-    conflict = conn.execute(
-        "SELECT id FROM regen_runs WHERE song_id = ? AND scope = 'final_video' "
-        "AND status IN ('pending', 'running') LIMIT 1", (song["id"],),
-    ).fetchone()
-    if conflict:
-        raise HTTPException(status_code=409,
-                            detail=f"final render already running (run {conflict['id']})")
-
     need = conn.execute(
         "SELECT COUNT(*) FROM scenes WHERE song_id = ? AND selected_clip_take_id IS NULL",
         (song["id"],),
@@ -332,7 +362,7 @@ async def render_final_route(slug: str, conn=Depends(get_db)):
     ).fetchone()[0]
 
     run_id = create_run(
-        conn, scope="final_video", song_id=song["id"],
+        conn, scope=plan.scope, song_id=song["id"],
         quality_mode=song["quality_mode"],
     )
     run = get_run(conn, run_id)

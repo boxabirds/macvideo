@@ -7,8 +7,8 @@ timestamped segments, then inserts scene rows directly into the DB. The
 forced-alignment stage (Story 12) is no longer used. Tracked under a single
 regen_runs row with scope='stage_audio_transcribe'.
 
-Single-flight discipline: blocks if any pending/running stage_transcribe
-or stage_audio_transcribe run already exists for this slug.
+Single-flight discipline: blocks if any workflow run is pending/running for
+this slug.
 """
 
 from __future__ import annotations
@@ -34,6 +34,13 @@ from ..regen.runs import (
     create_run, get_run, update_run_phase, update_run_progress,
 )
 from ..store import connection
+from ..workflow import (
+    WorkflowActionRequest,
+    WorkflowTransitionRejection,
+    evaluate_song_workflow,
+    plan_workflow_transition,
+    transition_rejection_status,
+)
 from .common import get_db
 
 
@@ -53,17 +60,6 @@ def _audio_duration_or_none(wav_path: Path) -> float | None:
         # Treat unreadable as missing — matches the design's audio_missing
         # contract better than surfacing a generic 500.
         return None
-
-
-def _conflict_run_id(conn, song_id: int) -> int | None:
-    """Cross-stage single-flight: any pending/running transcribe-family run."""
-    row = conn.execute(
-        "SELECT id FROM regen_runs WHERE song_id = ? "
-        "AND scope IN ('stage_audio_transcribe', 'stage_transcribe') "
-        "AND status IN ('pending', 'running') LIMIT 1",
-        (song_id,),
-    ).fetchone()
-    return row["id"] if row else None
 
 
 @router.post("/songs/{slug}/audio-transcribe")
@@ -98,20 +94,31 @@ async def trigger_audio_transcribe(
             "detail": f"audio is only {duration:.2f}s; need ≥ {_MIN_AUDIO_DURATION_S}s",
         })
 
+    transcription_state = evaluate_song_workflow(conn, song["id"]).stages["transcription"].state
+    action = "regenerate" if force and transcription_state in ("done", "stale") else "start"
+    plan = plan_workflow_transition(
+        conn,
+        song_id=song["id"],
+        request=WorkflowActionRequest(
+            stage="transcription",
+            action=action,
+            run_scope="stage_audio_transcribe",
+        ),
+    )
+    if isinstance(plan, WorkflowTransitionRejection):
+        raise HTTPException(
+            status_code=transition_rejection_status(plan),
+            detail=plan.to_http_detail(),
+        )
+    if plan.outcome == "accept_noop":
+        return {"run_id": None, "status": "done"}
+
     preflight = preflight_stage(slug=slug, stage="audio-transcribe")
     if not preflight.ok:
         raise HTTPException(status_code=422, detail=preflight.to_http_detail())
 
-    # Single-flight: refuse if either transcribe scope is already running.
-    conflict_id = _conflict_run_id(conn, song["id"])
-    if conflict_id is not None:
-        raise HTTPException(status_code=409, detail={
-            "code": "single_flight_conflict",
-            "detail": f"a transcribe run is already in progress (run {conflict_id})",
-        })
-
     run_id = create_run(
-        conn, scope="stage_audio_transcribe", song_id=song["id"],
+        conn, scope=plan.scope, song_id=song["id"],
     )
     run = get_run(conn, run_id)
     assert run is not None

@@ -26,7 +26,13 @@ from ..rendering import run_render_stage
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import create_run, get_run
 from ..store.schema import QualityMode
-from ..workflow import evaluate_song_workflow
+from ..workflow import (
+    WorkflowActionRequest,
+    WorkflowTransitionRejection,
+    evaluate_song_workflow,
+    plan_workflow_transition,
+    transition_rejection_status,
+)
 from .common import get_db, parse_dirty_flags, scene_asset_paths
 
 router = APIRouter()
@@ -241,6 +247,28 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
     if not patch_fields:
         return get_song(slug, conn)
 
+    chain_triggering = "filter" in patch_fields or "abstraction" in patch_fields
+    chain_noop = chain_triggering and all(
+        patch_fields.get(field, song[field]) == song[field]
+        for field in ("filter", "abstraction")
+    )
+    if chain_triggering and not chain_noop:
+        run_scope = "song_filter" if "filter" in patch_fields else "song_abstraction"
+        plan = plan_workflow_transition(
+            conn,
+            song_id=song["id"],
+            request=WorkflowActionRequest(
+                stage="world_brief",
+                action="configure",
+                run_scope=run_scope,
+            ),
+        )
+        if isinstance(plan, WorkflowTransitionRejection):
+            raise HTTPException(
+                status_code=transition_rejection_status(plan),
+                detail=plan.to_http_detail(),
+            )
+
     # Filter changes delegate conflict detection to FilterChangeTransition so
     # no-op filter selections can short-circuit without being blocked by an
     # unrelated active run.
@@ -283,16 +311,21 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
                 (json.dumps(sorted(flags)), time.time(), r["id"]),
             )
 
-    # Chain-triggering logic for filter/abstraction changes.
-    chain_triggering = "filter" in patch_fields or "abstraction" in patch_fields
     if chain_triggering:
-        preflight = preflight_stage(slug=slug, stage="keyframes")
+        if chain_noop:
+            return get_song(slug, conn)
+        preflight = preflight_stage(slug=slug, stage="world-brief")
         if not preflight.ok:
             raise HTTPException(status_code=422, detail=preflight.to_http_detail())
         if "filter" in patch_fields:
             new_filter = patch_fields["filter"]
             try:
-                transition = FilterChangeTransition(conn, slug, new_filter)
+                transition = FilterChangeTransition(
+                    conn,
+                    slug,
+                    new_filter,
+                    new_abstraction=patch_fields.get("abstraction"),  # type: ignore[arg-type]
+                )
                 transition.apply()
             except NotFoundError as e:
                 raise HTTPException(status_code=404, detail=str(e)) from e
