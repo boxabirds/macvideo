@@ -754,7 +754,7 @@ describe("PipelinePanel", () => {
     expect(onSongUpdate).toHaveBeenCalledWith(updated);
   });
 
-  it("visual-language setup accepts saved blocked workflow without raw HTTP error text", async () => {
+  it("visual-language setup reports saved blocked workflow without raw HTTP error text", async () => {
     const updated = makeSong({
       filter: "charcoal",
       abstraction: 0,
@@ -806,7 +806,7 @@ describe("PipelinePanel", () => {
 
     await waitFor(() => expect(onSongUpdate).toHaveBeenCalledWith(updated));
     expect(screen.queryByText(/HTTP 422/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/generation requires GEMINI_API_KEY/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/generation requires GEMINI_API_KEY/i)).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

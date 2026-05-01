@@ -83,7 +83,7 @@ test.describe("World-owned visual language", () => {
   test("confirm and run saves visual language without HTTP error when generation provider is missing", async ({ page, request }) => {
     const slug = "visual-language-missing-provider";
     await request.post("http://localhost:8000/api/test-only/env", {
-      data: { set: { EDITOR_GENERATION_PROVIDER: null } },
+      data: { set: { EDITOR_GENERATION_PROVIDER: null, GEMINI_API_KEY: null } },
     });
     await request.post("http://localhost:8000/api/test-only/workflow-fixture", {
       data: {
@@ -104,7 +104,8 @@ test.describe("World-owned visual language", () => {
     await page.getByRole("button", { name: /confirm and run/i }).click();
 
     await expect(page.getByRole("dialog")).not.toBeVisible();
-    await expect(page.locator(".pipeline-error")).toHaveCount(0);
+    await expect(page.locator(".pipeline-error")).toContainText(/generation provider/i);
+    await expect(page.locator(".pipeline-error")).not.toContainText(/HTTP 422/i);
     await expect.poll(async () => {
       const response = await request.get(`http://localhost:8000/api/songs/${slug}`);
       const body = await response.json();

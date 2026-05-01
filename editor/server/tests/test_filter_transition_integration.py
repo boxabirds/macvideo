@@ -93,6 +93,7 @@ def test_visual_language_patch_persists_inputs_when_generation_provider_missing(
     client_for, tmp_env, monkeypatch,
 ):
     monkeypatch.delenv("EDITOR_GENERATION_PROVIDER", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     song_id = _insert_song(
         tmp_env["db"],
         "world-inputs-no-provider",

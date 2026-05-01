@@ -52,6 +52,22 @@ def test_dev_diagnostics_pass_with_required_tools_and_warn_for_optional_models(t
     assert "render_provider_missing" in codes
 
 
+def test_dev_diagnostics_loads_generation_key_from_project_env(tmp_path, monkeypatch):
+    root = _fake_root(tmp_path)
+    (root / ".env").write_text("GEMINI_API_KEY=from-env-file\n")
+    _fake_path(tmp_path, monkeypatch)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("EDITOR_GENERATION_PROVIDER", raising=False)
+    monkeypatch.delenv("EDITOR_RENDER_PROVIDER", raising=False)
+
+    report = diagnostics.check_dev_environment(root, mode="dev")
+
+    assert report.ok is True
+    codes = {d.code for d in report.diagnostics}
+    assert "generation_provider_missing" not in codes
+    assert os.environ["GEMINI_API_KEY"] == "from-env-file"
+
+
 def test_dev_diagnostics_fail_for_missing_required_tool(tmp_path, monkeypatch):
     root = _fake_root(tmp_path)
     _fake_path(tmp_path, monkeypatch, missing={"bun"})

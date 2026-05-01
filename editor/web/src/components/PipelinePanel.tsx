@@ -108,6 +108,13 @@ const STATUS_GLYPH: Record<SegmentStatus, string> = {
   done: "✓", running: "●", failed: "⟳", pending: "○", blocked: "⌧",
 };
 
+function blockedWorldReason(song: SongDetail): string | null {
+  const world = song.workflow?.stages.world_brief;
+  if (!world || world.state !== "blocked") return null;
+  if (world.blocked_reason === "Choose a filter and abstraction first.") return null;
+  return world.blocked_reason;
+}
+
 async function runStage(slug: string, stageName: string, redo: boolean) {
   const r = await fetch(
     `/api/songs/${encodeURIComponent(slug)}/stages/${stageName}?redo=${redo}`,
@@ -450,6 +457,8 @@ export default function PipelinePanel({
               const updated = await patchSong(song.slug, { filter, abstraction });
               onSongUpdate?.(updated);
               setFilterPicker(null);
+              const blockedReason = blockedWorldReason(updated);
+              if (blockedReason) setError(blockedReason);
             } catch (e) {
               setError(formatApiError(e));
             }

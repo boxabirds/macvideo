@@ -46,8 +46,18 @@ def _path_from_env(name: str) -> Path | None:
     return Path(value).expanduser() if value else None
 
 
+def _load_project_env(root: Path) -> None:
+    root_str = str(root)
+    if root_str not in sys.path:
+        sys.path.insert(0, root_str)
+    from editor.server.env_file import load_project_env
+
+    load_project_env(root)
+
+
 def check_dev_environment(root: Path, *, mode: str = "dev") -> DiagnosticsReport:
     root = root.resolve()
+    _load_project_env(root)
     diagnostics: list[Diagnostic] = []
 
     required_tools = {
