@@ -20,6 +20,7 @@ from editor.server.pipeline.paths import resolve_song_paths
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _DEV_SCRIPT = _REPO_ROOT / "editor" / "web" / "scripts" / "dev.sh"
+_START_EDITOR_SCRIPT = _REPO_ROOT / "scripts" / "start_editor.sh"
 _E2E_BACKEND_SCRIPT = _REPO_ROOT / "editor" / "web" / "tests" / "e2e" / "setup_backend.sh"
 _TESTS_DIR = Path(__file__).resolve().parent
 _FAKE_DEMUCS = _TESTS_DIR / "fake_scripts" / "fake_demucs.py"
@@ -278,7 +279,9 @@ def test_demucs_wrapper_returns_nonzero_when_vocals_missing(
 
 
 def test_dev_launcher_scopes_fake_script_removal_to_backend_command():
-    body = _DEV_SCRIPT.read_text()
+    launcher = _DEV_SCRIPT.read_text()
+    body = _START_EDITOR_SCRIPT.read_text()
+    assert "scripts/start_editor.sh" in launcher
     assert "unset EDITOR_FAKE_DEMUCS" not in body
     assert "unset EDITOR_FAKE_WHISPERX_TRANSCRIBE" not in body
     assert "-u EDITOR_FAKE_DEMUCS" in body

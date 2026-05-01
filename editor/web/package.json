@@ -9,9 +9,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "bun run test:unit",
+    "test:unit": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "bash scripts/e2e.sh"
+    "test:e2e": "bun run test:e2e:fake",
+    "test:e2e:fake": "EDITOR_E2E_SUITE=fake-backed bash scripts/e2e.sh",
+    "test:e2e:product:diagnose": "cd ../.. && uv run python scripts/check_dev_environment.py --mode dev"
   },
   "dependencies": {
     "react": "19",

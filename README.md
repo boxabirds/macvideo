@@ -103,16 +103,31 @@ or POC-shaped output files must be listed in
 `docs/architecture/temporary-legacy-dependencies.json` with an owner story and
 removal condition. The architecture tests fail for new unlisted references.
 
+### Clean Checkout Setup
+
+From a fresh clone:
+
+```sh
+uv sync --dev
+cd editor/web && bun install && cd ../..
+uv run python scripts/check_dev_environment.py --mode dev
+```
+
+Diagnostics report required tools (`uv`, `bun`, `ffmpeg`), optional model
+credentials/adapters, local songs, and which workflows are affected. Missing
+Gemini credentials or render adapters block the heavyweight product actions,
+but the editor and fake-backed tests can still run.
+
+If no songs are present, add `music/<slug>.wav` and matching
+`music/<slug>.txt`, then start the editor and use import/refresh. The `music/`
+directory is intentionally gitignored.
+
 ### Storyboard editor
 
 For hand-tuning prompts, filters, and takes on a real song, use the editor:
 
 ```sh
-# Backend (FastAPI + SQLite)
-uv run uvicorn editor.server.main:app --port 8000
-
-# Frontend (React + Vite)
-cd editor/web && bun install && bun run dev
+scripts/start_editor.sh
 ```
 
 Visit `http://localhost:5173/`. The editor:
@@ -123,13 +138,32 @@ Visit `http://localhost:5173/`. The editor:
 - Runs regen stages against the backend queue.
 - Produces final videos via `/api/songs/<slug>/render-final`.
 
-Tests:
+`scripts/start_editor.sh` always stops listeners on ports `8000` and `5173`
+before starting the backend and Vite. It removes fake script overrides only for
+the backend command, so local development does not inherit stale test settings.
+Use `scripts/stop_editor.sh` to tear down those ports explicitly.
+
+### Test Taxonomy
+
 ```sh
-cd editor/web && bun run test       # vitest + jsdom
-cd editor/web && bun run test:e2e   # playwright + real Chromium
-cd .. && uv run pytest editor/server/tests/
+uv run pytest editor/server/tests/                  # backend unit/integration, fake adapters where marked
+cd editor/web && bun run test:unit                  # frontend unit/component tests
+cd editor/web && bun run test:e2e:fake              # Playwright with fake generation/render adapters
+cd editor/web && bun run test:e2e:product:diagnose  # dependency diagnostics for real product E2E
 uv run pytest editor/server/tests/test_architecture_boundary.py
 ```
+
+The current Playwright suite is **fake-backed E2E**: it starts real backend and
+frontend processes, uses isolated temp data, and validates product orchestration
+with fake adapters. It is not a claim that Gemini/LTX/WhisperX/ffmpeg-heavy
+workflows completed with real model outputs. True product E2E requires the
+diagnostics to show the relevant credentials, adapters, local tools, and sample
+data are available.
+
+Browser tests never reuse already-running local servers. `editor/web/scripts/e2e.sh`
+tears down ports before and after the run, and
+`editor/web/tests/e2e/setup_backend.sh` creates a fresh temp database, music
+root, and outputs root for each invocation.
 
 ## Hard lessons baked in
 

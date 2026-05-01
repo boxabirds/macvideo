@@ -31,6 +31,12 @@ cp "${FIXTURES_ROOT}/fresh-song-with-lyrics/music/"* "${E2E_ROOT}/music/"
 cp "${FIXTURES_ROOT}/fresh-song-no-lyrics/music/"* "${E2E_ROOT}/music/"
 
 cd "${REPO_ROOT}"
+env \
+  EDITOR_DB_PATH="${E2E_ROOT}/editor.db" \
+  EDITOR_MUSIC_DIR="${E2E_ROOT}/music" \
+  EDITOR_OUTPUTS_DIR="${E2E_ROOT}/outputs" \
+  uv run python scripts/check_dev_environment.py --mode test >/dev/null
+
 exec env \
   EDITOR_DB_PATH="${E2E_ROOT}/editor.db" \
   EDITOR_MUSIC_DIR="${E2E_ROOT}/music" \

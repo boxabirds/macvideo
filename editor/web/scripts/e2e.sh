@@ -4,9 +4,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WEB_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${WEB_DIR}/../.." && pwd)"
 
 cleanup() {
-  "${SCRIPT_DIR}/teardown_servers.sh" 8000 5173
+  "${REPO_ROOT}/scripts/stop_editor.sh" 8000 5173
 }
 
 cleanup
@@ -19,4 +20,5 @@ if [[ ! -x "${PLAYWRIGHT_BIN}" ]]; then
   exit 1
 fi
 
+echo "[e2e] suite=${EDITOR_E2E_SUITE:-fake-backed}; fake-backed Playwright uses isolated temp data"
 "${PLAYWRIGHT_BIN}" test "$@"
