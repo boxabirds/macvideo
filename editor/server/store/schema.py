@@ -213,6 +213,24 @@ CREATE TABLE IF NOT EXISTS generation_provenance (
 
 CREATE INDEX IF NOT EXISTS idx_generation_provenance_song_stage_created
     ON generation_provenance (song_id, stage, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS render_provenance (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    song_id                 INTEGER NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+    scene_id                INTEGER REFERENCES scenes(id) ON DELETE SET NULL,
+    artefact_kind           TEXT NOT NULL
+                                CHECK (artefact_kind IN ('keyframe', 'clip', 'final_video')),
+    provider                TEXT NOT NULL,
+    model                   TEXT NOT NULL,
+    source_json             TEXT NOT NULL,
+    artifact_path           TEXT NOT NULL,
+    source_run_id           INTEGER REFERENCES regen_runs(id) ON DELETE SET NULL,
+    adapter_metadata_json   TEXT NOT NULL,
+    created_at              REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_render_provenance_song_kind_created
+    ON render_provenance (song_id, artefact_kind, created_at DESC);
 """
 
 

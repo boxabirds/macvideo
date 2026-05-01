@@ -14,9 +14,7 @@ Routes:
 from __future__ import annotations
 
 import asyncio
-import os
-from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
@@ -24,7 +22,7 @@ from pydantic import BaseModel
 
 from .. import config as _cfg
 from ..pipeline.preflight import preflight_stage
-from ..pipeline.regen import regenerate_scene_clip, regenerate_scene_keyframe
+from ..rendering import run_render_stage
 from ..regen.events import hub
 from ..regen.queue import clip_queue, keyframe_queue, RegenJob
 from ..regen.runs import (
@@ -35,17 +33,6 @@ from ..regen.runs import (
     update_run_status,
 )
 from .common import get_db
-
-
-def _override_gen_keyframes() -> Optional[Path]:
-    p = os.environ.get("EDITOR_FAKE_GEN_KEYFRAMES")
-    return Path(p) if p else None
-
-
-def _override_render_clips() -> Optional[Path]:
-    p = os.environ.get("EDITOR_FAKE_RENDER_CLIPS")
-    return Path(p) if p else None
-
 
 router = APIRouter()
 events_router = APIRouter()
@@ -119,21 +106,14 @@ async def trigger_take(slug: str, idx: int, body: TakeTriggerBody, conn=Depends(
 
     slug_captured = row["slug"]
     scene_index = row["scene_index"]
-    song_filter = row["filter"] or "charcoal"
-    song_abstraction = row["abstraction"] if row["abstraction"] is not None else 0
-    song_quality_mode = row["quality_mode"] or "draft"
-
     if body.artefact_kind == "keyframe":
         async def handler(r):  # noqa: ANN001
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
+            return await loop.run_in_executor(
                 None,
-                lambda: regenerate_scene_keyframe(
+                lambda: run_render_stage(
                     song_slug=slug_captured, scene_index=scene_index,
-                    song_filter=song_filter, song_abstraction=song_abstraction,
-                    song_quality_mode=song_quality_mode,
-                    source_run_id=r.id,
-                    script_path=_override_gen_keyframes(),
+                    source_run_id=r.id, stage="scene-keyframe",
                 ),
             )
         queue = keyframe_queue
@@ -141,14 +121,11 @@ async def trigger_take(slug: str, idx: int, body: TakeTriggerBody, conn=Depends(
     else:
         async def handler(r):  # noqa: ANN001
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
+            return await loop.run_in_executor(
                 None,
-                lambda: regenerate_scene_clip(
+                lambda: run_render_stage(
                     song_slug=slug_captured, scene_index=scene_index,
-                    song_filter=song_filter,
-                    song_quality_mode=song_quality_mode,
-                    source_run_id=r.id,
-                    script_path=_override_render_clips(),
+                    source_run_id=r.id, stage="scene-clip",
                 ),
             )
         queue = clip_queue

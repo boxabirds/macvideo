@@ -7,17 +7,14 @@ Stages are strictly ordered; each requires the previous one to be done
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from .. import config as _cfg
-from ..pipeline.final import render_final
 from ..pipeline.preflight import preflight_stage
 from ..generation import run_generation_stage
 from ..pipeline.stages import run_gen_keyframes_for_stage
+from ..rendering import run_render_stage
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import create_run, get_run
 from ..workflow import evaluate_song_workflow
@@ -38,24 +35,6 @@ _STAGE_SCOPES = {
     "image-prompts":  "stage_image_prompts",
     "keyframes":      "stage_keyframes",
 }
-
-
-def _override_script_path() -> Optional[Path]:
-    """Tests can set EDITOR_FAKE_GEN_KEYFRAMES / EDITOR_FAKE_RENDER_CLIPS
-    to swap in a fake script that doesn't call Gemini / LTX.
-    """
-    return None
-
-
-def _override_gen_keyframes() -> Optional[Path]:
-    p = os.environ.get("EDITOR_FAKE_GEN_KEYFRAMES")
-    return Path(p) if p else None
-
-
-def _override_render_clips() -> Optional[Path]:
-    p = os.environ.get("EDITOR_FAKE_RENDER_CLIPS")
-    return Path(p) if p else None
-
 
 def _stage_deps(conn, song_id: int) -> dict[StageKey, dict]:
     """Compute stage state for a song: each stage's status + whether its
@@ -92,7 +71,7 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
         raise HTTPException(status_code=404, detail=f"unknown stage '{stage}'")
 
     song = conn.execute(
-        "SELECT id, filter, abstraction, quality_mode FROM songs WHERE slug = ?",
+        "SELECT id, quality_mode FROM songs WHERE slug = ?",
         (slug,),
     ).fetchone()
     if not song:
@@ -125,8 +104,6 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
 
     slug_captured = slug
     stage_captured: StageKey = stage  # type: ignore[assignment]
-    song_filter = song["filter"]
-    song_abstraction = song["abstraction"]
     song_quality_mode = song["quality_mode"]
 
     async def handler(r):  # noqa: ANN001
@@ -141,17 +118,25 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
                     source_run_id=r.id,
                 ),
             )
+        if stage_captured == "keyframes":
+            return await loop.run_in_executor(
+                None,
+                lambda: run_render_stage(
+                    song_slug=slug_captured,
+                    stage="keyframes",
+                    source_run_id=r.id,
+                ),
+            )
         return await loop.run_in_executor(
             None,
             lambda: run_gen_keyframes_for_stage(
                 song_slug=slug_captured,
-                song_filter=song_filter or "charcoal",
-                song_abstraction=song_abstraction if song_abstraction is not None else 0,
+                song_filter="",
+                song_abstraction=0,
                 song_quality_mode=song_quality_mode or "draft",
                 source_run_id=r.id,
-                stage=stage_captured,
+                stage="transcribe",
                 redo=redo,
-                script_path=_override_gen_keyframes(),
             ),
         )
 
@@ -179,7 +164,7 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
     shared.
     """
     song = conn.execute(
-        "SELECT id, filter, abstraction, quality_mode FROM songs WHERE slug = ?",
+        "SELECT id, quality_mode FROM songs WHERE slug = ?",
         (slug,),
     ).fetchone()
     if not song:
@@ -199,12 +184,10 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
 
     deps = _stage_deps(conn, song["id"])
     workflow = evaluate_song_workflow(conn, song["id"])
-    # Transcription and keyframes still use temporary stage runners. Written
-    # planning stages use product generation services and are queued only when
-    # their saved-state prerequisites are already committed.
+    # Transcription still uses the temporary alignment wrapper. Written
+    # planning and rendering stages use product services and are queued only
+    # when their saved-state prerequisites are already committed.
     slug_captured = slug
-    song_filter = song["filter"] or "charcoal"
-    song_abstraction = song["abstraction"] if song["abstraction"] is not None else 0
     song_quality_mode = song["quality_mode"] or "draft"
 
     triggered: list[dict] = []
@@ -234,20 +217,18 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
                         None,
                         lambda: run_gen_keyframes_for_stage(
                             song_slug=slug_captured,
-                            song_filter=song_filter,
-                            song_abstraction=song_abstraction,
+                            song_filter="",
+                            song_abstraction=0,
                             song_quality_mode=song_quality_mode,
                             source_run_id=r.id,
                             stage="transcribe",
                             redo=False,
-                            script_path=_override_gen_keyframes(),
                         ),
                     )
                 keyframe_queue.submit(RegenJob(run=run, handler=transcribe_handler))
                 triggered.append({"stage": "transcribe", "run_id": run_id})
 
-    # Then queue product generation stages independently. Keyframes still use
-    # the temporary render path until the rendering refactor lands.
+    # Then queue product generation and rendering stages independently.
     if blocked_at is None:
         for stage_name, workflow_name in (
             ("world-brief", "world_brief"),
@@ -285,19 +266,16 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
                             source_run_id=r.id,
                         ),
                     )
-                return await loop.run_in_executor(
-                    None,
-                    lambda: run_gen_keyframes_for_stage(
-                        song_slug=slug_captured,
-                        song_filter=song_filter,
-                        song_abstraction=song_abstraction,
-                        song_quality_mode=song_quality_mode,
-                        source_run_id=r.id,
-                        stage="keyframes",
-                        redo=False,
-                        script_path=_override_gen_keyframes(),
-                    ),
-                )
+                if stage_captured == "keyframes":
+                    return await loop.run_in_executor(
+                        None,
+                        lambda: run_render_stage(
+                            song_slug=slug_captured,
+                            stage="keyframes",
+                            source_run_id=r.id,
+                        ),
+                    )
+                raise RuntimeError(f"unsupported product stage {stage_captured}")
             keyframe_queue.submit(RegenJob(run=run, handler=chain_handler))
             triggered.append({"stage": stage_name, "run_id": run_id})
             if stage_name != "world-brief":
@@ -317,20 +295,20 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
 @router.post("/songs/{slug}/render-final")
 async def render_final_route(slug: str, conn=Depends(get_db)):
     song = conn.execute(
-        "SELECT id, filter, quality_mode FROM songs WHERE slug = ?", (slug,),
+        "SELECT id, quality_mode FROM songs WHERE slug = ?", (slug,),
     ).fetchone()
     if not song:
         raise HTTPException(status_code=404, detail=f"song '{slug}' not found")
 
-    missing_kf = conn.execute("""
+    missing_clips = conn.execute("""
         SELECT scene_index FROM scenes
-        WHERE song_id = ? AND selected_keyframe_take_id IS NULL
+        WHERE song_id = ? AND selected_clip_take_id IS NULL
         ORDER BY scene_index
     """, (song["id"],)).fetchall()
-    if missing_kf:
+    if missing_clips:
         raise HTTPException(status_code=422, detail={
-            "reason": "missing keyframe takes",
-            "affected_scenes": [r["scene_index"] for r in missing_kf],
+            "reason": "missing clip takes",
+            "affected_scenes": [r["scene_index"] for r in missing_clips],
         })
 
     preflight = preflight_stage(slug=slug, stage="final-video")
@@ -360,20 +338,16 @@ async def render_final_route(slug: str, conn=Depends(get_db)):
     run = get_run(conn, run_id)
     assert run is not None
     slug_captured = slug
-    song_filter = song["filter"] or "charcoal"
-    song_quality_mode = song["quality_mode"] or "draft"
 
     async def handler(r):  # noqa: ANN001
         import asyncio
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
+        return await loop.run_in_executor(
             None,
-            lambda: render_final(
+            lambda: run_render_stage(
                 song_slug=slug_captured,
-                song_filter=song_filter,
-                song_quality_mode=song_quality_mode,
+                stage="final-video",
                 source_run_id=r.id,
-                script_path=_override_render_clips(),
             ),
         )
 

@@ -77,6 +77,11 @@ def _generation_provider_ready() -> bool:
     return provider in {"fake", "malformed"} or bool(os.environ.get("GEMINI_API_KEY"))
 
 
+def _render_provider_ready() -> bool:
+    provider = os.environ.get("EDITOR_RENDER_PROVIDER", "").strip().lower()
+    return provider in {"fake", "fail-keyframe", "fail-clip", "fail-final"}
+
+
 def _missing_text_generation_provider(action: str) -> MissingDependency | None:
     if _generation_provider_ready():
         return None
@@ -86,6 +91,16 @@ def _missing_text_generation_provider(action: str) -> MissingDependency | None:
             f"{action} requires GEMINI_API_KEY or a configured product "
             "generation provider before it can start."
         ),
+        affected_action=action,
+    )
+
+
+def _missing_render_provider(action: str) -> MissingDependency | None:
+    if _render_provider_ready():
+        return None
+    return MissingDependency(
+        code="renderer_provider_missing",
+        detail=f"{action} requires a configured product render adapter before it can start.",
         affected_action=action,
     )
 
@@ -172,26 +187,8 @@ def preflight_stage(*, slug: str, stage: StageName) -> PreflightResult:
             ))
     elif stage in {"world-brief", "storyboard", "image-prompts"}:
         _append_if_missing(missing, _missing_text_generation_provider("generation"))
-    elif stage in {"keyframes", "scene-keyframe"}:
-        _append_if_missing(
-            missing,
-            _missing_script(
-                _script_from_env("EDITOR_FAKE_GEN_KEYFRAMES", scripts / "gen_keyframes.py"),
-                "generation_command_missing",
-                "generation",
-            ),
-        )
-        _append_if_missing(missing, _missing_gemini("generation"))
-    elif stage in {"scene-clip", "final-video"}:
-        _append_if_missing(
-            missing,
-            _missing_script(
-                _script_from_env("EDITOR_FAKE_RENDER_CLIPS", scripts / "render_clips.py"),
-                "render_command_missing",
-                "rendering",
-            ),
-        )
-        _append_if_missing(missing, _missing_ffmpeg("rendering"))
+    elif stage in {"keyframes", "scene-keyframe", "scene-clip", "final-video"}:
+        _append_if_missing(missing, _missing_render_provider("rendering"))
     else:
         missing.append(MissingDependency(
             code="unknown_stage",

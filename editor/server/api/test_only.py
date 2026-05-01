@@ -96,6 +96,7 @@ _ALLOWED_ENV_KEYS = {
     "EDITOR_FAKE_WHISPERX_TRANSCRIBE",
     "EDITOR_GENERATION_PROVIDER",
     "EDITOR_GENERATION_MODEL",
+    "EDITOR_RENDER_PROVIDER",
     "GEMINI_API_KEY",
 }
 
@@ -124,6 +125,7 @@ class WorkflowFixtureBody(BaseModel):
     world_brief: str | None = "world"
     sequence_arc: str | None = "arc"
     include_prompts: bool = True
+    include_takes: bool = True
     include_failed_runs: bool = True
 
 
@@ -183,20 +185,21 @@ def create_workflow_fixture(body: WorkflowFixtureBody):
                 ),
             )
             scene_id = scene.lastrowid
-            keyframe = c.execute(
-                "INSERT INTO takes (scene_id, artefact_kind, asset_path, created_by, created_at) "
-                "VALUES (?, 'keyframe', ?, 'editor', ?)",
-                (scene_id, f"{body.slug}/keyframe-{idx}.png", now),
-            )
-            clip = c.execute(
-                "INSERT INTO takes (scene_id, artefact_kind, asset_path, created_by, created_at) "
-                "VALUES (?, 'clip', ?, 'editor', ?)",
-                (scene_id, f"{body.slug}/clip-{idx}.mp4", now),
-            )
-            c.execute(
-                "UPDATE scenes SET selected_keyframe_take_id = ?, selected_clip_take_id = ? WHERE id = ?",
-                (keyframe.lastrowid, clip.lastrowid, scene_id),
-            )
+            if body.include_takes:
+                keyframe = c.execute(
+                    "INSERT INTO takes (scene_id, artefact_kind, asset_path, created_by, created_at) "
+                    "VALUES (?, 'keyframe', ?, 'editor', ?)",
+                    (scene_id, f"{body.slug}/keyframe-{idx}.png", now),
+                )
+                clip = c.execute(
+                    "INSERT INTO takes (scene_id, artefact_kind, asset_path, created_by, created_at) "
+                    "VALUES (?, 'clip', ?, 'editor', ?)",
+                    (scene_id, f"{body.slug}/clip-{idx}.mp4", now),
+                )
+                c.execute(
+                    "UPDATE scenes SET selected_keyframe_take_id = ?, selected_clip_take_id = ? WHERE id = ?",
+                    (keyframe.lastrowid, clip.lastrowid, scene_id),
+                )
         if body.include_failed_runs:
             c.execute(
                 """

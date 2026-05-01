@@ -11,10 +11,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import time
-from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -23,19 +21,13 @@ from .. import config as _cfg
 from ..generation import run_generation_stage
 from ..pipeline.preflight import preflight_stage
 from ..importer import import_all
-from ..pipeline.stages import run_gen_keyframes_for_stage
 from ..pipeline.transitions import ConflictError, FilterChangeTransition, NotFoundError
+from ..rendering import run_render_stage
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import create_run, get_run
 from ..store.schema import QualityMode
 from ..workflow import evaluate_song_workflow
 from .common import get_db, parse_dirty_flags, scene_asset_paths
-
-
-def _override_gen_keyframes() -> Optional[Path]:
-    p = os.environ.get("EDITOR_FAKE_GEN_KEYFRAMES")
-    return Path(p) if p else None
-
 
 router = APIRouter()
 
@@ -301,7 +293,7 @@ def patch_song(slug: str, body: SongPatchBody, conn=Depends(get_db)):
             new_filter = patch_fields["filter"]
             try:
                 transition = FilterChangeTransition(conn, slug, new_filter)
-                transition.apply(script_path=_override_gen_keyframes())
+                transition.apply()
             except NotFoundError as e:
                 raise HTTPException(status_code=404, detail=str(e)) from e
             except ConflictError as e:
@@ -378,15 +370,10 @@ def _run_generation_chain_then_keyframes(
         )
         if not result.ok:
             return result
-    return run_gen_keyframes_for_stage(
+    return run_render_stage(
         song_slug=slug,
-        song_filter=song_filter,
-        song_abstraction=song_abstraction,
-        song_quality_mode=song_quality_mode,
-        source_run_id=source_run_id,
         stage="keyframes",
-        redo=True,
-        script_path=_override_gen_keyframes(),
+        source_run_id=source_run_id,
     )
 
 

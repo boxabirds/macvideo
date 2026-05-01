@@ -1,8 +1,8 @@
 """Static asset endpoints with HTTP Range support.
 
-Serves files from music/ and pocs/29-full-song/outputs/ under /assets/*
-prefixes. The range-aware responder is the critical fix from the preview.html
-saga — without it audio seeking silently breaks.
+Serves files from the configured music and output roots under /assets/*
+prefixes. The range-aware responder is required because audio and video
+seeking depend on HTTP Range support.
 """
 
 from __future__ import annotations

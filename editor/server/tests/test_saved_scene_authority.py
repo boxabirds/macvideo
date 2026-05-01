@@ -29,7 +29,7 @@ def test_song_detail_uses_saved_scenes_when_old_outputs_are_missing(client_for, 
     assert "shots.json" not in r.text
 
 
-def test_keyframe_stage_builds_legacy_scene_input_from_saved_records(client_for, tmp_env, fixture_song_one):
+def test_keyframe_stage_renders_from_saved_records_without_legacy_scene_input(client_for, tmp_env, fixture_song_one):
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")
     import shutil
@@ -38,10 +38,13 @@ def test_keyframe_stage_builds_legacy_scene_input_from_saved_records(client_for,
     r = client_for.post("/api/songs/tiny-song/stages/keyframes")
 
     assert r.status_code == 200, r.text
-    shots = tmp_env["outputs"] / "tiny-song" / "shots.json"
-    assert _wait_until(shots.exists)
-    data = json.loads(shots.read_text())
-    assert [shot["target_text"] for shot in data["shots"]] == ["la la la", "oh oh oh"]
+    assert _wait_until(
+        lambda: all(
+            scene["selected_keyframe_path"] and "_product_artifacts" in scene["selected_keyframe_path"]
+            for scene in client_for.get("/api/songs/tiny-song").json()["scenes"]
+        )
+    )
+    assert not (tmp_env["outputs"] / "tiny-song" / "shots.json").exists()
 
 
 def test_startup_import_does_not_overwrite_saved_scene_edits(tmp_env, fixture_song_one):

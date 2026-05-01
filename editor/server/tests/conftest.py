@@ -19,10 +19,9 @@ _FAKE_SCRIPTS = _TESTS_DIR / "fake_scripts"
 def tmp_env(monkeypatch):
     """A temp dir with DB path + empty music + empty outputs folders.
 
-    Also points the pipeline's gen_keyframes / render_clips overrides at the
-    fake scripts under tests/fake_scripts/ so tests never spawn real Gemini /
-    LTX subprocesses. Individual tests can unset these env vars if they
-    specifically want to test the real-script path.
+    Product services use fake adapters by default so tests never spawn real
+    model or video-render subprocesses. Tests that exercise legacy wrappers
+    must pass fake script paths explicitly.
     """
     td = tempfile.mkdtemp()
     root = Path(td)
@@ -34,15 +33,8 @@ def tmp_env(monkeypatch):
     monkeypatch.setenv("EDITOR_DB_PATH", str(db_path))
     monkeypatch.setenv("EDITOR_MUSIC_DIR", str(music))
     monkeypatch.setenv("EDITOR_OUTPUTS_DIR", str(outputs))
-    monkeypatch.setenv(
-        "EDITOR_FAKE_GEN_KEYFRAMES",
-        str(_FAKE_SCRIPTS / "fake_gen_keyframes.py"),
-    )
-    monkeypatch.setenv(
-        "EDITOR_FAKE_RENDER_CLIPS",
-        str(_FAKE_SCRIPTS / "fake_render_clips.py"),
-    )
     monkeypatch.setenv("EDITOR_GENERATION_PROVIDER", "fake")
+    monkeypatch.setenv("EDITOR_RENDER_PROVIDER", "fake")
     from importlib import reload
     import editor.server.config as cfg
     reload(cfg)

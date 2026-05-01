@@ -110,7 +110,7 @@ def test_transcript_only_song_without_visual_setup_blocks_world_on_setup(tmp_pat
     assert workflow["world_brief"].blocked_reason == "Choose a filter and abstraction first."
 
 
-def test_complete_keyframes_make_final_video_available_until_finished(tmp_path):
+def test_complete_keyframes_block_final_video_until_clips_exist(tmp_path):
     conn = _db(tmp_path)
     song_id = _song(conn, world="world", storyboard="arc")
     _scene(conn, song_id, 1, beat="b", prompt="p", keyframe=True)
@@ -119,6 +119,17 @@ def test_complete_keyframes_make_final_video_available_until_finished(tmp_path):
 
     assert workflow["image_prompts"].state == "done"
     assert workflow["keyframes"].state == "done"
+    assert workflow["final_video"].state == "blocked"
+    assert workflow["final_video"].blocked_reason == "Render clips for every scene first."
+
+
+def test_complete_clips_make_final_video_available_until_finished(tmp_path):
+    conn = _db(tmp_path)
+    song_id = _song(conn, world="world", storyboard="arc")
+    _scene(conn, song_id, 1, beat="b", prompt="p", keyframe=True, clip=True)
+
+    workflow = evaluate_song_workflow(conn, song_id).stages
+
     assert workflow["final_video"].state == "available"
 
 

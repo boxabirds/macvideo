@@ -51,7 +51,10 @@ def test_world_storyboard_and_prompts_generate_without_historical_files(
 
     r = client_for.post("/api/songs/tiny-song/stages/storyboard")
     assert r.status_code == 200, r.text
-    assert _wait_until(lambda: client_for.get("/api/songs/tiny-song").json()["sequence_arc"])
+    assert _wait_until(lambda: (
+        (body := client_for.get("/api/songs/tiny-song").json())["sequence_arc"]
+        and all(scene["beat"] for scene in body["scenes"])
+    ))
 
     r = client_for.post("/api/songs/tiny-song/stages/image-prompts")
     assert r.status_code == 200, r.text

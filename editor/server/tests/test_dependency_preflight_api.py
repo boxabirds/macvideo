@@ -15,21 +15,20 @@ def _write_wav(path, duration_s: float = 1.2) -> None:
         wav.writeframes(b"\x00\x00" * frames)
 
 
-def test_stage_preflight_blocks_missing_generation_command_before_run(
+def test_stage_preflight_blocks_missing_render_provider_before_run(
     client_for, tmp_env, fixture_song_one, monkeypatch,
 ):
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")
-    monkeypatch.setenv("EDITOR_FAKE_GEN_KEYFRAMES", str(tmp_env["root"] / "missing.py"))
+    monkeypatch.delenv("EDITOR_RENDER_PROVIDER", raising=False)
 
     r = client_for.post("/api/songs/tiny-song/stages/keyframes")
 
     assert r.status_code == 422
     body = r.json()["detail"]
     assert body["code"] == "dependency_preflight_failed"
-    assert body["missing"][0]["code"] == "generation_command_missing"
+    assert body["missing"][0]["code"] == "renderer_provider_missing"
     assert "pocs/" not in body["reason"]
-    assert "missing.py" not in body["reason"]
 
     from editor.server.store import connection
     with connection(tmp_env["db"]) as c:
@@ -66,12 +65,12 @@ def test_audio_transcribe_preflight_blocks_missing_configured_command(
     assert "missing-demucs.py" not in body["reason"]
 
 
-def test_scene_regen_preflight_blocks_missing_render_command(
+def test_scene_regen_preflight_blocks_missing_render_provider(
     client_for, tmp_env, fixture_song_one, monkeypatch,
 ):
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")
-    monkeypatch.setenv("EDITOR_FAKE_RENDER_CLIPS", str(tmp_env["root"] / "missing-render.py"))
+    monkeypatch.delenv("EDITOR_RENDER_PROVIDER", raising=False)
 
     r = client_for.post(
         "/api/songs/tiny-song/scenes/1/takes",
@@ -81,5 +80,5 @@ def test_scene_regen_preflight_blocks_missing_render_command(
     assert r.status_code == 422
     body = r.json()["detail"]
     assert body["code"] == "dependency_preflight_failed"
-    assert body["missing"][0]["code"] == "render_command_missing"
+    assert body["missing"][0]["code"] == "renderer_provider_missing"
     assert "pocs/" not in body["reason"]

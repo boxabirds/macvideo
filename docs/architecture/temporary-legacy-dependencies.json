@@ -20,29 +20,15 @@
       "path": "editor/server/pipeline/preflight.py",
       "owner_story": 26,
       "workflow": "dependency preflight for temporary legacy runners",
-      "reason_remaining": "Preflight must detect missing dependencies for the temporary legacy runners before later stories replace those runners.",
-      "removal_condition": "Preflight checks product-owned services and adapters instead of POC-era scripts."
+      "reason_remaining": "Preflight must detect missing dependencies for the remaining transcription compatibility path and product adapters.",
+      "removal_condition": "Preflight checks only product-owned services and adapters."
     },
     {
       "path": "editor/server/pipeline/stages.py",
-      "owner_story": 28,
-      "workflow": "keyframe generation",
-      "reason_remaining": "Keyframe creation still uses the temporary full-song stage runner until product-owned visual rendering services exist.",
-      "removal_condition": "Keyframe creation runs through product-owned rendering services and adapters."
-    },
-    {
-      "path": "editor/server/pipeline/regen.py",
-      "owner_story": 28,
-      "workflow": "scene keyframe and clip regeneration",
-      "reason_remaining": "Scene regeneration still shells through legacy generation/render scripts until product-owned rendering services exist.",
-      "removal_condition": "Scene keyframe and clip regeneration use product-owned render services and adapters."
-    },
-    {
-      "path": "editor/server/pipeline/final.py",
-      "owner_story": 28,
-      "workflow": "final video rendering",
-      "reason_remaining": "Final render still invokes the legacy clip renderer until product-owned final render service exists.",
-      "removal_condition": "Final video rendering uses product-owned render service and adapter."
+      "owner_story": 31,
+      "workflow": "transcription compatibility",
+      "reason_remaining": "The older transcribe endpoint still lives in the historical stage wrapper while audio-transcribe uses product-owned scripts.",
+      "removal_condition": "Transcription routes use the product audio-transcribe service exclusively or a product-owned text-alignment service."
     },
     {
       "path": "editor/server/importer.py",
@@ -67,7 +53,7 @@
     },
     {
       "path": "editor/server/api/scenes.py",
-      "owner_story": 28,
+      "owner_story": 31,
       "workflow": "scene fields that mirror legacy renderer expectations",
       "reason_remaining": "Some scene metadata names still mirror the legacy renderer until product render contracts are introduced.",
       "removal_condition": "Scene render contracts are product-owned and no comments or code depend on legacy renderer naming."
@@ -81,10 +67,10 @@
     },
     {
       "path": "editor/server/api/songs.py",
-      "owner_story": 28,
+      "owner_story": 31,
       "workflow": "song update chain regeneration",
-      "reason_remaining": "Filter and abstraction changes now use product-owned written generation services but still enqueue temporary keyframe creation.",
-      "removal_condition": "Song updates enqueue product-owned rendering services for keyframes."
+      "reason_remaining": "Song update chain code has product-owned generation and rendering, but still sits beside historical route comments and migration affordances.",
+      "removal_condition": "Song update documentation and migration paths are separated from normal product runtime."
     },
     {
       "path": "editor/server/regen/stages.py",
@@ -116,9 +102,9 @@
     },
     {
       "path": "editor/server/pipeline/subprocess_runner.py",
-      "owner_story": 28,
-      "workflow": "legacy subprocess progress parsing",
-      "reason_remaining": "Progress parsing still understands legacy stdout while legacy runners remain inventoried.",
+      "owner_story": 31,
+      "workflow": "transcription subprocess progress parsing",
+      "reason_remaining": "Progress parsing still supports the remaining transcription compatibility scripts.",
       "removal_condition": "Progress is emitted by product-owned adapters with product-owned event contracts."
     },
     {

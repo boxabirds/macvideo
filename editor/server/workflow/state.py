@@ -283,6 +283,8 @@ def evaluate_song_workflow(conn, song_id: int) -> SongWorkflowView:
                 prereq_labels.append("filter")
             if song["abstraction"] is None:
                 prereq_labels.append("abstraction")
+        if stage.key == "final_video" and total > 0 and with_clip < total:
+            prereq_labels.append("scene clips")
 
         done = done_by_key[stage.key]
         stale_reasons = stale_reasons_by_key[stage.key]
@@ -302,7 +304,9 @@ def evaluate_song_workflow(conn, song_id: int) -> SongWorkflowView:
 
         blocked_reason = None
         if state == "blocked":
-            if stage.key in ("image_prompts", "keyframes", "final_video") and (
+            if stage.key == "final_video" and "scene clips" in prereq_labels:
+                blocked_reason = "Render clips for every scene first."
+            elif stage.key in ("image_prompts", "keyframes", "final_video") and (
                 not stages.get("world_brief") or stages["world_brief"].state != "done"
                 or not stages.get("storyboard") or stages["storyboard"].state != "done"
             ):

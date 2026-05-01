@@ -32,8 +32,7 @@ def test_run_keyframes_stage_creates_takes_for_missing_scenes(client_for, tmp_en
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")
 
-    # Nuke scene 2's keyframe take AND delete the file so gen_keyframes.py
-    # (real or fake) has work to do.
+    # Remove scene 2's selected keyframe so the product renderer has work to do.
     from editor.server.store import connection
     with connection(tmp_env["db"]) as c:
         c.execute(
@@ -58,13 +57,13 @@ def test_run_keyframes_stage_creates_takes_for_missing_scenes(client_for, tmp_en
     assert after_kf > before_kf
 
 
-def test_render_final_refuses_when_any_scene_missing_keyframe(client_for, tmp_env, fixture_song_one):
+def test_render_final_refuses_when_any_scene_missing_clip(client_for, tmp_env, fixture_song_one):
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")
     from editor.server.store import connection
     with connection(tmp_env["db"]) as c:
         c.execute(
-            "UPDATE scenes SET selected_keyframe_take_id = NULL "
+            "UPDATE scenes SET selected_clip_take_id = NULL "
             "WHERE scene_index = 1 AND song_id = (SELECT id FROM songs WHERE slug='tiny-song')")
 
     r = client_for.post("/api/songs/tiny-song/render-final")
@@ -115,6 +114,15 @@ def test_run_all_outstanding_409_when_chain_already_running(client_for, tmp_env,
 def test_render_final_happy_path_creates_finished_video(client_for, tmp_env, fixture_song_one):
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")
+    for idx in (1, 2):
+        r = client_for.post(
+            f"/api/songs/tiny-song/scenes/{idx}/takes",
+            json={"artefact_kind": "clip", "trigger": "regen"},
+        )
+        assert r.status_code == 200, r.text
+    assert _wait_until(lambda: all(
+        s["selected_clip_path"] for s in client_for.get("/api/songs/tiny-song").json()["scenes"]
+    ))
 
     r = client_for.post("/api/songs/tiny-song/render-final")
     assert r.status_code == 200, r.text
@@ -131,6 +139,15 @@ def test_render_final_happy_path_creates_finished_video(client_for, tmp_env, fix
 def test_render_final_409_when_already_running(client_for, tmp_env, fixture_song_one):
     fixture_song_one(tmp_env["music"], tmp_env["outputs"])
     client_for.post("/api/import")
+    for idx in (1, 2):
+        r = client_for.post(
+            f"/api/songs/tiny-song/scenes/{idx}/takes",
+            json={"artefact_kind": "clip", "trigger": "regen"},
+        )
+        assert r.status_code == 200, r.text
+    assert _wait_until(lambda: all(
+        s["selected_clip_path"] for s in client_for.get("/api/songs/tiny-song").json()["scenes"]
+    ))
     r1 = client_for.post("/api/songs/tiny-song/render-final")
     assert r1.status_code == 200
     r2 = client_for.post("/api/songs/tiny-song/render-final")

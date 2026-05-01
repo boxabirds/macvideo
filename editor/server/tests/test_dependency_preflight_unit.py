@@ -57,37 +57,33 @@ def test_audio_transcribe_reports_missing_configured_product_command(monkeypatch
     assert "missing-demucs.py" not in result.missing[0].detail
 
 
-def test_generation_accepts_command_scoped_fake_without_gemini(monkeypatch, tmp_path):
+def test_keyframes_accept_configured_render_provider(monkeypatch, tmp_path):
     preflight, _music, _outputs = _reload_preflight(monkeypatch, tmp_path)
-    fake = tmp_path / "fake_gen_keyframes.py"
-    fake.write_text("#!/usr/bin/env python\n")
-    monkeypatch.setenv("EDITOR_FAKE_GEN_KEYFRAMES", str(fake))
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("EDITOR_RENDER_PROVIDER", "fake")
 
     result = preflight.preflight_stage(slug="song", stage="keyframes")
 
     assert result.ok
 
 
-def test_generation_requires_gemini_without_fake(monkeypatch, tmp_path):
+def test_keyframes_require_render_provider(monkeypatch, tmp_path):
     preflight, _music, _outputs = _reload_preflight(monkeypatch, tmp_path)
-    monkeypatch.delenv("EDITOR_FAKE_GEN_KEYFRAMES", raising=False)
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("EDITOR_RENDER_PROVIDER", raising=False)
 
     result = preflight.preflight_stage(slug="song", stage="keyframes")
 
     assert not result.ok
-    assert any(m.code == "model_credentials_missing" for m in result.missing)
+    assert any(m.code == "renderer_provider_missing" for m in result.missing)
 
 
-def test_rendering_reports_missing_configured_render_command(monkeypatch, tmp_path):
+def test_rendering_reports_missing_provider(monkeypatch, tmp_path):
     preflight, _music, _outputs = _reload_preflight(monkeypatch, tmp_path)
-    monkeypatch.setenv("EDITOR_FAKE_RENDER_CLIPS", str(tmp_path / "missing-render.py"))
+    monkeypatch.delenv("EDITOR_RENDER_PROVIDER", raising=False)
 
     result = preflight.preflight_stage(slug="song", stage="scene-clip")
 
     assert not result.ok
-    assert result.missing[0].code == "render_command_missing"
+    assert result.missing[0].code == "renderer_provider_missing"
     assert "pocs/" not in result.missing[0].detail
 
 
@@ -98,4 +94,3 @@ def test_unknown_stage_returns_typed_failure(monkeypatch, tmp_path):
 
     assert not result.ok
     assert result.missing[0].code == "unknown_stage"
-

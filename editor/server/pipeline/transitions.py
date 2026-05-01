@@ -178,7 +178,7 @@ class FilterChangeTransition:
             "would_conflict_with": would_conflict,
         }
 
-    def apply(self, *, script_path=None) -> dict:
+    def apply(self) -> dict:
         """Apply the filter change and enqueue the filter regeneration chain.
 
         Returns a small result dict containing the resolved kind and run id.
@@ -221,17 +221,13 @@ class FilterChangeTransition:
         from ..generation import run_generation_stage
         from ..regen.queue import RegenJob, keyframe_queue
         from ..regen.runs import create_run, get_run
-        from .stages import run_gen_keyframes_for_stage
+        from ..rendering import run_render_stage
 
         run_id = create_run(self.conn, scope="song_filter", song_id=self.song_id)
         run = get_run(self.conn, run_id)
         assert run is not None
 
         slug = self.slug
-        song_filter = self.new_filter
-        song_abstraction = resolved_abstraction
-        song_quality_mode = self.current_quality_mode or "draft"
-
         async def handler(r):  # noqa: ANN001
             import asyncio
             loop = asyncio.get_event_loop()
@@ -244,15 +240,10 @@ class FilterChangeTransition:
                     )
                     if not result.ok:
                         return result
-                return run_gen_keyframes_for_stage(
+                return run_render_stage(
                     song_slug=slug,
-                    song_filter=song_filter,
-                    song_abstraction=song_abstraction,
-                    song_quality_mode=song_quality_mode,
-                    source_run_id=r.id,
                     stage="keyframes",
-                    redo=True,
-                    script_path=script_path,
+                    source_run_id=r.id,
                 )
             return await loop.run_in_executor(
                 None,

@@ -13,7 +13,8 @@ def test_song_detail_serializes_central_workflow(client_for, tmp_env, fixture_so
     assert workflow["transcription"]["state"] == "done"
     assert workflow["world_brief"]["label"] == "world description"
     assert workflow["keyframes"]["state"] == "done"
-    assert workflow["final_video"]["state"] == "available"
+    assert workflow["final_video"]["state"] == "blocked"
+    assert workflow["final_video"]["blocked_reason"] == "Render clips for every scene first."
 
 
 def test_stage_request_boundary_uses_workflow_blocked_reason(client_for, tmp_env):

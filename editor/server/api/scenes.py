@@ -20,8 +20,7 @@ from .common import get_db, parse_dirty_flags, scene_asset_paths
 router = APIRouter()
 
 
-# LTX-render camera intent vocabulary (mirror of CAMERA_LANGUAGE keys in
-# pocs/29-full-song/scripts/render_clips.py).
+# Product camera-intent vocabulary consumed by render adapters.
 CAMERA_INTENTS = [
     "static hold",
     "slow push in",
