@@ -1,4 +1,4 @@
-"""Ensure repo root is on sys.path for tests that import `editor.*` or `pocs.*`."""
+"""Ensure repo root is on sys.path for tests that import project modules."""
 
 import sys
 from pathlib import Path

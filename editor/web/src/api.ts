@@ -186,6 +186,13 @@ export type RegenRunSummary = {
   created_at: number;
 };
 
+export type FinishedVideo = {
+  file_path: string;
+  created_at: number;
+  quality_mode: string;
+  scene_count: number;
+};
+
 export type TranscriptResponse = {
   scene_index: number;
   target_text: string;

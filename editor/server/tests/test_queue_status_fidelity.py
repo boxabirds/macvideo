@@ -19,7 +19,7 @@ import threading
 import time
 from pathlib import Path
 
-from editor.server.pipeline.stages import StageResult
+from editor.server.pipeline.result import StageResult
 from editor.server.regen.queue import RegenJob, _RegenQueue
 from editor.server.regen.runs import RegenRun, create_run, get_run, update_run_status
 from editor.server.store import connection

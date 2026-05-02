@@ -13,7 +13,6 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from ..pipeline.preflight import preflight_stage
 from ..generation import run_generation_stage
-from ..pipeline.stages import run_gen_keyframes_for_stage
 from ..rendering import run_render_stage
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import create_run, get_run
@@ -26,6 +25,7 @@ from ..workflow import (
     transition_rejection_status,
 )
 from .common import get_db
+from .audio_transcribe import queue_audio_transcribe_job
 
 
 router = APIRouter()
@@ -36,7 +36,7 @@ StageKey = Literal[
 ]
 
 _STAGE_SCOPES = {
-    "transcribe":     "stage_transcribe",
+    "transcribe":     "stage_audio_transcribe",
     "world-brief":    "stage_world_brief",
     "storyboard":     "stage_storyboard",
     "image-prompts":  "stage_image_prompts",
@@ -108,6 +108,10 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
     if not song:
         raise HTTPException(status_code=404, detail=f"song '{slug}' not found")
 
+    if stage == "transcribe":
+        result = queue_audio_transcribe_job(conn=conn, slug=slug, force=redo)
+        return {**result, "stage": stage}
+
     plan = _plan_stage_transition(conn, song_id=song["id"], stage_name=stage, redo=redo)
     if isinstance(plan, WorkflowTransitionRejection):
         raise _workflow_rejection(plan)
@@ -124,8 +128,6 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
 
     slug_captured = slug
     stage_captured: StageKey = stage  # type: ignore[assignment]
-    song_quality_mode = song["quality_mode"]
-
     async def handler(r):  # noqa: ANN001
         import asyncio
         loop = asyncio.get_event_loop()
@@ -147,18 +149,7 @@ async def run_stage(slug: str, stage: str, redo: bool = False, conn=Depends(get_
                     source_run_id=r.id,
                 ),
             )
-        return await loop.run_in_executor(
-            None,
-            lambda: run_gen_keyframes_for_stage(
-                song_slug=slug_captured,
-                song_filter="",
-                song_abstraction=0,
-                song_quality_mode=song_quality_mode or "draft",
-                source_run_id=r.id,
-                stage="transcribe",
-                redo=redo,
-            ),
-        )
+        raise RuntimeError(f"unsupported product stage {stage_captured}")
 
     keyframe_queue.submit(RegenJob(run=run, handler=handler))
     return {"run_id": run_id, "status": "pending", "stage": stage}
@@ -203,53 +194,28 @@ async def run_all_outstanding(slug: str, conn=Depends(get_db)):
         )
 
     deps = _stage_deps(conn, song["id"])
-    # Transcription still uses the temporary alignment wrapper. Written
-    # planning and rendering stages use product services and are queued only
-    # when their saved-state prerequisites are already committed.
     slug_captured = slug
-    song_quality_mode = song["quality_mode"] or "draft"
 
     triggered: list[dict] = []
     blocked_at: dict | None = None
 
     # Transcribe first if needed.
     if not deps["transcribe"]["done"]:
-        plan = _plan_stage_transition(conn, song_id=song["id"], stage_name="transcribe")
-        if isinstance(plan, WorkflowTransitionRejection):
+        try:
+            result = queue_audio_transcribe_job(conn=conn, slug=slug, force=False)
+            triggered.append({"stage": "transcribe", "run_id": result["run_id"]})
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, dict) else {}
             blocked_at = {
                 "stage": "transcribe",
-                "reason": plan.message,
-                "detail": plan.to_http_detail(),
+                "reason": str(detail.get("reason") or detail.get("detail") or exc.detail),
+                "detail": exc.detail,
             }
         else:
-            preflight = preflight_stage(slug=slug, stage="transcribe")
-            if not preflight.ok:
-                blocked_at = {
-                    "stage": "transcribe",
-                    "reason": preflight.first_reason,
-                    "detail": preflight.to_http_detail(),
-                }
-            else:
-                run_id = create_run(conn, scope=plan.scope, song_id=song["id"])
-                run = get_run(conn, run_id)
-                assert run is not None
-                async def transcribe_handler(r):  # noqa: ANN001
-                    import asyncio
-                    loop = asyncio.get_event_loop()
-                    return await loop.run_in_executor(
-                        None,
-                        lambda: run_gen_keyframes_for_stage(
-                            song_slug=slug_captured,
-                            song_filter="",
-                            song_abstraction=0,
-                            song_quality_mode=song_quality_mode,
-                            source_run_id=r.id,
-                            stage="transcribe",
-                            redo=False,
-                        ),
-                    )
-                keyframe_queue.submit(RegenJob(run=run, handler=transcribe_handler))
-                triggered.append({"stage": "transcribe", "run_id": run_id})
+            return {
+                "triggered": triggered,
+                "blocked_at": None,
+            }
 
     # Then queue product generation and rendering stages independently.
     if blocked_at is None:

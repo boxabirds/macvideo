@@ -156,7 +156,7 @@ describe("deriveSongWorkflowState", () => {
           stages: {
             transcription: {
               key: "transcription", label: "transcription", stage_name: "transcribe",
-              scope: "stage_transcribe", history_model: "replace", state: "done",
+              scope: "stage_audio_transcribe", history_model: "replace", state: "done",
               done: true, available: true, can_start: true, can_retry: false,
               blocked_reason: null, failed_reason: null, stale_reasons: [],
               invalidates: [], summary: "", active_run: null, failed_run: null, progress: null,

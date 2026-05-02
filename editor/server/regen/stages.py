@@ -1,8 +1,7 @@
-"""Stub stage runners for story 9.
+"""Stub stage runners for early workflow tests.
 
 These run briefly, mutate the store to simulate the stage having completed,
-and return. Swapping them for real subprocess wrappers around
-`force_align.py`, `gen_keyframes.py`, etc., is a localised change later.
+and return.
 
 Contract per stage: runs against the given song + its scenes; on success the
 relevant DB fields are populated. No external calls are made.

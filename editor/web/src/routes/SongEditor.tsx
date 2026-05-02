@@ -1,26 +1,21 @@
 // The storyboard editor for one song. Composes preview (story 2), storyboard
 // (story 3), pipeline panel (story 9), top bar (stories 4, 8, 10), and split
 // pane (story 6).
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import useSWR from "swr";
 import type { KeyedMutator } from "swr";
 import { fetcher } from "../api";
 import type { Scene, SongDetail } from "../types";
-import type { RegenRunSummary } from "../api";
 import TopBar from "../components/TopBar";
 import SplitPane from "../components/SplitPane";
 import Storyboard from "../components/Storyboard";
 import Preview from "../components/Preview";
 import PipelinePanel from "../components/PipelinePanel";
 import { useAudioPlayback } from "../hooks/useAudioPlayback";
+import { useRegenRuns } from "../hooks/useRegenRuns";
 
-// Poll interval for active regens. Short enough that the UI spinner feels
-// responsive without hammering the backend for a rarely-changing query.
-const ACTIVE_REGEN_POLL_MS = 2000;
-
-export type ActiveArtefacts = "keyframe" | "clip";
-export type ActiveRegensMap = Record<number, Set<ActiveArtefacts>>;
+const EMPTY_CAMERA_INTENTS: string[] = [];
 
 export default function SongEditor() {
   const { slug = "" } = useParams();
@@ -49,40 +44,10 @@ function SongEditorInner({
   const { data: intents } = useSWR<{ values: string[] }>(
     "/api/camera-intents", fetcher,
   );
-  // Poll /regen so the UI can show in-flight keyframe/clip regens AND the
-  // most recent failed stage runs (used by PipelinePanel's transcribe row).
-  // Single poll feeds both Storyboard (active scenes) and PipelinePanel
-  // (transcribe state) so we don't add a second request.
-  const { data: regenRunsResponse } = useSWR<{ runs: RegenRunSummary[] }>(
-    `/api/songs/${song.slug}/regen`,
-    fetcher,
-    { refreshInterval: ACTIVE_REGEN_POLL_MS },
-  );
-
-  const regenRuns = regenRunsResponse?.runs ?? [];
-  const regenRunSignature = useMemo(
-    () => regenRuns
-      .map(r => `${r.id}:${r.status}:${r.started_at ?? ""}:${r.ended_at ?? ""}:${r.error ?? ""}`)
-      .join("|"),
-    [regenRuns],
-  );
-  useEffect(() => {
-    if (regenRuns.length === 0) return;
+  const refreshSong = useCallback(() => {
     void mutate();
-  }, [regenRunSignature, mutate, regenRuns.length]);
-
-  const activeRegens = useMemo<ActiveRegensMap>(() => {
-    const map: ActiveRegensMap = {};
-    for (const r of regenRuns) {
-      if (r.status !== "pending" && r.status !== "running") continue;
-      if (r.scene_index == null || r.artefact_kind == null) continue;
-      if (r.artefact_kind !== "keyframe" && r.artefact_kind !== "clip") continue;
-      const set = map[r.scene_index] ?? new Set<ActiveArtefacts>();
-      set.add(r.artefact_kind);
-      map[r.scene_index] = set;
-    }
-    return map;
-  }, [regenRuns]);
+  }, [mutate]);
+  const { runs: regenRuns, activeRegens } = useRegenRuns(song.slug, refreshSong);
 
   // Single source of truth for "what scene is playing" — the audio element.
   // useAudioPlayback owns the audio events and exposes playingSceneIdx +
@@ -99,39 +64,54 @@ function SongEditorInner({
   });
 
   const onScenePatched = useCallback((idx: number, updated: Scene) => {
-    const nextScenes = song.scenes.map(s => s.index === idx ? updated : s);
-    mutate({ ...song, scenes: nextScenes }, { revalidate: false });
-  }, [song, mutate]);
+    void mutate(current => {
+      if (!current) return current;
+      const nextScenes = current.scenes.map(s => s.index === idx ? updated : s);
+      return { ...current, scenes: nextScenes };
+    }, { revalidate: false });
+  }, [mutate]);
 
-  const status = {
-    transcription: song.scenes.length > 0 ? "done" as const : "empty" as const,
-    world_brief: song.world_brief ? "done" as const : "empty" as const,
-    storyboard: song.sequence_arc ? "done" as const : "empty" as const,
-    keyframes_done: song.scenes.filter(s => s.selected_keyframe_path).length,
-    keyframes_total: song.scenes.length,
-    clips_done: song.scenes.filter(s => s.selected_clip_path).length,
-    clips_total: song.scenes.length,
-    final: "empty" as const,
-  };
+  const onSongUpdate = useCallback((updated: SongDetail) => {
+    void mutate(updated, { revalidate: false });
+  }, [mutate]);
+
+  const status = useMemo(() => {
+    let keyframesDone = 0;
+    let clipsDone = 0;
+    for (const scene of song.scenes) {
+      if (scene.selected_keyframe_path) keyframesDone += 1;
+      if (scene.selected_clip_path) clipsDone += 1;
+    }
+    return {
+      transcription: song.scenes.length > 0 ? "done" as const : "empty" as const,
+      world_brief: song.world_brief ? "done" as const : "empty" as const,
+      storyboard: song.sequence_arc ? "done" as const : "empty" as const,
+      keyframes_done: keyframesDone,
+      keyframes_total: song.scenes.length,
+      clips_done: clipsDone,
+      clips_total: song.scenes.length,
+      final: "empty" as const,
+    };
+  }, [song.scenes, song.sequence_arc, song.world_brief]);
 
   return (
     <div className="app">
       <TopBar
         song={song}
-        onSongUpdate={s => mutate(s, { revalidate: false })}
+        onSongUpdate={onSongUpdate}
         onBack={onBack}
       />
       <PipelinePanel
         song={song}
         status={status}
         regenRuns={regenRuns}
-        onSongUpdate={s => mutate(s, { revalidate: false })}
+        onSongUpdate={onSongUpdate}
       />
       <SplitPane
         left={
           <Storyboard
             song={song}
-            cameraIntents={intents?.values ?? []}
+            cameraIntents={intents?.values ?? EMPTY_CAMERA_INTENTS}
             playingSceneIdx={playingSceneIdx}
             onSeekToScene={seekToScene}
             onSeekToTime={seekTo}

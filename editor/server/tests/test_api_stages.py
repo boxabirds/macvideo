@@ -3,6 +3,13 @@
 from __future__ import annotations
 
 import time
+import wave
+from pathlib import Path
+
+
+_TESTS_DIR = Path(__file__).resolve().parent
+_FAKE_DEMUCS = _TESTS_DIR / "fake_scripts" / "fake_demucs.py"
+_FAKE_WHISPERX = _TESTS_DIR / "fake_scripts" / "fake_whisperx_transcribe.py"
 
 
 def _wait_until(fn, timeout=5.0):
@@ -12,6 +19,49 @@ def _wait_until(fn, timeout=5.0):
             return True
         time.sleep(0.05)
     return False
+
+
+def _write_silent_wav(path: Path, duration_s: float = 2.0) -> None:
+    sample_rate = 16000
+    frames = int(sample_rate * duration_s)
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(b"\x00\x00" * frames)
+
+
+def test_transcribe_stage_queues_product_audio_transcription(client_for, tmp_env, monkeypatch):
+    monkeypatch.setenv("EDITOR_FAKE_DEMUCS", str(_FAKE_DEMUCS))
+    monkeypatch.setenv("EDITOR_FAKE_WHISPERX_TRANSCRIBE", str(_FAKE_WHISPERX))
+    slug = "stage-audio-transcribe"
+    _write_silent_wav(tmp_env["music"] / f"{slug}.wav")
+    client_for.post("/api/import")
+
+    r = client_for.post(f"/api/songs/{slug}/stages/transcribe")
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["stage"] == "transcribe"
+    assert body["status"] == "pending"
+    from editor.server.store import connection
+    with connection(tmp_env["db"]) as c:
+        row = c.execute(
+            "SELECT scope FROM regen_runs WHERE id = ?",
+            (body["run_id"],),
+        ).fetchone()
+    assert row["scope"] == "stage_audio_transcribe"
+
+    def scenes_exist():
+        with connection(tmp_env["db"]) as c:
+            row = c.execute(
+                "SELECT COUNT(*) AS n FROM scenes "
+                "WHERE song_id = (SELECT id FROM songs WHERE slug = ?)",
+                (slug,),
+            ).fetchone()
+        return row["n"] > 0
+
+    assert _wait_until(scenes_exist)
 
 
 def test_stage_deps_dependency_enforcement(client_for, tmp_env, fixture_song_one):
@@ -93,6 +143,30 @@ def test_run_all_outstanding_queues_undone_stages(client_for, tmp_env, fixture_s
     assert "world-brief" in triggered_stages
     # blocked_at should be None because the chain ran through in order.
     assert body["blocked_at"] is None
+
+
+def test_run_all_outstanding_starts_with_product_audio_transcription(
+    client_for, tmp_env, monkeypatch,
+):
+    monkeypatch.setenv("EDITOR_FAKE_DEMUCS", str(_FAKE_DEMUCS))
+    monkeypatch.setenv("EDITOR_FAKE_WHISPERX_TRANSCRIBE", str(_FAKE_WHISPERX))
+    slug = "run-all-audio-transcribe"
+    _write_silent_wav(tmp_env["music"] / f"{slug}.wav")
+    client_for.post("/api/import")
+
+    r = client_for.post(f"/api/songs/{slug}/run-all-stages")
+
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["blocked_at"] is None
+    assert [item["stage"] for item in body["triggered"]] == ["transcribe"]
+    from editor.server.store import connection
+    with connection(tmp_env["db"]) as c:
+        row = c.execute(
+            "SELECT scope FROM regen_runs WHERE id = ?",
+            (body["triggered"][0]["run_id"],),
+        ).fetchone()
+    assert row["scope"] == "stage_audio_transcribe"
 
 
 def test_run_all_outstanding_409_when_chain_already_running(client_for, tmp_env, fixture_song_one):

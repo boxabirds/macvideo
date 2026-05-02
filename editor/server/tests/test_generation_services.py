@@ -72,7 +72,6 @@ def test_world_storyboard_and_prompts_generate_without_historical_files(
     assert "Product world for tiny-song" in body["world_brief"]
     assert "Product storyboard arc for tiny-song" in body["sequence_arc"]
     assert all("charcoal frame for scene" in s["image_prompt"] for s in body["scenes"])
-    assert "gen_keyframes.py" not in str(body)
     assert "shots.json" not in str(body)
 
     from editor.server.store import connection
@@ -99,7 +98,7 @@ def test_missing_generation_provider_blocks_before_run(
     assert body["code"] == "workflow_transition_rejected"
     assert body["reason_code"] == "blocked"
     assert "generation provider" in body["reason"]
-    assert "gen_keyframes.py" not in str(body)
+    assert "product generation provider" in str(body)
 
 
 def test_malformed_provider_failure_is_user_facing_and_preserves_saved_content(

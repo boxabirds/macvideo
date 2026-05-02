@@ -19,7 +19,7 @@ from unittest.mock import patch
 
 import pytest
 
-from editor.server.pipeline.stages import StageResult
+from editor.server.pipeline.result import StageResult
 from editor.server.regen.queue import RegenJob, _RegenQueue
 from editor.server.regen.runs import RegenRun
 

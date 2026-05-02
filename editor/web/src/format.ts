@@ -17,8 +17,7 @@ export function formatBytes(bytes: number | null | undefined): string {
 
 export function assetUrl(absolutePath: string): string {
   // Backend serves files under /assets/outputs/* and /assets/music/* relative
-  // to the configured roots (production uses pocs/29-full-song/outputs,
-  // tests use a temp dir). Find the LAST occurrence of /outputs/ or /music/
+  // to the configured roots. Find the LAST occurrence of /outputs/ or /music/
   // and rebase onto the matching /assets/ prefix.
   const outIdx = absolutePath.lastIndexOf("/outputs/");
   if (outIdx >= 0) {

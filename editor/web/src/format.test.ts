@@ -26,7 +26,7 @@ describe("formatBytes", () => {
 
 describe("assetUrl", () => {
   it("rewrites absolute output paths under /assets/outputs", () => {
-    expect(assetUrl("/Users/x/pocs/29-full-song/outputs/foo/keyframes/kf.png"))
+    expect(assetUrl("/Users/x/editor/data/outputs/foo/keyframes/kf.png"))
       .toBe("/assets/outputs/foo/keyframes/kf.png");
   });
 

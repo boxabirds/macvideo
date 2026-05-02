@@ -16,7 +16,7 @@ from ..store.schema import RegenStatus
 RegenScope = Literal[
     "scene_keyframe", "scene_clip",
     "song_filter", "song_abstraction",
-    "stage_transcribe", "stage_audio_transcribe",
+    "stage_audio_transcribe",
     "stage_world_brief", "stage_storyboard",
     "stage_image_prompts", "stage_keyframes",
     "final_video",

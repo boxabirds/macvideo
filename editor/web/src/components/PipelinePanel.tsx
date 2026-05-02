@@ -3,7 +3,7 @@
 // row-of-pills layout with a breadcrumb and adds prereq-gating + a uniform
 // regen-confirmation modal. Story 12 added transcribe progress + retry; that
 // behaviour is preserved inside the new StageSegment.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { SongDetail, StageStatus } from "../types";
 import type { RegenRunSummary } from "../api";
 import {
@@ -25,6 +25,7 @@ import {
   type StageKey,
   type StageScope,
 } from "../lib/songWorkflowState";
+import { useFinishedVideos } from "../hooks/useFinishedVideos";
 
 // Story 14: phase strings emitted by the audio-transcribe orchestrator.
 const PHASE_LABEL: Record<string, string> = {
@@ -127,10 +128,6 @@ async function runStage(slug: string, stageName: string, redo: boolean) {
   return r.json();
 }
 
-type FinishedVideo = {
-  file_path: string; created_at: number; quality_mode: string; scene_count: number;
-};
-
 export default function PipelinePanel({
   song, status, regenRuns, onSongUpdate,
 }: {
@@ -139,12 +136,11 @@ export default function PipelinePanel({
   regenRuns?: RegenRunSummary[];
   onSongUpdate?: (s: SongDetail) => void;
 }) {
-  // Story 14 generalises the transcribe-row state-tracking to cover BOTH
-  // stage_transcribe (existing forced-alignment path) and stage_audio_transcribe
-  // (new audio-transcribe path) so the lyric-alignment segment shows a unified
-  // running/failed state regardless of which path the user picked.
-  const transcribeRuns = (regenRuns ?? []).filter(
-    r => r.scope === "stage_transcribe" || r.scope === "stage_audio_transcribe",
+  const transcribeRuns = useMemo(
+    () => (regenRuns ?? []).filter(
+      r => r.scope === "stage_audio_transcribe",
+    ),
+    [regenRuns],
   );
   const [observedRunIds, setObservedRunIds] = useState<Set<number>>(() => new Set());
   const addObservedRunId = useCallback((id: number | null | undefined) => {
@@ -204,29 +200,18 @@ export default function PipelinePanel({
   // confirm + overwrite branches share state.
   const [pendingAudioTranscribe, setPendingAudioTranscribe] = useState(false);
 
-  // Lifted from RenderFinalAction so the breadcrumb's final-video segment can
-  // derive its done-state from finished.length.
-  const [finished, setFinished] = useState<FinishedVideo[]>([]);
+  const { finished, reloadFinished } = useFinishedVideos(song.slug);
   const [renderConfirm, setRenderConfirm] = useState(false);
   const [renderBusy, setRenderBusy] = useState(false);
   const [renderError, setRenderError] = useState<string | null>(null);
-
-  const loadFinished = useCallback(async () => {
-    try {
-      const r = await fetch(`/api/songs/${encodeURIComponent(song.slug)}/finished`);
-      if (r.ok) {
-        const data = await r.json();
-        setFinished(data.finished ?? []);
-      }
-    } catch { /* non-fatal */ }
-  }, [song.slug]);
-  useEffect(() => { void loadFinished(); }, [loadFinished]);
 
   const trigger = useCallback(async (stageName: string, isRedo: boolean) => {
     setBusy(stageName);
     setError(null);
     try {
-      const result = await runStage(song.slug, stageName, isRedo);
+      const result = stageName === "transcribe"
+        ? await audioTranscribe(song.slug, { force: isRedo })
+        : await runStage(song.slug, stageName, isRedo);
       addObservedRunId(result?.run_id);
     } catch (e) {
       setError(formatApiError(e));
@@ -252,18 +237,18 @@ export default function PipelinePanel({
     } finally {
       setRenderBusy(false);
       setRenderConfirm(false);
-      await loadFinished();
+      await reloadFinished();
     }
-  }, [song.slug, loadFinished]);
+  }, [song.slug, reloadFinished]);
 
-  const workflow = deriveSongWorkflowState({
+  const workflow = useMemo(() => deriveSongWorkflowState({
     song,
     status,
     regenRuns,
     finishedCount: finished.length,
     dismissedFailedTranscribeId: dismissedFailedId,
     visibleFailedRunIds: observedRunIds,
-  });
+  }), [dismissedFailedId, finished.length, observedRunIds, regenRuns, song, status]);
 
   const onSegmentClick = useCallback((stage: StageDef) => {
     const stageState = workflow[stage.key];
@@ -290,6 +275,10 @@ export default function PipelinePanel({
       // Null-state retry — no committed output to replace, no confirmation.
       if (stage.key === "transcription" && latestTranscribe) {
         setDismissedFailedId(latestTranscribe.id);
+        void audioTranscribe(song.slug, { force: true }).then(result => {
+          addObservedRunId(result?.run_id);
+        }).catch(e => setError(formatApiError(e)));
+        return;
       }
       void trigger(stage.stageName, true);
       return;
@@ -384,7 +373,7 @@ export default function PipelinePanel({
               </button>
               {/* Story 14: when the lyric-alignment segment is pending and
                   no scenes exist yet, expose the audio-transcribe alternative
-                  alongside the existing forced-alignment trigger. */}
+                  as the only transcription action. */}
               {stage.key === "transcription"
                 && segStatus === "pending"
                 && song.scenes.length === 0 ? (
@@ -425,17 +414,9 @@ export default function PipelinePanel({
                   <button
                     onClick={() => {
                       if (latestTranscribe) setDismissedFailedId(latestTranscribe.id);
-                      // Story 14: retry the SAME scope as the failed run.
-                      // stage_audio_transcribe must call audioTranscribe with
-                      // force=true (a partial run may have written
-                      // intermediates we want to overwrite).
-                      if (latestTranscribe?.scope === "stage_audio_transcribe") {
-                        void audioTranscribe(song.slug, { force: true }).then(result => {
-                          addObservedRunId(result?.run_id);
-                        }).catch(e => setError(formatApiError(e)));
-                      } else {
-                        void trigger("transcribe", true);
-                      }
+                      void audioTranscribe(song.slug, { force: true }).then(result => {
+                        addObservedRunId(result?.run_id);
+                      }).catch(e => setError(formatApiError(e)));
                     }}
                     disabled={busy === "transcribe"}
                   >

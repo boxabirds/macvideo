@@ -303,6 +303,51 @@ describe("Storyboard", () => {
     expect(screen.getByDisplayValue("camera finds the empty room")).toBeInTheDocument();
   });
 
+  it("reuses loaded transcript words when a scene is collapsed and reopened", async () => {
+    const song = {
+      ...makeSong([makeScene({ index: 7, target_text: "cache me" })]),
+      slug: "dedupe-song",
+    };
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/transcript")) {
+        return { ok: true, status: 200, json: async () => transcriptPayload(song.scenes[0]!) } as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}) } as Response;
+    });
+    globalThis.fetch = fetchSpy;
+    const { container } = render(
+      <Storyboard song={song} cameraIntents={["static hold"]}
+        playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />,
+    );
+
+    const expando = container.querySelector<HTMLButtonElement>(".expando")!;
+    await userEvent.click(expando);
+    expect(await screen.findByRole("button", { name: "cache" })).toBeInTheDocument();
+    await userEvent.click(expando);
+    await userEvent.click(expando);
+    expect(await screen.findByRole("button", { name: "me" })).toBeInTheDocument();
+
+    const transcriptCalls = fetchSpy.mock.calls.filter(call => String(call[0]).endsWith("/transcript"));
+    expect(transcriptCalls).toHaveLength(1);
+  });
+
+  it("preserves focused field text when the parent rerenders with unchanged scene data", async () => {
+    const scene = makeScene({ index: 1, beat: "old beat" });
+    const song = makeSong([scene]);
+    const { container, rerender } = render(<Storyboard song={song} cameraIntents={["static hold"]}
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
+    await expandAll(container);
+
+    const beatField = screen.getByDisplayValue("old beat");
+    await userEvent.click(beatField);
+    await userEvent.clear(beatField);
+    await userEvent.type(beatField, "draft beat");
+    rerender(<Storyboard song={{ ...song, scenes: [{ ...scene }] }} cameraIntents={["static hold"]}
+      playingSceneIdx={null} onSeekToScene={() => {}} onPatch={() => {}} />);
+
+    expect(screen.getByDisplayValue("draft beat")).toHaveFocus();
+  });
+
   it("saves on blur via PATCH and calls onPatch", async () => {
     const song = makeSong([makeScene({ index: 1, beat: "old" })]);
     const onPatch = vi.fn();

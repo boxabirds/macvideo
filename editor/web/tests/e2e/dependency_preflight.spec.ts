@@ -28,6 +28,6 @@ test.describe("Dependency preflight", () => {
 
     const error = page.locator(".pipeline-error").first();
     await expect(error).toContainText(/renderer_provider_missing|dependency_preflight_failed/i);
-    await expect(error).not.toContainText(/pocs\/|29-full-song|gen_keyframes\.py|render_clips\.py/i);
+    await expect(error).toContainText(/configured product render adapter/i);
   });
 });

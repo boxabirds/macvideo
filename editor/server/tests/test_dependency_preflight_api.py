@@ -28,7 +28,7 @@ def test_stage_preflight_blocks_missing_render_provider_before_run(
     body = r.json()["detail"]
     assert body["code"] == "dependency_preflight_failed"
     assert body["missing"][0]["code"] == "renderer_provider_missing"
-    assert "pocs/" not in body["reason"]
+    assert body["reason"] == "rendering requires a configured product render adapter before it can start."
 
     from editor.server.store import connection
     with connection(tmp_env["db"]) as c:
@@ -81,4 +81,4 @@ def test_scene_regen_preflight_blocks_missing_render_provider(
     body = r.json()["detail"]
     assert body["code"] == "dependency_preflight_failed"
     assert body["missing"][0]["code"] == "renderer_provider_missing"
-    assert "pocs/" not in body["reason"]
+    assert body["reason"] == "rendering requires a configured product render adapter before it can start."

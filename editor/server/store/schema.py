@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS regen_runs (
     scope               TEXT NOT NULL
                             CHECK (scope IN ('scene_keyframe', 'scene_clip',
                                              'song_filter', 'song_abstraction',
-                                             'stage_transcribe', 'stage_audio_transcribe',
+                                             'stage_audio_transcribe',
                                              'stage_world_brief',
                                              'stage_storyboard', 'stage_image_prompts',
                                              'stage_keyframes', 'final_video')),
@@ -256,28 +256,6 @@ def init_db(path: Path) -> None:
             c.execute("ALTER TABLE regen_runs ADD COLUMN progress_pct INTEGER")
         if "phase" not in cols:
             c.execute("ALTER TABLE regen_runs ADD COLUMN phase TEXT")
-        # Story 14 migration: rebuild regen_runs if its CHECK constraint
-        # predates the stage_audio_transcribe scope. SQLite can't ALTER a
-        # CHECK in place, so we detect the old form via sqlite_master and
-        # rebuild the table on first startup with the new schema.
-        old_def = c.execute(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name='regen_runs'",
-        ).fetchone()
-        if old_def and "stage_audio_transcribe" not in old_def[0]:
-            c.execute("ALTER TABLE regen_runs RENAME TO _regen_runs_old")
-            c.executescript(_SCHEMA_SQL)
-            c.execute("""
-                INSERT INTO regen_runs
-                  (id, scope, song_id, scene_id, artefact_kind, status,
-                   quality_mode, cost_estimate_usd, started_at, ended_at,
-                   error, progress_pct, phase, created_at)
-                SELECT
-                   id, scope, song_id, scene_id, artefact_kind, status,
-                   quality_mode, cost_estimate_usd, started_at, ended_at,
-                   error, progress_pct, NULL AS phase, created_at
-                FROM _regen_runs_old
-            """)
-            c.execute("DROP TABLE _regen_runs_old")
         c.commit()
 
 

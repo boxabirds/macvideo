@@ -13,7 +13,7 @@ export type StageKey =
   | "image_prompts" | "keyframes" | "final_video";
 
 export type StageScope =
-  | "stage_transcribe" | "stage_audio_transcribe" | "stage_world_brief"
+  | "stage_audio_transcribe" | "stage_world_brief"
   | "stage_storyboard" | "stage_image_prompts" | "stage_keyframes"
   | "final_video";
 
@@ -46,7 +46,7 @@ export type WorkflowStageState = {
 };
 
 export const STAGES: readonly StageDef[] = [
-  { key: "transcription",  label: "transcription",     stageName: "transcribe",    scope: "stage_transcribe",         historyModel: "replace" },
+  { key: "transcription",  label: "transcription",     stageName: "transcribe",    scope: "stage_audio_transcribe",   historyModel: "replace" },
   { key: "world_brief",    label: "world description", stageName: "world-brief",   scope: "stage_world_brief",       historyModel: "replace" },
   { key: "storyboard",     label: "storyboard",        stageName: "storyboard",    scope: "stage_storyboard",         historyModel: "replace" },
   { key: "image_prompts",  label: "image prompts",     stageName: "image-prompts", scope: "stage_image_prompts",      historyModel: "replace" },
@@ -117,7 +117,7 @@ export function deriveSegmentStatus(args: {
 
 export function stageMatchesRun(stage: StageDef, run: RegenRunSummary): boolean {
   return stage.key === "transcription"
-    ? (run.scope === "stage_transcribe" || run.scope === "stage_audio_transcribe")
+    ? run.scope === "stage_audio_transcribe"
     : run.scope === stage.scope;
 }
 

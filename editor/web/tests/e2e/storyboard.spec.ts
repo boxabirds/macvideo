@@ -24,6 +24,47 @@ async function expandRow(page: import("@playwright/test").Page, sceneIndex: numb
 }
 
 test.describe("Storyboard", () => {
+  test("editing text survives progress-only background pipeline updates", async ({ page }) => {
+    let regenCalls = 0;
+    await page.route(`**/api/songs/${SONG_SLUG}/regen`, async route => {
+      regenCalls += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          runs: [{
+            id: 9001,
+            scope: "scene_keyframe",
+            song_id: 1,
+            scene_id: 1,
+            scene_index: 1,
+            artefact_kind: "keyframe",
+            status: "running",
+            quality_mode: "draft",
+            cost_estimate_usd: null,
+            started_at: 1,
+            ended_at: null,
+            error: null,
+            progress_pct: Math.min(99, regenCalls * 10),
+            phase: "rendering",
+            created_at: 1,
+          }],
+        }),
+      });
+    });
+    await gotoEditor(page);
+    await expandRow(page, 1);
+    const row = page.locator('.scene-row[data-scene-index="1"]');
+    const beat = row.locator("textarea").first();
+    await beat.click();
+    await beat.fill("draft survives background progress");
+
+    await expect.poll(() => regenCalls, { timeout: 5000 }).toBeGreaterThan(1);
+    await expect(beat).toHaveValue("draft survives background progress");
+    await expect(beat).toBeFocused();
+    await expect(row.locator(".chip.keyframe")).toHaveClass(/in_progress/);
+  });
+
   test("edit beat, blur, reload, edit persists", async ({ page }) => {
     await gotoEditor(page);
     await expandRow(page, 1);

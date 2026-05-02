@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Literal
 
 from .audio_transcribe import _resolve_demucs_script, _resolve_whisperx_script
-from .paths import poc_scripts_root, resolve_song_paths
+from .paths import resolve_song_paths
 
 
 StageName = Literal[
@@ -140,14 +140,13 @@ def preflight_stage(*, slug: str, stage: StageName) -> PreflightResult:
     from .. import config as _cfg
 
     missing: list[MissingDependency] = []
-    scripts = poc_scripts_root()
     paths = resolve_song_paths(
         outputs_root=_cfg.OUTPUTS_DIR,
         music_root=_cfg.MUSIC_DIR,
         slug=slug,
     )
 
-    if stage == "audio-transcribe":
+    if stage in {"audio-transcribe", "transcribe"}:
         _append_if_missing(
             missing,
             _missing_script(_resolve_demucs_script(), "demucs_command_missing", "audio separation"),
@@ -161,29 +160,6 @@ def preflight_stage(*, slug: str, stage: StageName) -> PreflightResult:
                 code="audio_missing",
                 detail="audio transcription requires a song audio file before it can start.",
                 affected_action="audio transcription",
-            ))
-    elif stage == "transcribe":
-        _append_if_missing(
-            missing,
-            _missing_script(
-                _script_from_env("EDITOR_FAKE_WHISPERX_ALIGN", scripts / "whisperx_align.py"),
-                "legacy_alignment_command_missing",
-                "legacy transcription",
-            ),
-        )
-        _append_if_missing(
-            missing,
-            _missing_script(
-                _script_from_env("EDITOR_FAKE_MAKE_SHOTS", scripts / "make_shots.py"),
-                "legacy_shot_planning_command_missing",
-                "legacy transcription",
-            ),
-        )
-        if not paths.music_wav.exists():
-            missing.append(MissingDependency(
-                code="audio_missing",
-                detail="legacy transcription requires a song audio file before it can start.",
-                affected_action="legacy transcription",
             ))
     elif stage in {"world-brief", "storyboard", "image-prompts"}:
         _append_if_missing(missing, _missing_text_generation_provider("generation"))

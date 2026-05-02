@@ -87,7 +87,7 @@ def test_production_audio_transcribe_scripts_exist(monkeypatch):
     assert whisperx_script == (
         _REPO_ROOT / "editor" / "server" / "pipeline" / "scripts" / "whisperx_transcribe.py"
     )
-    assert "pocs" not in whisperx_script.parts
+    assert "experiments" not in whisperx_script.parts
 
     help_result = subprocess.run(
         [sys.executable, str(demucs_script), "--help"],
@@ -133,7 +133,7 @@ def test_product_whisperx_invocation_uses_stable_flag_contract(tmp_path):
     script, args = _resolve_whisperx_invocation(vocals, out)
 
     assert script == _resolve_whisperx_script()
-    assert "pocs" not in script.parts
+    assert "experiments" not in script.parts
     assert args == ["--audio", str(vocals), "--out", str(out)]
 
 
@@ -152,7 +152,7 @@ def test_fake_whisperx_invocation_uses_flag_contract(tmp_path, monkeypatch):
 
 def test_product_whisperx_wrapper_transcribes_with_owned_cli(tmp_path, monkeypatch):
     script = _resolve_whisperx_script()
-    assert "pocs" not in script.parts
+    assert "experiments" not in script.parts
 
     fake_module_dir = tmp_path / "fake_module"
     fake_module_dir.mkdir()
@@ -172,7 +172,7 @@ def test_product_whisperx_wrapper_transcribes_with_owned_cli(tmp_path, monkeypat
 
     assert result.returncode == 0, result.stderr
     assert "Usage:" not in result.stderr
-    assert "pocs/30-whisper-timestamped" not in result.stderr
+    assert "transcribe_whisperx_noprompt" not in result.stderr
     assert '"method": "whisperx_transcribe"' in out.read_text()
     assert "product wrapper segment" in out.read_text()
 
@@ -182,7 +182,7 @@ def test_run_audio_transcribe_uses_product_whisperx_without_poc_usage(
 ):
     script = _resolve_whisperx_script()
     assert script.exists()
-    assert "pocs" not in script.parts
+    assert "experiments" not in script.parts
 
     fake_module_dir = tmp_path / "fake_module"
     fake_module_dir.mkdir()
@@ -211,7 +211,7 @@ def test_run_audio_transcribe_uses_product_whisperx_without_poc_usage(
         {"text": "product wrapper segment", "start": 0.0, "end": 1.2},
     ]
     assert "Usage:" not in result.stderr_tail
-    assert "pocs/30-whisper-timestamped" not in result.stderr_tail
+    assert "transcribe_whisperx_noprompt" not in result.stderr_tail
 
 
 def test_demucs_wrapper_copies_documented_output_layout(tmp_path, monkeypatch):

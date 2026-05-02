@@ -1,14 +1,4 @@
-"""Placeholder handlers for regen stages.
-
-The full stage runners that shell out to `gen_keyframes.py` /
-`render_clips.py` are out of scope for this first implementation pass; these
-stubs exist so the API surface (POST /api/.../scenes/.../takes etc.) is
-exercisable end-to-end. Each stub sleeps briefly, creates a take pointing at
-the scene's first existing asset (or a placeholder path), and returns.
-
-This means the editor can run its full UI loop now; swapping in the real
-subprocess handlers is a localised backend change later.
-"""
+"""Placeholder handlers for regen tests."""
 
 from __future__ import annotations
 

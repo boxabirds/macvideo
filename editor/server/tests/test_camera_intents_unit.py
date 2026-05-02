@@ -4,10 +4,8 @@ The frontend Storyboard's camera_intent `<select>` is populated at runtime
 from /api/camera-intents (story 3 test-strategy: "camera-intent list sync
 test is unit-level because it's pure constant comparison").
 
-This test pins the 11-value vocabulary so any drift between the constant
-used in scenes.py, the one documented in docs/research/, and the LTX
-render_clips.py side breaks a fast unit test rather than only failing at
-integration time.
+This test pins the 11-value vocabulary so drift breaks a fast unit test
+rather than only failing at integration time.
 """
 
 from __future__ import annotations

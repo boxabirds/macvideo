@@ -7,7 +7,7 @@ Covers:
 - PATCH is 409 while a chain is in flight
 - quality-mode changes do NOT trigger the chain
 
-Uses fake_gen_keyframes.py so no Gemini calls fire.
+Uses product fake adapters so no external model calls fire.
 """
 
 from __future__ import annotations

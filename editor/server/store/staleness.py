@@ -26,8 +26,7 @@ _LOCAL_REGEN_FIELDS = {
 # the identity window.
 _IDENTITY_CHAIN_FIELDS = {"beat", "camera_intent", "subject_focus", "target_text"}
 
-# How many downstream neighbours share a keyframe's identity chain. Mirror of
-# IDENTITY_REF_WINDOW in gen_keyframes.py.
+# How many downstream neighbours share a keyframe's identity chain.
 IDENTITY_REF_WINDOW = 4
 
 

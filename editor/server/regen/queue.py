@@ -17,13 +17,11 @@ determines the run's terminal status:
 | StageResult(ok=True)     | done       | NULL                             |
 | StageResult(ok=False)    | failed     | stderr_tail / stdout_tail / code |
 | raises Exception         | failed     | str(exc) or type name            |
-| None / non-StageResult   | done       | NULL  (legacy paths preserved)   |
+| None / non-StageResult   | done       | NULL                             |
 
-Handlers that wrap run_gen_keyframes_for_stage (api/stages.py +
-api/songs.py PATCH chain) MUST return the StageResult so non-zero
-subprocess exits become user-visible failed runs. Scene regen handlers
-(api/regen.py) and final-render (api/stages.py render-final) currently
-return None — that path is preserved by the legacy fallback.
+Product stage handlers should return StageResult so failed subprocess exits
+become user-visible failed runs. Handlers that intentionally return no result
+are treated as successful after they complete without raising.
 """
 
 from __future__ import annotations
@@ -37,7 +35,7 @@ from typing import Awaitable, Callable, Optional
 
 from .events import RegenEvent, hub
 from .runs import RegenRun, update_run_status
-from ..pipeline.stages import StageResult
+from ..pipeline.result import StageResult
 from ..store import connection
 
 

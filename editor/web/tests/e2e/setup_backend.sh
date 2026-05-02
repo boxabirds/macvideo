@@ -13,14 +13,6 @@ API_PORT="${EDITOR_E2E_API_PORT:-${EDITOR_API_PORT:-18000}}"
 uv run python "${FIXTURES_ROOT}/_build_tiny_song.py" >/dev/null
 uv run python "${FIXTURES_ROOT}/_build_fresh_songs.py" >/dev/null
 
-# Clear any leftover whisperx alignment cache files for the e2e fixture
-# slugs so each run exercises the fresh-cache path deterministically.
-# (Cache lives at pocs/29-full-song/whisperx_cache/<slug>.aligned.json
-# and persists across runs by design — test-isolation concern only.)
-WHISPERX_CACHE="${REPO_ROOT}/pocs/29-full-song/whisperx_cache"
-rm -f "${WHISPERX_CACHE}/fresh-song-wl.aligned.json"
-rm -f "${WHISPERX_CACHE}/fresh-song-nl.aligned.json"
-
 # Fresh temp dir per run so state doesn't leak between invocations.
 E2E_ROOT="$(mktemp -d -t macvideo-e2e-XXXXXX)"
 mkdir -p "${E2E_ROOT}/music" "${E2E_ROOT}/outputs"

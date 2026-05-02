@@ -15,7 +15,6 @@ import {
   type SceneTake,
   type TranscriptResponse,
   applyTranscriptCorrection,
-  getSceneTranscript,
   listTakes,
   patchScene,
   redoTranscriptCorrection,
@@ -28,6 +27,7 @@ import {
   type SceneArtefactKind,
   sceneGenerationGate,
 } from "../lib/editorWorkflowState";
+import { useSceneTranscript } from "../hooks/useSceneTranscript";
 
 // Module-scoped retry queue. A queued retry is a field edit whose PATCH
 // failed with a network error (fetch threw — not an API-level validation
@@ -53,6 +53,7 @@ function isNetworkFailure(e: unknown): boolean {
 // After this we resume auto-scrolling the current scene into view.
 const SCROLL_OVERRIDE_MS = 3000;
 const SUMMARY_WORDS = 5;
+const noopSeekToTime = () => {};
 
 type EditableField =
   | "beat"
@@ -138,33 +139,37 @@ type Props = {
 };
 
 const SceneRow = memo(function SceneRow({
-  scene, cameraIntents, current, onClick, onPatch, slug, rowRef,
+  scene, cameraIntents, current, onSceneClick, onPatch, slug,
   activeArtefacts, expanded, onToggleExpanded, song, onSeekToTime,
 }: {
   song: SongDetail;
   scene: Scene;
   cameraIntents: string[];
   current: boolean;
-  onClick: () => void;
+  onSceneClick: (sceneIndex: number) => void;
   onSeekToTime: (timeSeconds: number) => void;
-  onPatch: (updated: Scene) => void;
+  onPatch: (sceneIndex: number, updated: Scene) => void;
   slug: string;
-  rowRef?: (el: HTMLDivElement | null) => void;
   activeArtefacts: Set<ActiveArtefacts>;
   expanded: boolean;
-  onToggleExpanded: () => void;
+  onToggleExpanded: (sceneIndex: number) => void;
 }) {
   // Per-field buffers so typing in one field doesn't re-render the others.
   const [beat, setBeat] = useState(scene.beat ?? "");
   const [subject, setSubject] = useState(scene.subject_focus ?? "");
   const [prompt, setPrompt] = useState(scene.image_prompt ?? "");
   const [camera, setCamera] = useState(scene.camera_intent ?? "");
-  const [transcriptWords, setTranscriptWords] = useState<TranscriptResponse["words"] | null>(null);
-  const [transcriptLoading, setTranscriptLoading] = useState(false);
   const [selection, setSelection] = useState<null | { start: number; end: number }>(null);
   const [correctionModal, setCorrectionModal] = useState<null | { text: string; error: string | null; busy: boolean }>(null);
   const selectingRef = useRef(false);
   const selectionRef = useRef<null | { start: number; end: number }>(null);
+  const {
+    words: transcriptWords,
+    targetText: transcriptTargetText,
+    error: transcriptError,
+    isLoading: transcriptLoading,
+    setTranscriptResponse,
+  } = useSceneTranscript(slug, scene.index, scene.target_text, expanded);
 
   // Per-field saving + error state. `saving` is the set of fields with an
   // in-flight PATCH; `errors` is { field -> message } when PATCH failed and
@@ -184,20 +189,9 @@ const SceneRow = memo(function SceneRow({
     setSelection(next);
   }, []);
   useEffect(() => {
-    if (!expanded || transcriptWords !== null || transcriptLoading) return;
-    setTranscriptLoading(true);
-    getSceneTranscript(slug, scene.index)
-      .then(resp => {
-        setTranscriptWords(Array.isArray(resp.words) ? resp.words : []);
-        if (typeof resp.target_text === "string" && resp.target_text !== scene.target_text) {
-          onPatch({ ...scene, target_text: resp.target_text });
-        }
-      })
-      .catch(e => {
-        console.error("Transcript load failed", e);
-      })
-      .finally(() => setTranscriptLoading(false));
-  }, [expanded, transcriptWords, transcriptLoading, slug, scene, onPatch]);
+    if (typeof transcriptTargetText !== "string" || transcriptTargetText === scene.target_text) return;
+    onPatch(scene.index, { ...scene, target_text: transcriptTargetText });
+  }, [onPatch, scene, scene.target_text, transcriptTargetText]);
 
   const kfState = chipStateFor(scene, "keyframe", activeArtefacts.has("keyframe"));
   const clipState = chipStateFor(scene, "clip", activeArtefacts.has("clip"));
@@ -222,14 +216,14 @@ const SceneRow = memo(function SceneRow({
     setErrors(prev => ({ ...prev, [field]: undefined }));
     try {
       const updated = await patchScene(slug, scene.index, { [field]: newValue });
-      onPatch(updated);
+      onPatch(scene.index, updated);
     } catch (e) {
       if (isNetworkFailure(e)) {
         // Queue for retry on reconnect.
         retryQueue.push({
           slug, sceneIndex: scene.index, field, value: newValue,
           onAck: (updated) => {
-            onPatch(updated);
+            onPatch(scene.index, updated);
             setErrors(prev => ({ ...prev, [field]: undefined }));
           },
           onGiveUp: (msg) => {
@@ -268,10 +262,10 @@ const SceneRow = memo(function SceneRow({
   const canEditTranscript = selectedWords.length > 0;
 
   const applyTranscriptResponse = useCallback((resp: TranscriptResponse) => {
-    setTranscriptWords(resp.words);
+    void setTranscriptResponse(resp);
     updateSelection(null);
-    onPatch({ ...scene, target_text: resp.target_text });
-  }, [onPatch, scene, updateSelection]);
+    onPatch(scene.index, { ...scene, target_text: resp.target_text });
+  }, [onPatch, scene, setTranscriptResponse, updateSelection]);
 
   const seekToWordSelection = useCallback((nextSelection: { start: number; end: number }) => {
     if (!transcriptWords) return;
@@ -340,7 +334,6 @@ const SceneRow = memo(function SceneRow({
 
   return (
     <div
-      ref={rowRef}
       className={`scene-row${current ? " current" : ""}${expanded ? " expanded" : " collapsed"}`}
       role="article"
       data-scene-index={scene.index}
@@ -349,7 +342,7 @@ const SceneRow = memo(function SceneRow({
         className="scene-header"
         onClick={event => {
           if ((event.target as HTMLElement).closest(".scene-title")) return;
-          onClick();
+          onSceneClick(scene.index);
         }}
       >
         <button
@@ -359,7 +352,7 @@ const SceneRow = memo(function SceneRow({
           aria-expanded={expanded}
           onClick={e => {
             e.stopPropagation();
-            onToggleExpanded();
+            onToggleExpanded(scene.index);
           }}
         >
           {expanded ? "\u25BC" : "\u25B6"}
@@ -368,7 +361,7 @@ const SceneRow = memo(function SceneRow({
           className="scene-title"
           onDoubleClick={event => {
             event.stopPropagation();
-            if (!expanded) onToggleExpanded();
+            if (!expanded) onToggleExpanded(scene.index);
           }}
           title={expanded ? undefined : "Double-click to expand"}
         >
@@ -400,6 +393,9 @@ const SceneRow = memo(function SceneRow({
             </div>
             <div className="transcript-words" aria-label="Transcript words">
               {transcriptLoading ? <span className="transcript-empty">Loading transcript…</span> : null}
+              {!transcriptLoading && transcriptError ? (
+                <span className="transcript-empty">Transcript failed to load</span>
+              ) : null}
               {!transcriptLoading && transcriptWords && transcriptWords.length === 0 ? (
                 <span className="transcript-empty">No transcript words</span>
               ) : null}
@@ -493,7 +489,7 @@ const SceneRow = memo(function SceneRow({
             slug={slug} sceneIndex={scene.index}
             song={song}
             scene={scene}
-            onPatched={onPatch}
+            onPatched={updated => onPatch(scene.index, updated)}
           />
         </div>
       ) : null}
@@ -670,9 +666,6 @@ function RegenActions({
 export default function Storyboard({
   song, cameraIntents, playingSceneIdx, onSeekToScene, onSeekToTime, onPatch, activeRegens,
 }: Props) {
-  // Collect refs to scene rows so the parent can scroll the current scene
-  // into view when the preview advances it.
-  const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastUserScrollAt = useRef<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   // Collapsed-by-default: every row in the song starts hidden. Users click
@@ -743,14 +736,16 @@ export default function Storyboard({
     if (playingSceneIdx == null) return;
     const now = Date.now();
     if (now - lastUserScrollAt.current < SCROLL_OVERRIDE_MS) return;
-    const row = rowRefs.current.get(playingSceneIdx);
+    const row = containerRef.current?.querySelector<HTMLElement>(
+      `[data-scene-index="${playingSceneIdx}"]`,
+    );
     if (row && typeof row.scrollIntoView === "function") {
       row.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
   }, [playingSceneIdx]);
 
   const emptyActive = useRef<Set<ActiveArtefacts>>(new Set());
-  const seekToTime = onSeekToTime ?? (() => {});
+  const seekToTime = onSeekToTime ?? noopSeekToTime;
 
   return (
     <div className="storyboard" aria-label="Scene list" ref={containerRef}>
@@ -762,16 +757,12 @@ export default function Storyboard({
           scene={scene}
           cameraIntents={cameraIntents}
           current={scene.index === playingSceneIdx}
-          onClick={() => onSeekToScene(scene.index)}
+          onSceneClick={onSeekToScene}
           onSeekToTime={seekToTime}
-          onPatch={updated => onPatch(scene.index, updated)}
-          rowRef={el => {
-            if (el) rowRefs.current.set(scene.index, el);
-            else rowRefs.current.delete(scene.index);
-          }}
+          onPatch={onPatch}
           activeArtefacts={activeRegens?.[scene.index] ?? emptyActive.current}
           expanded={expanded.has(scene.index)}
-          onToggleExpanded={() => toggleExpanded(scene.index)}
+          onToggleExpanded={toggleExpanded}
         />
       ))}
     </div>

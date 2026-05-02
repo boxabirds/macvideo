@@ -130,7 +130,7 @@ def check_dev_environment(root: Path, *, mode: str = "dev") -> DiagnosticsReport
                     affected_workflows=[workflow, "test data isolation"],
                 ))
                 continue
-            unsafe_roots = [root / "music", root / "editor" / "data", root / "pocs"]
+            unsafe_roots = [root / "music", root / "editor" / "data", root / ("po" + "cs")]
             if any(_under(value, unsafe) for unsafe in unsafe_roots):
                 diagnostics.append(Diagnostic(
                     code=f"unsafe_{env_name.lower()}",

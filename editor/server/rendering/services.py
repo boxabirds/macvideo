@@ -12,12 +12,17 @@ from pathlib import Path
 from typing import Any, Literal, Protocol
 
 from .. import config as _cfg
-from ..pipeline.stages import StageResult
+from ..pipeline.result import StageResult
 from ..store import connection
 
 
 RenderStage = Literal["keyframes", "scene-keyframe", "scene-clip", "final-video"]
 ArtefactKind = Literal["keyframe", "clip"]
+
+QUALITY_MODE_DIMENSIONS = {
+    "draft": {"width": 512, "height": 320, "fps": 24},
+    "final": {"width": 1920, "height": 1088, "fps": 30},
+}
 
 
 @dataclass(frozen=True)

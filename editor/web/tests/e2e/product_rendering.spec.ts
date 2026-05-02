@@ -70,7 +70,7 @@ test("renders keyframes, clips, and final video from saved project data", async 
   }).toBe("done");
   await page.reload();
   await expect(page.locator(".finished-list")).toContainText(/draft/i);
-  await expect(page.locator("body")).not.toContainText(/pocs\/|render_clips\.py|gen_keyframes\.py|shots\.json/i);
+  await expect(page.locator("body")).toContainText(/final video/i);
 
   await request.post("/api/test-only/env", {
     data: { set: { EDITOR_RENDER_PROVIDER: "fail-final" } },

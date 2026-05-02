@@ -96,7 +96,7 @@ class SongWorkflowView:
 
 
 STAGE_DEFS: tuple[StageDef, ...] = (
-    StageDef("transcription", "transcription", "transcribe", "stage_transcribe", (), "replace"),
+    StageDef("transcription", "transcription", "transcribe", "stage_audio_transcribe", (), "replace"),
     StageDef("world_brief", "world description", "world-brief", "stage_world_brief", ("transcription",), "replace"),
     StageDef("storyboard", "storyboard", "storyboard", "stage_storyboard", ("world_brief",), "replace"),
     StageDef("image_prompts", "image prompts", "image-prompts", "stage_image_prompts", ("storyboard",), "replace"),
@@ -122,7 +122,6 @@ _OPERATION_BY_STAGE = {
 }
 
 _SCOPE_TO_KEY = {
-    "stage_transcribe": "transcription",
     "stage_audio_transcribe": "transcription",
     "stage_world_brief": "world_brief",
     "stage_storyboard": "storyboard",
@@ -150,7 +149,7 @@ def _run_ref(row: Any) -> RunRef:
 
 def _stage_for_run(stage: StageDef, run: RunRef) -> bool:
     if stage.key == "transcription":
-        return run.scope in ("stage_transcribe", "stage_audio_transcribe")
+        return run.scope == "stage_audio_transcribe"
     return _SCOPE_TO_KEY.get(run.scope) == stage.key
 
 
@@ -205,9 +204,6 @@ def describe_stage_progress(stage_key: str, run: RunRef | None, *, duration_s: f
             total = duration_s
             detail = "audio time processed"
         return StageProgressView(operation, detail, pct, processed, total)
-
-    if stage_key == "transcription":
-        return StageProgressView("Aligning lyrics", None, pct, None, duration_s)
 
     operation = _OPERATION_BY_STAGE.get(stage_key, "Running")
     return StageProgressView(operation, None, pct, None, None)

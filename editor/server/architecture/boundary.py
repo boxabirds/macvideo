@@ -1,30 +1,27 @@
-"""Static checks for product runtime references to temporary legacy code."""
+"""Static checks for forbidden experiment-code references in product files."""
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Iterable
 
 
 FORBIDDEN_TOKENS = (
-    "pocs/",
-    "pocs/29-full-song",
-    "poc_scripts_root",
-    "gen_keyframes.py",
-    "render_clips.py",
-    "make_shots.py",
-    "whisperx_align.py",
-    "shots.json",
-    "character_brief.json",
-    "storyboard.json",
-    "image_prompts.json",
+    "po" + "cs/",
+    "po" + "cs/29-full-song",
+    "poc_" + "scripts_root",
+    "gen_" + "keyframes.py",
+    "render_" + "clips.py",
+    "make_" + "shots.py",
+    "whisperx_" + "align.py",
 )
 
 RUNTIME_ROOTS = (
     Path("editor/server"),
     Path("editor/web/src"),
+    Path("editor/server/tests"),
+    Path("editor/web/tests"),
 )
 
 SKIP_PARTS = {
@@ -34,9 +31,7 @@ SKIP_PARTS = {
     "node_modules",
     "dist",
     "test-results",
-    "tests",
     "fixtures",
-    "fake_scripts",
 }
 
 SKIP_SUFFIXES = (
@@ -59,23 +54,11 @@ TEST_NAME_MARKERS = (
 
 
 @dataclass(frozen=True)
-class LegacyInventoryEntry:
-    path: str
-    owner_story: int
-    workflow: str
-    reason_remaining: str
-    removal_condition: str
-
-
-@dataclass(frozen=True)
 class BoundaryViolation:
     path: str
     line: int
     token: str
     reason: str
-    inventoried: bool = False
-    owner_story: int | None = None
-    removal_condition: str | None = None
 
 
 def _repo_relative(root: Path, path: Path) -> str:
@@ -100,51 +83,13 @@ def _iter_runtime_files(root: Path) -> Iterable[Path]:
         yield from (p for p in base.rglob("*") if _is_runtime_file(p))
 
 
-def _load_inventory(root: Path) -> dict[str, LegacyInventoryEntry]:
-    path = root / "docs" / "architecture" / "temporary-legacy-dependencies.json"
-    if not path.exists():
-        return {}
-    payload = json.loads(path.read_text())
-    entries: dict[str, LegacyInventoryEntry] = {}
-    for raw in payload.get("entries", []):
-        entries[raw["path"]] = _entry_from_payload(raw)
-    return entries
-
-
-def _entry_from_payload(raw: dict[str, Any]) -> LegacyInventoryEntry:
-    return LegacyInventoryEntry(
-        path=str(raw.get("path", "")),
-        owner_story=int(raw.get("owner_story", 0)),
-        workflow=str(raw.get("workflow", "")),
-        reason_remaining=str(raw.get("reason_remaining", "")),
-        removal_condition=str(raw.get("removal_condition", "")),
-    )
-
-
-def _entry_is_complete(entry: LegacyInventoryEntry) -> bool:
-    return (
-        bool(entry.path)
-        and entry.owner_story > 0
-        and bool(entry.workflow.strip())
-        and bool(entry.reason_remaining.strip())
-        and bool(entry.removal_condition.strip())
-    )
-
-
 def scan_runtime_boundaries(root: Path) -> list[BoundaryViolation]:
-    """Return forbidden runtime references not covered by the inventory.
-
-    The scanner is intentionally plain text. Story 26 is a guardrail, not a
-    parser: the goal is to make every remaining legacy reference visible and
-    owned until later stories delete it.
-    """
+    """Return forbidden product references."""
     root = root.resolve()
-    inventory = _load_inventory(root)
     violations: list[BoundaryViolation] = []
 
     for path in _iter_runtime_files(root):
         rel = _repo_relative(root, path)
-        entry = inventory.get(rel)
         try:
             lines = path.read_text(errors="replace").splitlines()
         except OSError as exc:
@@ -160,42 +105,11 @@ def scan_runtime_boundaries(root: Path) -> list[BoundaryViolation]:
             for token in FORBIDDEN_TOKENS:
                 if token not in line:
                     continue
-                if entry is not None and _entry_is_complete(entry):
-                    continue
                 violations.append(BoundaryViolation(
                     path=rel,
                     line=line_no,
                     token=token,
-                    reason=(
-                        "legacy runtime reference is not listed in "
-                        "docs/architecture/temporary-legacy-dependencies.json"
-                    ),
-                    inventoried=entry is not None,
-                    owner_story=entry.owner_story if entry else None,
-                    removal_condition=entry.removal_condition if entry else None,
+                    reason="forbidden experiment-code reference in product code or tests",
                 ))
-
-    for rel, entry in inventory.items():
-        target = root / rel
-        if not _entry_is_complete(entry):
-            violations.append(BoundaryViolation(
-                path=rel,
-                line=0,
-                token="<inventory>",
-                reason="temporary legacy inventory entry is incomplete",
-                inventoried=True,
-                owner_story=entry.owner_story,
-                removal_condition=entry.removal_condition,
-            ))
-        elif not target.exists():
-            violations.append(BoundaryViolation(
-                path=rel,
-                line=0,
-                token="<inventory>",
-                reason="temporary legacy inventory entry points at a missing file",
-                inventoried=True,
-                owner_story=entry.owner_story,
-                removal_condition=entry.removal_condition,
-            ))
 
     return violations

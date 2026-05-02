@@ -2,7 +2,7 @@
 // playhead. The useAudioPlayback hook (story 13) owns audio events; Preview
 // only consumes its outputs and never writes audio.currentTime in response
 // to a state change.
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import type { Scene, SongDetail } from "../types";
 import { assetUrl } from "../format";
 
@@ -16,17 +16,18 @@ const TIMELINE_SCROLL_OVERRIDE_MS = 3000;
 const VIDEO_SYNC_DRIFT_S = 0.35;
 
 const Thumbnail = memo(function Thumbnail({
-  scene, current, onClick, thumbRef,
+  scene, current, onClick,
 }: {
   scene: Scene;
   current: boolean;
-  onClick: () => void;
-  thumbRef?: (el: HTMLDivElement | null) => void;
+  onClick: (sceneIndex: number) => void;
 }) {
   const src = scene.selected_keyframe_path ? assetUrl(scene.selected_keyframe_path) : "";
   return (
-    <div ref={thumbRef}
-         className={`thumb${current ? " current" : ""}`} onClick={onClick}
+    <div
+         className={`thumb${current ? " current" : ""}`}
+         data-scene-index={scene.index}
+         onClick={() => onClick(scene.index)}
          title={`#${scene.index} · ${scene.target_text}\n[${scene.start_s.toFixed(1)}s–${scene.end_s.toFixed(1)}s]`}
          role="button">
       {src ? <img src={src} loading="lazy" alt="" /> : null}
@@ -50,16 +51,19 @@ export default function Preview({
 }: PreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
-  const thumbRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastTimelineUserScrollAt = useRef<number>(0);
 
   const audioSrc = assetUrl(song.audio_path);
+  const sceneByIndex = useMemo(
+    () => new Map(song.scenes.map(scene => [scene.index, scene])),
+    [song.scenes],
+  );
 
   // viewerScene is derived from props. No state. The hook decides which
   // scene is "playing"; Preview just renders it.
   const viewerScene =
     (playingSceneIdx != null
-      ? song.scenes.find(s => s.index === playingSceneIdx)
+      ? sceneByIndex.get(playingSceneIdx)
       : undefined) ?? song.scenes[0] ?? null;
 
   // Video sync: when a clip is selected, drive the <video> element from the
@@ -115,8 +119,8 @@ export default function Preview({
     };
   }, [audioRef, viewerScene?.selected_clip_path, viewerScene?.start_s, viewerScene?.target_duration_s]);
 
-  const handleThumbnailClick = useCallback((s: Scene) => {
-    onSeekToScene(s.index);
+  const handleThumbnailClick = useCallback((sceneIndex: number) => {
+    onSeekToScene(sceneIndex);
   }, [onSeekToScene]);
 
   // Track user scroll gestures on the timeline so the auto-follow effect
@@ -138,7 +142,9 @@ export default function Preview({
     if (!viewerScene) return;
     const now = Date.now();
     if (now - lastTimelineUserScrollAt.current < TIMELINE_SCROLL_OVERRIDE_MS) return;
-    const el = thumbRefs.current.get(viewerScene.index);
+    const el = timelineRef.current?.querySelector<HTMLElement>(
+      `[data-scene-index="${viewerScene.index}"]`,
+    );
     // jsdom doesn't implement scrollIntoView; tests may also not stub it.
     if (el && typeof el.scrollIntoView === "function") {
       el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
@@ -206,11 +212,7 @@ export default function Preview({
             key={scene.index}
             scene={scene}
             current={scene.index === viewerScene?.index}
-            onClick={() => handleThumbnailClick(scene)}
-            thumbRef={el => {
-              if (el) thumbRefs.current.set(scene.index, el);
-              else thumbRefs.current.delete(scene.index);
-            }}
+            onClick={handleThumbnailClick}
           />
         ))}
       </div>

@@ -20,7 +20,7 @@ function makeScene(i: number, extras: Partial<Scene> = {}): Scene {
     next_link: null,
     image_prompt: "prompt",
     prompt_is_user_authored: false,
-    selected_keyframe_path: `/x/pocs/29-full-song/outputs/tiny/keyframes/kf_${i}.png`,
+    selected_keyframe_path: `/x/editor/data/outputs/tiny/keyframes/kf_${i}.png`,
     selected_clip_path: null,
     missing_assets: [],
     dirty_flags: [],
@@ -71,7 +71,7 @@ describe("Preview", () => {
   });
 
   it("renders a clip video when a clip is selected", () => {
-    const scenes = [makeScene(1, { selected_clip_path: "/x/pocs/29-full-song/outputs/tiny/clips/clip_001.mp4" })];
+    const scenes = [makeScene(1, { selected_clip_path: "/x/editor/data/outputs/tiny/clips/clip_001.mp4" })];
     const { container } = render(
       <PreviewHarness song={makeSong(scenes)} playingSceneIdx={1} />,
     );

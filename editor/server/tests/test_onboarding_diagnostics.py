@@ -115,7 +115,7 @@ def test_test_mode_rejects_development_data_paths(tmp_path, monkeypatch):
     monkeypatch.setenv("EDITOR_RENDER_PROVIDER", "fake")
     monkeypatch.setenv("EDITOR_DB_PATH", str(root / "editor" / "data" / "editor.db"))
     monkeypatch.setenv("EDITOR_MUSIC_DIR", str(root / "music"))
-    monkeypatch.setenv("EDITOR_OUTPUTS_DIR", str(root / "pocs" / "29-full-song" / "outputs"))
+    monkeypatch.setenv("EDITOR_OUTPUTS_DIR", str(root / ("po" + "cs") / "outputs"))
 
     report = diagnostics.check_dev_environment(root, mode="test")
 

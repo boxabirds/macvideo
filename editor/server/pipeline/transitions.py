@@ -38,7 +38,6 @@ CONFLICT_SCOPES = {
     "stage_storyboard",
     "stage_image_prompts",
     "stage_keyframes",
-    "stage_transcribe",
     "stage_audio_transcribe",
 }
 

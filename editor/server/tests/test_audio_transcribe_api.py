@@ -115,23 +115,6 @@ def test_post_blocks_on_existing_audio_transcribe_run(client_for, fresh_song_wit
     assert r.json()["detail"]["reason_code"] == "workflow_busy"
 
 
-# ---------- 5. cross-stage block: stage_transcribe also blocks ------------
-
-def test_post_blocks_on_existing_transcribe_run(client_for, fresh_song_with_audio):
-    slug = fresh_song_with_audio["slug"]
-    from editor.server.store import connection
-    with connection(fresh_song_with_audio["tmp_env"]["db"]) as c:
-        song_id = c.execute("SELECT id FROM songs WHERE slug = ?", (slug,)).fetchone()["id"]
-        c.execute(
-            "INSERT INTO regen_runs (scope, song_id, status, created_at) "
-            "VALUES ('stage_transcribe', ?, 'pending', strftime('%s', 'now'))",
-            (song_id,),
-        )
-    r = client_for.post(f"/api/songs/{slug}/audio-transcribe?force=true")
-    assert r.status_code == 409
-    assert r.json()["detail"]["reason_code"] == "workflow_busy"
-
-
 def test_post_blocks_on_any_running_workflow_stage(client_for, fresh_song_with_audio):
     slug = fresh_song_with_audio["slug"]
     from editor.server.store import connection

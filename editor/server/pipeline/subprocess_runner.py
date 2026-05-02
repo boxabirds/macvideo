@@ -1,14 +1,8 @@
-"""Common subprocess wrapper used by every pipeline handler.
+"""Common subprocess wrapper for product pipeline adapters.
 
-The POC 29 scripts (gen_keyframes.py, render_clips.py) emit progress via
-stdout lines like `[Pass A] 12.3s ...`, `[shot 042] keyframe 18.5s ...`, or
-`[shot 042] clip OK (35s, 33f)`. We stream those lines, match known
-patterns, and pump a progress callback so the editor can update DB state /
-emit SSE events while the subprocess is still running.
-
-Tests pass a `script_path` pointing at a fake script under
-editor/server/tests/fake_scripts/ so the real orchestration code runs
-without making Gemini / LTX calls.
+The wrapper streams stdout, matches known progress patterns, and pumps a
+progress callback so the editor can update DB state or emit SSE events while
+the subprocess is still running.
 """
 
 from __future__ import annotations
@@ -27,8 +21,8 @@ from typing import Callable, Optional
 
 # ---------- progress parsing ------------------------------------------------
 
-# Matches the stdout shape used by gen_keyframes.py + render_clips.py so the
-# editor can attribute each line to a stage / scene.
+# Matches product adapter progress lines so the editor can attribute each line
+# to a stage or scene.
 _RE_PASS_A_DONE = re.compile(r"^\[Pass A\]\s+(?:cached|\d+(?:\.\d+)?s)")
 _RE_PASS_C_DONE = re.compile(r"^\[Pass C\]\s+(?:cached|\d+(?:\.\d+)?s)")
 _RE_PASS_B = re.compile(r"^\[shot\s+(\d+)\]\s+Pass B")

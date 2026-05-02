@@ -13,7 +13,7 @@ from pathlib import Path
 
 @dataclass
 class SongPaths:
-    """Absolute paths the POC scripts need for a given song."""
+    """Absolute product paths for a given song."""
     run_dir: Path
     music_wav: Path
     lyrics_txt: Path
@@ -52,11 +52,3 @@ def resolve_song_paths(
         keyframes_dir=run_dir / "keyframes",
         clips_dir=run_dir / "clips",
     )
-
-
-def poc_scripts_root() -> Path:
-    """Repo root → pocs/29-full-song/scripts/."""
-    here = Path(__file__).resolve()
-    # editor/server/pipeline/paths.py → editor/server/pipeline → editor/server → editor → repo
-    repo_root = here.parents[3]
-    return repo_root / "pocs" / "29-full-song" / "scripts"

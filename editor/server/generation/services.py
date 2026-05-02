@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Literal, Protocol
 
 from .. import config as _cfg
-from ..pipeline.stages import StageResult
+from ..pipeline.result import StageResult
 from ..store import connection
 
 

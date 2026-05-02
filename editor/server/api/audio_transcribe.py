@@ -29,7 +29,7 @@ from ..pipeline.audio_transcribe import (
 from ..pipeline.lyric_lines import format_segments_for_scene_drafts
 from ..pipeline.paths import resolve_song_paths
 from ..pipeline.preflight import preflight_stage
-from ..pipeline.stages import StageResult
+from ..pipeline.result import StageResult
 from ..regen.queue import RegenJob, keyframe_queue
 from ..regen.runs import (
     create_run, get_run, update_run_phase, update_run_progress,
@@ -69,6 +69,10 @@ async def trigger_audio_transcribe(
     force: bool = Query(default=False),
     conn=Depends(get_db),
 ):
+    return queue_audio_transcribe_job(conn=conn, slug=slug, force=force)
+
+
+def queue_audio_transcribe_job(*, conn, slug: str, force: bool = False) -> dict[str, object]:
     song = conn.execute(
         "SELECT id, quality_mode, filter, abstraction FROM songs WHERE slug = ?",
         (slug,),
@@ -96,7 +100,12 @@ async def trigger_audio_transcribe(
         })
 
     transcription_state = evaluate_song_workflow(conn, song["id"]).stages["transcription"].state
-    action = "regenerate" if force and transcription_state in ("done", "stale") else "start"
+    if force and transcription_state == "retryable":
+        action = "retry"
+    elif force and transcription_state in ("done", "stale"):
+        action = "regenerate"
+    else:
+        action = "start"
     plan = plan_workflow_transition(
         conn,
         song_id=song["id"],

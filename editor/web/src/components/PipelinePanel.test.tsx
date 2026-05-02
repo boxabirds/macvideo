@@ -7,7 +7,7 @@ import type { RegenRunSummary } from "../api";
 
 function transcribeRun(overrides: Partial<RegenRunSummary> = {}): RegenRunSummary {
   return {
-    id: 1, scope: "stage_transcribe", song_id: 1, scene_id: null,
+    id: 1, scope: "stage_audio_transcribe", song_id: 1, scene_id: null,
     scene_index: null, artefact_kind: null, status: "running",
     quality_mode: null, cost_estimate_usd: null, started_at: 1, ended_at: null,
     error: null, progress_pct: null, phase: null, created_at: 1,
@@ -88,7 +88,7 @@ function backendStage(
 
 function backendWorkflow(overrides: Partial<Record<string, Partial<BackendWorkflowStage>>> = {}) {
   const base = {
-    transcription: backendStage("transcription", "transcription", "done", { scope: "stage_transcribe", stage_name: "transcribe" }),
+    transcription: backendStage("transcription", "transcription", "done", { scope: "stage_audio_transcribe", stage_name: "transcribe" }),
     world_brief: backendStage("world_brief", "world description", "done", { stage_name: "world-brief" }),
     storyboard: backendStage("storyboard", "storyboard", "done"),
     image_prompts: backendStage("image_prompts", "image prompts", "done", { stage_name: "image-prompts", summary: " (1/1)" }),
@@ -175,18 +175,18 @@ describe("PipelinePanel", () => {
       .toEqual({ world_brief: "edited" });
   });
 
-  it("transcribe row shows spinner + ETA when an active transcribe run exists", () => {
-    const song = makeSong({ duration_s: 180 });  // 180s × 0.5 = 90s ETA
+  it("transcribe row shows spinner when an active transcribe run exists", () => {
+    const song = makeSong({ duration_s: 180 });
     render(
       <PipelinePanel
         song={song}
         status={status({ transcription: "empty" })}
-        regenRuns={[transcribeRun({ status: "running" })]}
+        regenRuns={[transcribeRun({ status: "running", started_at: null })]}
       />,
     );
     const row = screen.getByText(/transcription/).closest(".pipeline-stage")!;
     expect(row).toHaveClass("running");
-    expect(row.textContent).toContain("about 90 seconds left");
+    expect(row.textContent).toContain("Preparing");
     // Run button is disabled (showing the ellipsis) so the user can't double-click.
     const btn = row.querySelector("button")!;
     expect(btn).toBeDisabled();
@@ -218,7 +218,7 @@ describe("PipelinePanel", () => {
     expect(screen.getByRole("button", { name: /Try again/i })).toBeInTheDocument();
   });
 
-  it("Try again button POSTs /stages/transcribe with redo=true", async () => {
+  it("Try again button POSTs /audio-transcribe with force=true", async () => {
     const fetchSpy = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: async () => ({ run_id: 2, status: "pending" }),
     } as Response);
@@ -240,11 +240,11 @@ describe("PipelinePanel", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: /Try again/i }));
     await new Promise(r => setTimeout(r, 10));
-    const stageCall = fetchSpy.mock.calls
+    const transcribeCall = fetchSpy.mock.calls
       .map(c => c[0] as string)
-      .find(u => u.includes("/stages/transcribe"));
-    expect(stageCall).toBeDefined();
-    expect(stageCall!).toContain("redo=true");
+      .find(u => u.includes("/audio-transcribe"));
+    expect(transcribeCall).toBeDefined();
+    expect(transcribeCall!).toContain("force=true");
   });
 
   it("Try again optimistically dismisses the failed banner before the next poll", async () => {
@@ -276,8 +276,7 @@ describe("PipelinePanel", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("transcribe ETA uses progress_pct + started_at when present", () => {
-    // pct=10, elapsed=3s → totalEstimated = 30s, remaining = 27s → round to 25s.
+  it("transcribe progress shows processed audio time when present", () => {
     const fixedNowMs = 1_700_000_000_000;
     vi.spyOn(Date, "now").mockReturnValue(fixedNowMs);
     const startedAt = fixedNowMs / 1000 - 3;
@@ -286,13 +285,13 @@ describe("PipelinePanel", () => {
         song={makeSong()}
         status={status({ transcription: "empty" })}
         regenRuns={[transcribeRun({
-          status: "running", started_at: startedAt, progress_pct: 10,
+          status: "running", started_at: startedAt, progress_pct: 10, phase: "transcribing",
         })]}
       />,
     );
     const row = screen.getByText(/transcription/).closest(".pipeline-stage")!;
-    expect(row.textContent).toContain("Aligning lyrics");
-    expect(row.textContent).toContain("about 25 seconds left");
+    expect(row.textContent).toContain("Transcribing");
+    expect(row.textContent).toContain("processed");
   });
 
   it("active transcribe run wins over a stale failed one (no banner during retry)", () => {
@@ -593,15 +592,15 @@ describe("PipelinePanel", () => {
       ?.toHaveAttribute("aria-label", "running");
   });
 
-  it("Story 14: phase=null falls back to Story 12 ETA copy", () => {
+  it("Story 14: phase=null renders preparing copy", () => {
     render(
       <PipelinePanel
         song={makeSong({ scenes: [], duration_s: 60 })}
         status={status({ transcription: "empty" })}
-        regenRuns={[transcribeRun({ scope: "stage_transcribe", status: "running" })]}
+        regenRuns={[transcribeRun({ scope: "stage_audio_transcribe", status: "running" })]}
       />,
     );
-    expect(document.body.textContent).toMatch(/about \d+ seconds left/);
+    expect(document.body.textContent).toContain("Preparing");
   });
 
   it("Story 14: failed audio-transcribe Try-again calls audioTranscribe with force=true", async () => {

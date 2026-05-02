@@ -42,7 +42,7 @@ def test_audio_transcribe_reports_missing_audio_before_work(monkeypatch, tmp_pat
 
     assert not result.ok
     assert result.missing[-1].code == "audio_missing"
-    assert "pocs/" not in result.first_reason
+    assert result.first_reason == "audio transcription requires a song audio file before it can start."
 
 
 def test_audio_transcribe_reports_missing_configured_product_command(monkeypatch, tmp_path):
@@ -84,7 +84,7 @@ def test_rendering_reports_missing_provider(monkeypatch, tmp_path):
 
     assert not result.ok
     assert result.missing[0].code == "renderer_provider_missing"
-    assert "pocs/" not in result.missing[0].detail
+    assert result.missing[0].detail == "rendering requires a configured product render adapter before it can start."
 
 
 def test_unknown_stage_returns_typed_failure(monkeypatch, tmp_path):

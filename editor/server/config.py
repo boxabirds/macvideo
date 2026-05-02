@@ -23,4 +23,4 @@ DB_PATH = Path(os.environ.get("EDITOR_DB_PATH",
 
 MUSIC_DIR = Path(os.environ.get("EDITOR_MUSIC_DIR", REPO_ROOT / "music"))
 OUTPUTS_DIR = Path(os.environ.get("EDITOR_OUTPUTS_DIR",
-                                  REPO_ROOT / "pocs" / "29-full-song" / "outputs"))
+                                  EDITOR_ROOT / "data" / "outputs"))

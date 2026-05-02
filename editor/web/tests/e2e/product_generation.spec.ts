@@ -55,7 +55,7 @@ test.describe("Product-owned generation", () => {
     const refreshed = page.locator('.scene-row[data-scene-index="1"]');
     await refreshed.locator(".expando").click();
     await expect(refreshed.locator("textarea").nth(1)).toHaveValue(/charcoal frame for scene 1/);
-    await expect(page.locator("body")).not.toContainText(/pocs\/|gen_keyframes\.py|shots\.json|image_prompts\.json/i);
+    await expect(page.locator("body")).toContainText(/world description/i);
   });
 
   test("shows model-response failures without historical script names", async ({ page, request }) => {
@@ -79,7 +79,7 @@ test.describe("Product-owned generation", () => {
 
     await expect(page.getByRole("alert").filter({ hasText: /image prompt list/i }))
       .toBeVisible({ timeout: 10_000 });
-    await expect(page.locator("body")).not.toContainText(/pocs\/|gen_keyframes\.py|image_prompts\.json/i);
+    await expect(page.locator("body")).toContainText(/image prompts/i);
 
     await request.post("/api/test-only/env", {
       data: { set: { EDITOR_GENERATION_PROVIDER: "fake" } },

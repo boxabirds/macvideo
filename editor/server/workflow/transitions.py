@@ -36,7 +36,7 @@ STAGE_NAME_TO_KEY: Mapping[str, StageKey] = {
 }
 
 STAGE_KEY_TO_SCOPE: Mapping[StageKey, str] = {
-    "transcription": "stage_transcribe",
+    "transcription": "stage_audio_transcribe",
     "world_brief": "stage_world_brief",
     "storyboard": "stage_storyboard",
     "image_prompts": "stage_image_prompts",
@@ -45,7 +45,6 @@ STAGE_KEY_TO_SCOPE: Mapping[StageKey, str] = {
 }
 
 WORKFLOW_RUN_SCOPES = frozenset({
-    "stage_transcribe",
     "stage_audio_transcribe",
     "stage_world_brief",
     "stage_storyboard",
